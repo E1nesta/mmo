@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -100,6 +101,8 @@ TcpEnvelopeServer::TcpEnvelopeServer(std::uint16_t port, EnvelopeHandler handler
     : port_(port), handler_(std::move(handler)) {}
 
 int TcpEnvelopeServer::run() const {
+    ::signal(SIGPIPE, SIG_IGN);
+
     const int server_fd = make_server_socket(port_);
     if (server_fd < 0) {
         std::cerr << "failed to listen on port " << port_ << ": "
@@ -118,14 +121,12 @@ int TcpEnvelopeServer::run() const {
         }
 
         mmo::public_api::Envelope request;
-        mmo::public_api::Envelope response;
-        if (read_envelope(client_fd, request)) {
-            response = handler_(request);
-        } else {
-            response = mmo::runtime::protocol::make_error_envelope(
-                request, 400, "invalid envelope");
+        if (!read_envelope(client_fd, request)) {
+            ::close(client_fd);
+            continue;
         }
 
+        const mmo::public_api::Envelope response = handler_(request);
         write_envelope(client_fd, response);
         ::close(client_fd);
     }

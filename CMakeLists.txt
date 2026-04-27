@@ -152,3 +152,7 @@ target_link_libraries(player_server PRIVATE modules_player)
 
 add_mmo_server(social_server apps/social_server/main.cpp)
 target_link_libraries(social_server PRIVATE modules_social)
+
+add_executable(mmo_flow_client tools/mmo_flow_client/main.cpp)
+mmo_defaults(mmo_flow_client)
+target_link_libraries(mmo_flow_client PRIVATE runtime_transport mmo_protocol)
