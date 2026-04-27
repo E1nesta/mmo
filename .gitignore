@@ -16,6 +16,8 @@ docs_backend/
 docs_baseline/
 docs_v2/
 openspec/
+AGENTS.md
+CONVENTIONS.md
 
 .env
 .env.*
