@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package mmo.public_api;
+
+import "public/common.proto";
+
+message EnterInstanceRequest {
+  RequestContext context = 1;
+  int32 dungeon_id = 2;
+}
+
+message EnterInstanceResponse {
+  ResponseContext context = 1;
+  int64 instance_id = 2;
+  int64 boss_entity_id = 3;
+}
+
+message SettleInstanceRequest {
+  RequestContext context = 1;
+  int64 instance_id = 2;
+  string idempotency_key = 3;
+  bool win = 4;
+}
+
+message SettleInstanceResponse {
+  ResponseContext context = 1;
+  string reward_grant_id = 2;
+  repeated Reward rewards = 3;
+  bool duplicate = 4;
+}

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package mmo.public_api;
+
+import "public/common.proto";
+
+message SocialBoundaryRequest {
+  RequestContext context = 1;
+  int64 target_player_id = 2;
+}
+
+message SocialBoundaryResponse {
+  ResponseContext context = 1;
+  bool friend_boundary_available = 2;
+  bool chat_boundary_available = 3;
+  bool team_boundary_available = 4;
+}
