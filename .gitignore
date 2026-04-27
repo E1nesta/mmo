@@ -16,6 +16,10 @@ docs_backend/
 docs_baseline/
 docs_v2/
 
+.env
+.env.*
+!.env.example
+
 *.db
 *.log
 *.tmp
@@ -34,6 +38,8 @@ deploy/tls/*
 !deploy/tls/README.md
 
 deploy/.env.demo.loadtest
+deploy/.env.demo
+!deploy/.env.demo.example
 deploy/.env*.local
 deploy/.env*.private
 deploy/.env*.secret

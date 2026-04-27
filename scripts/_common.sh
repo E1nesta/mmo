@@ -56,7 +56,11 @@ compose_env_file() {
       printf '%s\n' "$ROOT_DIR/deploy/.env.delivery.example"
     fi
   else
-    printf '%s\n' "$ROOT_DIR/deploy/.env.demo"
+    if [[ -f "$ROOT_DIR/deploy/.env.demo" ]]; then
+      printf '%s\n' "$ROOT_DIR/deploy/.env.demo"
+    else
+      printf '%s\n' "$ROOT_DIR/deploy/.env.demo.example"
+    fi
   fi
 }
 

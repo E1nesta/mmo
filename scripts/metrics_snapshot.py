@@ -93,7 +93,10 @@ def compose_env_file() -> Path:
         if preferred.exists():
             return preferred
         return deploy_dir / ".env.delivery.example"
-    return deploy_dir / ".env.demo"
+    preferred = deploy_dir / ".env.demo"
+    if preferred.exists():
+        return preferred
+    return deploy_dir / ".env.demo.example"
 
 
 def compose_base_command() -> list[str]:

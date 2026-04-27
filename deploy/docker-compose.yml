@@ -5,14 +5,14 @@ x-backend-service: &backend-service
   image: mobile_game_backend:local
   restart: unless-stopped
   env_file:
-    - ${BACKEND_ENV_FILE:-./.env.demo}
+    - ${BACKEND_ENV_FILE:-./.env.demo.example}
 
 services:
   dungeon_schema_migrator:
     image: mysql:8.0
     restart: "no"
     env_file:
-      - ${BACKEND_ENV_FILE:-./.env.demo}
+      - ${BACKEND_ENV_FILE:-./.env.demo.example}
     depends_on:
       mysql:
         condition: service_healthy
@@ -26,7 +26,7 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     env_file:
-      - ${BACKEND_ENV_FILE:-./.env.demo}
+      - ${BACKEND_ENV_FILE:-./.env.demo.example}
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -50,7 +50,7 @@ services:
     image: redis:7.2
     restart: unless-stopped
     env_file:
-      - ${BACKEND_ENV_FILE:-./.env.demo}
+      - ${BACKEND_ENV_FILE:-./.env.demo.example}
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
@@ -190,7 +190,7 @@ services:
     image: nginx:1.27
     restart: unless-stopped
     env_file:
-      - ${BACKEND_ENV_FILE:-./.env.demo}
+      - ${BACKEND_ENV_FILE:-./.env.demo.example}
     ports:
       - "8080:8080"
       - "7000:7000"
