@@ -15,10 +15,12 @@ docs/
 docs_backend/
 docs_baseline/
 docs_v2/
+openspec/
 
 .env
 .env.*
 !.env.example
+/*.conf
 
 *.db
 *.log
