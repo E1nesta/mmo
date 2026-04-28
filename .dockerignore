@@ -10,12 +10,16 @@ CMakeFiles
 .git
 .gitignore
 .env
+.env.*
 *.db
 *.log
 *.tmp
 *.user
 *.suo
 __pycache__
+openspec
+AGENTS.md
+CONVENTIONS.md
 docs
 docs_backend
 docs_baseline

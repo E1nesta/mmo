@@ -1,0 +1,55 @@
+environment: local
+
+network:
+  bind_host: "0.0.0.0"
+  upstream_host: "127.0.0.1"
+  public_host: "127.0.0.1"
+
+services:
+  auth_server:
+    tcp_port: 4101
+  gateway_server:
+    tcp_port: 4102
+    udp_kcp_port: 4202
+  world_server:
+    tcp_port: 4103
+  scene_server:
+    tcp_port: 4104
+  instance_server:
+    tcp_port: 4105
+  player_server:
+    tcp_port: 4106
+  social_server:
+    tcp_port: 4107
+
+transport:
+  tcp:
+    max_envelope_payload_bytes: 1048576
+    timeout_millis: 3000
+    listen_backlog: 64
+  kcp:
+    nodelay: 1
+    interval_millis: 20
+    fast_resend: 2
+    disable_congestion_control: 1
+    send_window: 128
+    receive_window: 128
+
+storage:
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "mmo_local"
+    user: "mmo"
+    password_env: "MMO_MYSQL_PASSWORD"
+    pool_size: 8
+  redis:
+    host: "127.0.0.1"
+    port: 6379
+    database: 0
+    password_env: "MMO_REDIS_PASSWORD"
+    pool_size: 8
+
+observability:
+  log_level: "info"
+  log_format: "structured"

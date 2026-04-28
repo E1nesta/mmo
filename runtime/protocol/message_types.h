@@ -15,6 +15,8 @@ inline constexpr const char* kEnterWorldResponse = "public.world.EnterWorldRespo
 
 inline constexpr const char* kEnterSceneRequest = "public.scene.EnterSceneRequest";
 inline constexpr const char* kEnterSceneResponse = "public.scene.EnterSceneResponse";
+inline constexpr const char* kMoveCommand = "public.scene.MoveCommand";
+inline constexpr const char* kMoveResult = "public.scene.MoveResult";
 
 inline constexpr const char* kCastSkillRequest = "public.combat.CastSkillRequest";
 inline constexpr const char* kCastSkillResponse = "public.combat.CastSkillResponse";

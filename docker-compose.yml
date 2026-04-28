@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    platform: ${MMO_DOCKER_PLATFORM:-linux/amd64}
+    container_name: mmo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MMO_MYSQL_ROOT_PASSWORD:-mmo_root_local}
+      MYSQL_DATABASE: ${MMO_MYSQL_DATABASE:-mmo_local}
+      MYSQL_USER: ${MMO_MYSQL_USER:-mmo}
+      MYSQL_PASSWORD: ${MMO_MYSQL_PASSWORD:-mmo_dev_local}
+    ports:
+      - "${MMO_MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mmo_mysql_data:/var/lib/mysql
+      - ./deploy/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    platform: ${MMO_DOCKER_PLATFORM:-linux/amd64}
+    container_name: mmo-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${MMO_REDIS_PORT:-6379}:6379"
+    volumes:
+      - mmo_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mmo_mysql_data:
+  mmo_redis_data:

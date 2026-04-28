@@ -3,17 +3,23 @@
 #include "modules/gateway/gateway_session.h"
 #include "public/gateway.pb.h"
 #include "public/world.pb.h"
-#include "runtime/foundation/service_ports.h"
+#include "runtime/foundation/server_config.h"
+#include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
+    const std::string service_name = "gateway_server";
+    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto tcp_options =
+        mmo::runtime::transport::make_transport_options(config.transport.tcp);
     mmo::modules::gateway::GatewaySessionRegistry sessions;
 
     mmo::runtime::transport::TcpEnvelopeServer server(
-        mmo::runtime::foundation::kGatewayServerPort,
-        [&sessions](const mmo::public_api::Envelope& envelope) {
+        config.service(service_name).tcp_port,
+        [&sessions, &config, &tcp_options](const mmo::public_api::Envelope& envelope) {
             if (envelope.message_type() == mmo::runtime::protocol::kGateLoginRequest) {
                 mmo::public_api::GateLoginRequest request;
                 if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -50,15 +56,20 @@ int main() {
                 }
 
                 return mmo::runtime::transport::send_envelope(
-                    mmo::runtime::foundation::kLocalhost,
-                    mmo::runtime::foundation::kWorldServerPort,
-                    envelope);
+                    config.network.upstream_host,
+                    config.service("world_server").tcp_port,
+                    envelope,
+                    tcp_options);
             }
 
             return mmo::runtime::protocol::make_error_envelope(
                 envelope, 404, "unsupported gateway message");
-        });
+        },
+        service_name,
+        tcp_options);
 
-    std::cout << "gateway_server starting\n";
+    mmo::runtime::observability::log_info(
+        mmo::runtime::observability::LogContext{service_name},
+        "service_starting");
     return server.run();
 }

@@ -1,30 +1,38 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <string>
 
-#include "public/common.pb.h"
+#include "runtime/transport/envelope_transport.h"
 
 namespace mmo::runtime::transport {
 
-using EnvelopeHandler =
-    std::function<mmo::public_api::Envelope(const mmo::public_api::Envelope&)>;
-
-class TcpEnvelopeServer {
+class TcpEnvelopeServer : public EnvelopeServer {
 public:
-    TcpEnvelopeServer(std::uint16_t port, EnvelopeHandler handler);
+    TcpEnvelopeServer(
+        std::uint16_t port,
+        EnvelopeHandler handler,
+        std::string service_name,
+        TransportOptions options = {});
 
-    int run() const;
+    int run() override;
 
 private:
     std::uint16_t port_{};
     EnvelopeHandler handler_;
+    std::string service_name_;
+    TransportOptions options_;
 };
 
 mmo::public_api::Envelope send_envelope(
     const std::string& host,
     std::uint16_t port,
     const mmo::public_api::Envelope& request);
+
+mmo::public_api::Envelope send_envelope(
+    const std::string& host,
+    std::uint16_t port,
+    const mmo::public_api::Envelope& request,
+    const TransportOptions& options);
 
 }  // namespace mmo::runtime::transport

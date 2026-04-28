@@ -3,16 +3,22 @@
 
 #include "modules/player/player_service.h"
 #include "public/player.pb.h"
-#include "runtime/foundation/service_ports.h"
+#include "runtime/foundation/server_config.h"
+#include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
+    const std::string service_name = "player_server";
+    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto tcp_options =
+        mmo::runtime::transport::make_transport_options(config.transport.tcp);
     mmo::modules::player::PlayerService service;
 
     mmo::runtime::transport::TcpEnvelopeServer server(
-        mmo::runtime::foundation::kPlayerServerPort,
+        config.service(service_name).tcp_port,
         [&service](const mmo::public_api::Envelope& envelope) {
             if (envelope.message_type() != mmo::runtime::protocol::kApplyRewardRequest) {
                 return mmo::runtime::protocol::make_error_envelope(
@@ -47,8 +53,12 @@ int main() {
                 mmo::runtime::protocol::kApplyRewardResponse,
                 request.context(),
                 response);
-        });
+        },
+        service_name,
+        tcp_options);
 
-    std::cout << "player_server starting\n";
+    mmo::runtime::observability::log_info(
+        mmo::runtime::observability::LogContext{service_name},
+        "service_starting");
     return server.run();
 }

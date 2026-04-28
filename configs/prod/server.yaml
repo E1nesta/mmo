@@ -1,0 +1,55 @@
+environment: prod
+
+network:
+  bind_host: "0.0.0.0"
+  upstream_host_env: "MMO_UPSTREAM_HOST"
+  public_host_env: "MMO_PUBLIC_HOST"
+
+services:
+  auth_server:
+    tcp_port_env: "MMO_AUTH_TCP_PORT"
+  gateway_server:
+    tcp_port_env: "MMO_GATEWAY_TCP_PORT"
+    udp_kcp_port_env: "MMO_GATEWAY_UDP_KCP_PORT"
+  world_server:
+    tcp_port_env: "MMO_WORLD_TCP_PORT"
+  scene_server:
+    tcp_port_env: "MMO_SCENE_TCP_PORT"
+  instance_server:
+    tcp_port_env: "MMO_INSTANCE_TCP_PORT"
+  player_server:
+    tcp_port_env: "MMO_PLAYER_TCP_PORT"
+  social_server:
+    tcp_port_env: "MMO_SOCIAL_TCP_PORT"
+
+transport:
+  tcp:
+    max_envelope_payload_bytes_env: "MMO_TCP_MAX_ENVELOPE_PAYLOAD_BYTES"
+    timeout_millis_env: "MMO_TCP_TIMEOUT_MILLIS"
+    listen_backlog_env: "MMO_TCP_LISTEN_BACKLOG"
+  kcp:
+    nodelay_env: "MMO_KCP_NODELAY"
+    interval_millis_env: "MMO_KCP_INTERVAL_MILLIS"
+    fast_resend_env: "MMO_KCP_FAST_RESEND"
+    disable_congestion_control_env: "MMO_KCP_DISABLE_CONGESTION_CONTROL"
+    send_window_env: "MMO_KCP_SEND_WINDOW"
+    receive_window_env: "MMO_KCP_RECEIVE_WINDOW"
+
+storage:
+  mysql:
+    host_env: "MMO_MYSQL_HOST"
+    port_env: "MMO_MYSQL_PORT"
+    database_env: "MMO_MYSQL_DATABASE"
+    user_env: "MMO_MYSQL_USER"
+    password_env: "MMO_MYSQL_PASSWORD"
+    pool_size_env: "MMO_MYSQL_POOL_SIZE"
+  redis:
+    host_env: "MMO_REDIS_HOST"
+    port_env: "MMO_REDIS_PORT"
+    database_env: "MMO_REDIS_DATABASE"
+    password_env: "MMO_REDIS_PASSWORD"
+    pool_size_env: "MMO_REDIS_POOL_SIZE"
+
+observability:
+  log_level_env: "MMO_LOG_LEVEL"
+  log_format: "structured"

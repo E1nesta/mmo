@@ -4,7 +4,8 @@
 #include "public/auth.pb.h"
 #include "public/gateway.pb.h"
 #include "public/world.pb.h"
-#include "runtime/foundation/service_ports.h"
+#include "runtime/foundation/server_config.h"
+#include "runtime/transport/envelope_transport.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/transport/tcp_envelope_server.h"
@@ -54,6 +55,10 @@ bool parse_response(
 }  // namespace
 
 int main() {
+    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto tcp_options =
+        mmo::runtime::transport::make_transport_options(config.transport.tcp);
+
     mmo::public_api::LoginRequest login_request;
     *login_request.mutable_context() = make_context(1);
     login_request.set_account_name("demo_player");
@@ -65,9 +70,10 @@ int main() {
         login_request.context(),
         login_request);
     const auto login_response_envelope = mmo::runtime::transport::send_envelope(
-        mmo::runtime::foundation::kLocalhost,
-        mmo::runtime::foundation::kAuthServerPort,
-        login_envelope);
+        config.network.upstream_host,
+        config.service("auth_server").tcp_port,
+        login_envelope,
+        tcp_options);
 
     mmo::public_api::LoginResponse login_response;
     if (!parse_response(
@@ -95,9 +101,10 @@ int main() {
         gate_request.context(),
         gate_request);
     const auto gate_response_envelope = mmo::runtime::transport::send_envelope(
-        mmo::runtime::foundation::kLocalhost,
-        mmo::runtime::foundation::kGatewayServerPort,
-        gate_envelope);
+        config.network.upstream_host,
+        config.service("gateway_server").tcp_port,
+        gate_envelope,
+        tcp_options);
 
     mmo::public_api::GateLoginResponse gate_response;
     if (!parse_response(
@@ -124,9 +131,10 @@ int main() {
         world_request.context(),
         world_request);
     const auto world_response_envelope = mmo::runtime::transport::send_envelope(
-        mmo::runtime::foundation::kLocalhost,
-        mmo::runtime::foundation::kGatewayServerPort,
-        world_envelope);
+        config.network.upstream_host,
+        config.service("gateway_server").tcp_port,
+        world_envelope,
+        tcp_options);
 
     mmo::public_api::EnterWorldResponse world_response;
     if (!parse_response(

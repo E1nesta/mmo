@@ -1,134 +1,165 @@
 #include "runtime/transport/tcp_envelope_server.h"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <boost/asio.hpp>
 
-#include <cerrno>
+#include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include <arpa/inet.h>
+
+#include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
+#include "runtime/protocol/message_types.h"
 
 namespace mmo::runtime::transport {
 namespace {
 
-bool read_exact(int fd, void* buffer, std::size_t size) {
-    auto* out = static_cast<char*>(buffer);
-    std::size_t read_total = 0;
-    while (read_total < size) {
-        const ssize_t received = ::recv(fd, out + read_total, size - read_total, 0);
-        if (received <= 0) {
-            return false;
-        }
-        read_total += static_cast<std::size_t>(received);
-    }
-    return true;
+using boost::asio::ip::tcp;
+
+bool read_exact(tcp::socket& socket, void* buffer, std::size_t size) {
+    boost::system::error_code error;
+    boost::asio::read(socket, boost::asio::buffer(buffer, size), error);
+    return !error;
 }
 
-bool write_exact(int fd, const void* buffer, std::size_t size) {
-    const auto* input = static_cast<const char*>(buffer);
-    std::size_t written_total = 0;
-    while (written_total < size) {
-        const ssize_t sent = ::send(fd, input + written_total, size - written_total, 0);
-        if (sent <= 0) {
-            return false;
-        }
-        written_total += static_cast<std::size_t>(sent);
-    }
-    return true;
+bool write_exact(tcp::socket& socket, const void* buffer, std::size_t size) {
+    boost::system::error_code error;
+    boost::asio::write(socket, boost::asio::buffer(buffer, size), error);
+    return !error;
 }
 
-bool read_envelope(int fd, mmo::public_api::Envelope& envelope) {
+bool read_exact(std::istream& input, void* buffer, std::size_t size) {
+    input.read(static_cast<char*>(buffer), static_cast<std::streamsize>(size));
+    return input.good() || input.gcount() == static_cast<std::streamsize>(size);
+}
+
+bool write_exact(std::ostream& output, const void* buffer, std::size_t size) {
+    output.write(static_cast<const char*>(buffer), static_cast<std::streamsize>(size));
+    output.flush();
+    return static_cast<bool>(output);
+}
+
+template <typename Reader>
+bool read_envelope_impl(
+    Reader& reader,
+    mmo::public_api::Envelope& envelope,
+    std::uint32_t max_payload_bytes) {
     std::uint32_t network_size = 0;
-    if (!read_exact(fd, &network_size, sizeof(network_size))) {
+    if (!read_exact(reader, &network_size, sizeof(network_size))) {
         return false;
     }
 
     const std::uint32_t payload_size = ntohl(network_size);
+    if (payload_size > max_payload_bytes) {
+        return false;
+    }
+
     std::string payload(payload_size, '\0');
     if (payload_size > 0 &&
-        !read_exact(fd, payload.data(), static_cast<std::size_t>(payload_size))) {
+        !read_exact(reader, payload.data(), static_cast<std::size_t>(payload_size))) {
         return false;
     }
 
     return envelope.ParseFromString(payload);
 }
 
-bool write_envelope(int fd, const mmo::public_api::Envelope& envelope) {
+template <typename Writer>
+bool write_envelope_impl(
+    Writer& writer,
+    const mmo::public_api::Envelope& envelope,
+    std::uint32_t max_payload_bytes) {
     std::string payload;
     envelope.SerializeToString(&payload);
+    if (payload.size() > max_payload_bytes) {
+        return false;
+    }
+
     const std::uint32_t network_size =
         htonl(static_cast<std::uint32_t>(payload.size()));
-    return write_exact(fd, &network_size, sizeof(network_size)) &&
-           write_exact(fd, payload.data(), payload.size());
-}
-
-int make_server_socket(std::uint16_t port) {
-    const int server_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        return -1;
-    }
-
-    int reuse = 1;
-    ::setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-    sockaddr_in address{};
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = htonl(INADDR_ANY);
-    address.sin_port = htons(port);
-
-    if (::bind(server_fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0) {
-        ::close(server_fd);
-        return -1;
-    }
-
-    if (::listen(server_fd, 64) < 0) {
-        ::close(server_fd);
-        return -1;
-    }
-
-    return server_fd;
+    return write_exact(writer, &network_size, sizeof(network_size)) &&
+           write_exact(writer, payload.data(), payload.size());
 }
 
 }  // namespace
 
-TcpEnvelopeServer::TcpEnvelopeServer(std::uint16_t port, EnvelopeHandler handler)
-    : port_(port), handler_(std::move(handler)) {}
+TcpEnvelopeServer::TcpEnvelopeServer(
+    std::uint16_t port,
+    EnvelopeHandler handler,
+    std::string service_name,
+    TransportOptions options)
+    : port_(port),
+      handler_(std::move(handler)),
+      service_name_(std::move(service_name)),
+      options_(options) {}
 
-int TcpEnvelopeServer::run() const {
-    ::signal(SIGPIPE, SIG_IGN);
+int TcpEnvelopeServer::run() {
+    try {
+        boost::asio::io_context io_context;
+        tcp::acceptor acceptor(io_context);
+        const tcp::endpoint endpoint(tcp::v4(), port_);
+        acceptor.open(endpoint.protocol());
+        acceptor.set_option(tcp::acceptor::reuse_address(true));
+        acceptor.bind(endpoint);
+        acceptor.listen(options_.listen_backlog);
 
-    const int server_fd = make_server_socket(port_);
-    if (server_fd < 0) {
-        std::cerr << "failed to listen on port " << port_ << ": "
-                  << std::strerror(errno) << '\n';
+        mmo::runtime::observability::log_info(
+            mmo::runtime::observability::LogContext{service_name_},
+            "tcp_server_listening port=" + std::to_string(port_));
+
+        while (true) {
+            tcp::socket socket(io_context);
+            boost::system::error_code accept_error;
+            acceptor.accept(socket, accept_error);
+            if (accept_error) {
+                mmo::runtime::observability::log_error(
+                    mmo::runtime::observability::LogContext{service_name_},
+                    "tcp_accept_failed error=" + accept_error.message());
+                continue;
+            }
+
+            mmo::public_api::Envelope request;
+            if (!read_envelope_impl(socket, request, options_.max_payload_bytes)) {
+                mmo::runtime::observability::log_warn(
+                    mmo::runtime::observability::LogContext{service_name_},
+                    "tcp_invalid_envelope");
+                continue;
+            }
+
+            auto log_context =
+                mmo::runtime::observability::context_from_envelope(
+                    service_name_, request);
+            const auto started = std::chrono::steady_clock::now();
+            mmo::runtime::observability::log_info(log_context, "request_received");
+
+            const mmo::public_api::Envelope response = handler_(request);
+
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - started);
+            log_context.latency_ms = elapsed.count();
+            if (!write_envelope_impl(socket, response, options_.max_payload_bytes)) {
+                mmo::runtime::observability::log_error(
+                    log_context,
+                    "response_write_failed");
+                continue;
+            }
+
+            if (response.message_type() == mmo::runtime::protocol::kErrorResponse) {
+                log_context.error_code = 1;
+                mmo::runtime::observability::log_error(log_context, "request_failed");
+            } else {
+                mmo::runtime::observability::log_info(log_context, "request_handled");
+            }
+        }
+    } catch (const std::exception& error) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{service_name_},
+            std::string("tcp_server_fatal error=") + error.what());
         return 1;
-    }
-
-    std::cout << "listening on 0.0.0.0:" << port_ << '\n';
-    while (true) {
-        sockaddr_in client_address{};
-        socklen_t client_len = sizeof(client_address);
-        const int client_fd =
-            ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_address), &client_len);
-        if (client_fd < 0) {
-            continue;
-        }
-
-        mmo::public_api::Envelope request;
-        if (!read_envelope(client_fd, request)) {
-            ::close(client_fd);
-            continue;
-        }
-
-        const mmo::public_api::Envelope response = handler_(request);
-        write_envelope(client_fd, response);
-        ::close(client_fd);
     }
 }
 
@@ -136,42 +167,39 @@ mmo::public_api::Envelope send_envelope(
     const std::string& host,
     std::uint16_t port,
     const mmo::public_api::Envelope& request) {
-    const int client_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (client_fd < 0) {
-        return mmo::runtime::protocol::make_error_envelope(
-            request, 500, "failed to create client socket");
-    }
+    return send_envelope(host, port, request, TransportOptions{});
+}
 
-    sockaddr_in address{};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(port);
-    if (::inet_pton(AF_INET, host.c_str(), &address.sin_addr) != 1) {
-        ::close(client_fd);
-        return mmo::runtime::protocol::make_error_envelope(
-            request, 500, "invalid upstream host");
-    }
+mmo::public_api::Envelope send_envelope(
+    const std::string& host,
+    std::uint16_t port,
+    const mmo::public_api::Envelope& request,
+    const TransportOptions& options) {
+    try {
+        tcp::iostream stream;
+        stream.expires_after(std::chrono::milliseconds(options.timeout_millis));
+        stream.connect(host, std::to_string(port));
+        if (!stream) {
+            return mmo::runtime::protocol::make_error_envelope(
+                request, 502, "failed to connect upstream");
+        }
 
-    if (::connect(client_fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0) {
-        ::close(client_fd);
-        return mmo::runtime::protocol::make_error_envelope(
-            request, 502, "failed to connect upstream");
-    }
+        if (!write_envelope_impl(stream, request, options.max_payload_bytes)) {
+            return mmo::runtime::protocol::make_error_envelope(
+                request, 502, "failed to send upstream request");
+        }
 
-    if (!write_envelope(client_fd, request)) {
-        ::close(client_fd);
-        return mmo::runtime::protocol::make_error_envelope(
-            request, 502, "failed to send upstream request");
-    }
+        mmo::public_api::Envelope response;
+        if (!read_envelope_impl(stream, response, options.max_payload_bytes)) {
+            return mmo::runtime::protocol::make_error_envelope(
+                request, 502, "failed to read upstream response");
+        }
 
-    mmo::public_api::Envelope response;
-    if (!read_envelope(client_fd, response)) {
-        ::close(client_fd);
+        return response;
+    } catch (const std::exception& error) {
         return mmo::runtime::protocol::make_error_envelope(
-            request, 502, "failed to read upstream response");
+            request, 502, std::string("transport exception: ") + error.what());
     }
-
-    ::close(client_fd);
-    return response;
 }
 
 }  // namespace mmo::runtime::transport

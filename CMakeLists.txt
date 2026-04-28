@@ -7,6 +7,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Protobuf REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
+find_package(Threads REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
+find_path(MYSQL_INCLUDE_DIR mysql/mysql.h REQUIRED)
+find_library(MYSQL_LIBRARY mysqlclient REQUIRED)
+find_path(HIREDIS_INCLUDE_DIR hiredis/hiredis.h REQUIRED)
+find_library(HIREDIS_LIBRARY hiredis REQUIRED)
+find_path(IKCP_INCLUDE_DIR ikcp.h REQUIRED)
+find_library(IKCP_LIBRARY kcp REQUIRED)
+
+message(STATUS "Using system spdlog")
+message(STATUS "Using system KCP")
 
 find_program(PROTOC_EXECUTABLE protoc REQUIRED)
 
@@ -77,9 +91,14 @@ function(mmo_defaults target)
 endfunction()
 
 add_library(runtime_foundation STATIC
-    runtime/foundation/service_ports.cpp
+    runtime/foundation/server_config.cpp
 )
 mmo_defaults(runtime_foundation)
+if(TARGET yaml-cpp::yaml-cpp)
+    target_link_libraries(runtime_foundation PUBLIC yaml-cpp::yaml-cpp)
+else()
+    target_link_libraries(runtime_foundation PUBLIC yaml-cpp)
+endif()
 
 add_library(runtime_protocol STATIC
     runtime/protocol/envelope_utils.cpp
@@ -87,11 +106,57 @@ add_library(runtime_protocol STATIC
 mmo_defaults(runtime_protocol)
 target_link_libraries(runtime_protocol PUBLIC runtime_foundation mmo_protocol)
 
+add_library(runtime_execution STATIC
+    runtime/execution/sharded_executor.cpp
+    runtime/execution/scene_worker.cpp
+    runtime/execution/instance_shard.cpp
+)
+mmo_defaults(runtime_execution)
+target_link_libraries(runtime_execution PUBLIC Threads::Threads)
+
+add_library(runtime_session STATIC
+    runtime/session/session_context.cpp
+)
+mmo_defaults(runtime_session)
+
+add_library(runtime_observability STATIC
+    runtime/observability/logging.cpp
+)
+mmo_defaults(runtime_observability)
+target_link_libraries(runtime_observability PUBLIC mmo_protocol)
+target_link_libraries(runtime_observability PUBLIC spdlog::spdlog)
+
+add_library(runtime_storage STATIC
+    runtime/storage/mysql_client.cpp
+    runtime/storage/redis_client.cpp
+    runtime/storage/redis_keys.cpp
+)
+mmo_defaults(runtime_storage)
+target_include_directories(runtime_storage PUBLIC
+    ${MYSQL_INCLUDE_DIR}
+    ${HIREDIS_INCLUDE_DIR}
+)
+target_link_libraries(runtime_storage PUBLIC
+    ${MYSQL_LIBRARY}
+    ${HIREDIS_LIBRARY}
+)
+
 add_library(runtime_transport STATIC
+    runtime/transport/envelope_transport.cpp
     runtime/transport/tcp_envelope_server.cpp
+    runtime/transport/udp_kcp_endpoint.cpp
 )
 mmo_defaults(runtime_transport)
-target_link_libraries(runtime_transport PUBLIC runtime_protocol)
+target_link_libraries(runtime_transport PUBLIC
+    runtime_protocol
+    runtime_observability
+    ${IKCP_LIBRARY}
+    Boost::system
+    Threads::Threads
+)
+target_include_directories(runtime_transport PUBLIC
+    ${IKCP_INCLUDE_DIR}
+)
 
 add_library(modules_auth STATIC modules/auth/auth_service.cpp)
 mmo_defaults(modules_auth)
@@ -120,8 +185,12 @@ mmo_defaults(modules_numeric)
 add_library(modules_instance STATIC modules/instance/instance_service.cpp)
 mmo_defaults(modules_instance)
 
-add_library(modules_player STATIC modules/player/player_service.cpp)
+add_library(modules_player STATIC
+    modules/player/player_service.cpp
+    modules/player/mysql_player_repository.cpp
+)
 mmo_defaults(modules_player)
+target_link_libraries(modules_player PUBLIC runtime_storage)
 
 add_library(modules_social STATIC modules/social/social_boundary.cpp)
 mmo_defaults(modules_social)
@@ -129,7 +198,13 @@ mmo_defaults(modules_social)
 function(add_mmo_server target)
     add_executable(${target} ${ARGN})
     mmo_defaults(${target})
-    target_link_libraries(${target} PRIVATE runtime_transport mmo_protocol)
+    target_link_libraries(${target} PRIVATE
+        runtime_transport
+        runtime_execution
+        runtime_session
+        runtime_observability
+        mmo_protocol
+    )
 endfunction()
 
 add_mmo_server(auth_server apps/auth_server/main.cpp)
