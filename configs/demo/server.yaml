@@ -2,24 +2,30 @@ environment: demo
 
 network:
   bind_host: "0.0.0.0"
-  upstream_host_env: "MMO_UPSTREAM_HOST"
   public_host_env: "MMO_PUBLIC_HOST"
 
 services:
   auth_server:
+    host_env: "MMO_AUTH_HOST"
     tcp_port: 4101
   gateway_server:
+    host_env: "MMO_GATEWAY_HOST"
     tcp_port: 4102
     udp_kcp_port: 4202
   world_server:
+    host_env: "MMO_WORLD_HOST"
     tcp_port: 4103
   scene_server:
+    host_env: "MMO_SCENE_HOST"
     tcp_port: 4104
   instance_server:
+    host_env: "MMO_INSTANCE_HOST"
     tcp_port: 4105
   player_server:
+    host_env: "MMO_PLAYER_HOST"
     tcp_port: 4106
   social_server:
+    host_env: "MMO_SOCIAL_HOST"
     tcp_port: 4107
 
 transport:

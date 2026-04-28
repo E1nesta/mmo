@@ -2,16 +2,17 @@ syntax = "proto3";
 
 package mmo.public_api;
 
-import "public/common.proto";
+import "common/context.proto";
+import "common/types.proto";
 
 message ApplyRewardRequest {
-  RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   string idempotency_key = 2;
-  repeated Reward rewards = 3;
+  repeated mmo.common.Reward rewards = 3;
 }
 
 message ApplyRewardResponse {
-  ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   bool applied = 2;
   int64 gold = 3;
   int64 exp = 4;

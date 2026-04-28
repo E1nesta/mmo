@@ -2,15 +2,16 @@ syntax = "proto3";
 
 package mmo.internal_api;
 
-import "public/common.proto";
+import "common/context.proto";
+import "common/types.proto";
 
 message AllocateSceneEntityRequest {
-  mmo.public_api.RequestContext context = 1;
-  mmo.public_api.SceneRoute route = 2;
+  mmo.common.RequestContext context = 1;
+  mmo.common.SceneRoute route = 2;
 }
 
 message AllocateSceneEntityResponse {
-  mmo.public_api.ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   int64 entity_id = 2;
-  mmo.public_api.Position position = 3;
+  mmo.common.Position position = 3;
 }

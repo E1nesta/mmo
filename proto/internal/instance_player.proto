@@ -2,15 +2,18 @@ syntax = "proto3";
 
 package mmo.internal_api;
 
-import "public/common.proto";
+import "common/context.proto";
+import "common/types.proto";
 
 message GrantInstanceRewardRequest {
-  mmo.public_api.RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   string reward_grant_id = 2;
-  repeated mmo.public_api.Reward rewards = 3;
+  repeated mmo.common.Reward rewards = 3;
 }
 
 message GrantInstanceRewardResponse {
-  mmo.public_api.ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   bool applied = 2;
+  int64 gold = 3;
+  int64 exp = 4;
 }

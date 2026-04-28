@@ -1,8 +1,6 @@
-#include "runtime/transport/udp_kcp_endpoint.h"
+#include "runtime/transport/kcp_session.h"
 
-#include <algorithm>
-
-#include "runtime/protocol/message_types.h"
+#include <utility>
 
 namespace mmo::runtime::transport {
 
@@ -84,22 +82,6 @@ int KcpSession::output_callback(const char* data, int size, ikcpcb* /*kcp*/, voi
         return -1;
     }
     return session->output_(data, size);
-}
-
-UdpKcpEndpoint::UdpKcpEndpoint(std::uint16_t port, TransportOptions options)
-    : port_(port), options_(options) {}
-
-std::uint16_t UdpKcpEndpoint::port() const {
-    return port_;
-}
-
-const TransportOptions& UdpKcpEndpoint::options() const {
-    return options_;
-}
-
-bool UdpKcpEndpoint::accepts_message_type(const std::string& message_type) const {
-    return message_type == mmo::runtime::protocol::kMoveCommand ||
-           message_type == mmo::runtime::protocol::kCastSkillRequest;
 }
 
 }  // namespace mmo::runtime::transport

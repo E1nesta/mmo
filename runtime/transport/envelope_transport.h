@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "public/common.pb.h"
+#include "common/envelope.pb.h"
 #include "runtime/foundation/server_config.h"
 
 namespace mmo::runtime::transport {
@@ -26,8 +26,11 @@ struct TransportEndpoint {
 TransportOptions make_transport_options(
     const mmo::runtime::foundation::TcpTransportConfig& config);
 
+TransportEndpoint make_transport_endpoint(
+    const mmo::runtime::foundation::ServiceConfig& config);
+
 using EnvelopeHandler =
-    std::function<mmo::public_api::Envelope(const mmo::public_api::Envelope&)>;
+    std::function<mmo::common::Envelope(const mmo::common::Envelope&)>;
 
 class EnvelopeServer {
 public:
@@ -40,9 +43,9 @@ class EnvelopeClient {
 public:
     virtual ~EnvelopeClient() = default;
 
-    virtual mmo::public_api::Envelope send(
+    virtual mmo::common::Envelope send(
         const TransportEndpoint& endpoint,
-        const mmo::public_api::Envelope& request) = 0;
+        const mmo::common::Envelope& request) = 0;
 };
 
 }  // namespace mmo::runtime::transport

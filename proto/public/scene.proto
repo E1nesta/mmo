@@ -2,29 +2,30 @@ syntax = "proto3";
 
 package mmo.public_api;
 
-import "public/common.proto";
+import "common/context.proto";
+import "common/types.proto";
 
 message EnterSceneRequest {
-  RequestContext context = 1;
-  SceneRoute route = 2;
+  mmo.common.RequestContext context = 1;
+  mmo.common.SceneRoute route = 2;
 }
 
 message EnterSceneResponse {
-  ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   int64 entity_id = 2;
-  Position position = 3;
+  mmo.common.Position position = 3;
 }
 
 message MoveCommand {
-  RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   int64 entity_id = 2;
-  Position from = 3;
-  Position to = 4;
+  mmo.common.Position from = 3;
+  mmo.common.Position to = 4;
   int64 client_time_ms = 5;
 }
 
 message MoveResult {
-  ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   int64 entity_id = 2;
-  Position accepted_position = 3;
+  mmo.common.Position accepted_position = 3;
 }

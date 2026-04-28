@@ -2,24 +2,30 @@ environment: local
 
 network:
   bind_host: "0.0.0.0"
-  upstream_host: "127.0.0.1"
   public_host: "127.0.0.1"
 
 services:
   auth_server:
+    host: "127.0.0.1"
     tcp_port: 4101
   gateway_server:
+    host: "127.0.0.1"
     tcp_port: 4102
     udp_kcp_port: 4202
   world_server:
+    host: "127.0.0.1"
     tcp_port: 4103
   scene_server:
+    host: "127.0.0.1"
     tcp_port: 4104
   instance_server:
+    host: "127.0.0.1"
     tcp_port: 4105
   player_server:
+    host: "127.0.0.1"
     tcp_port: 4106
   social_server:
+    host: "127.0.0.1"
     tcp_port: 4107
 
 transport:

@@ -5,7 +5,6 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -33,21 +32,10 @@ bool write_exact(tcp::socket& socket, const void* buffer, std::size_t size) {
     return !error;
 }
 
-bool read_exact(std::istream& input, void* buffer, std::size_t size) {
-    input.read(static_cast<char*>(buffer), static_cast<std::streamsize>(size));
-    return input.good() || input.gcount() == static_cast<std::streamsize>(size);
-}
-
-bool write_exact(std::ostream& output, const void* buffer, std::size_t size) {
-    output.write(static_cast<const char*>(buffer), static_cast<std::streamsize>(size));
-    output.flush();
-    return static_cast<bool>(output);
-}
-
 template <typename Reader>
 bool read_envelope_impl(
     Reader& reader,
-    mmo::public_api::Envelope& envelope,
+    mmo::common::Envelope& envelope,
     std::uint32_t max_payload_bytes) {
     std::uint32_t network_size = 0;
     if (!read_exact(reader, &network_size, sizeof(network_size))) {
@@ -71,7 +59,7 @@ bool read_envelope_impl(
 template <typename Writer>
 bool write_envelope_impl(
     Writer& writer,
-    const mmo::public_api::Envelope& envelope,
+    const mmo::common::Envelope& envelope,
     std::uint32_t max_payload_bytes) {
     std::string payload;
     envelope.SerializeToString(&payload);
@@ -122,7 +110,7 @@ int TcpEnvelopeServer::run() {
                 continue;
             }
 
-            mmo::public_api::Envelope request;
+            mmo::common::Envelope request;
             if (!read_envelope_impl(socket, request, options_.max_payload_bytes)) {
                 mmo::runtime::observability::log_warn(
                     mmo::runtime::observability::LogContext{service_name_},
@@ -136,7 +124,7 @@ int TcpEnvelopeServer::run() {
             const auto started = std::chrono::steady_clock::now();
             mmo::runtime::observability::log_info(log_context, "request_received");
 
-            const mmo::public_api::Envelope response = handler_(request);
+            const mmo::common::Envelope response = handler_(request);
 
             const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - started);
@@ -160,45 +148,6 @@ int TcpEnvelopeServer::run() {
             mmo::runtime::observability::LogContext{service_name_},
             std::string("tcp_server_fatal error=") + error.what());
         return 1;
-    }
-}
-
-mmo::public_api::Envelope send_envelope(
-    const std::string& host,
-    std::uint16_t port,
-    const mmo::public_api::Envelope& request) {
-    return send_envelope(host, port, request, TransportOptions{});
-}
-
-mmo::public_api::Envelope send_envelope(
-    const std::string& host,
-    std::uint16_t port,
-    const mmo::public_api::Envelope& request,
-    const TransportOptions& options) {
-    try {
-        tcp::iostream stream;
-        stream.expires_after(std::chrono::milliseconds(options.timeout_millis));
-        stream.connect(host, std::to_string(port));
-        if (!stream) {
-            return mmo::runtime::protocol::make_error_envelope(
-                request, 502, "failed to connect upstream");
-        }
-
-        if (!write_envelope_impl(stream, request, options.max_payload_bytes)) {
-            return mmo::runtime::protocol::make_error_envelope(
-                request, 502, "failed to send upstream request");
-        }
-
-        mmo::public_api::Envelope response;
-        if (!read_envelope_impl(stream, response, options.max_payload_bytes)) {
-            return mmo::runtime::protocol::make_error_envelope(
-                request, 502, "failed to read upstream response");
-        }
-
-        return response;
-    } catch (const std::exception& error) {
-        return mmo::runtime::protocol::make_error_envelope(
-            request, 502, std::string("transport exception: ") + error.what());
     }
 }
 

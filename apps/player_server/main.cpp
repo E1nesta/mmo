@@ -1,46 +1,78 @@
-#include <iostream>
 #include <vector>
 
+#include "internal/instance_player.pb.h"
 #include "modules/player/player_service.h"
 #include "public/player.pb.h"
-#include "runtime/foundation/server_config.h"
+#include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
+#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
-int main() {
-    const std::string service_name = "player_server";
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
-    const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(config.transport.tcp);
-    mmo::modules::player::PlayerService service;
+namespace {
 
-    mmo::runtime::transport::TcpEnvelopeServer server(
-        config.service(service_name).tcp_port,
-        [&service](const mmo::public_api::Envelope& envelope) {
-            if (envelope.message_type() != mmo::runtime::protocol::kApplyRewardRequest) {
+std::vector<mmo::modules::player::Reward> to_rewards(
+    const google::protobuf::RepeatedPtrField<mmo::common::Reward>& rewards) {
+    std::vector<mmo::modules::player::Reward> result;
+    for (const auto& reward : rewards) {
+        result.push_back(
+            mmo::modules::player::Reward{reward.type(), reward.amount()});
+    }
+    return result;
+}
+
+}  // namespace
+
+int main() {
+    mmo::runtime::foundation::ServerApp app("player_server");
+    const auto tcp_options =
+        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+
+    mmo::modules::player::PlayerService service;
+    mmo::runtime::protocol::MessageRouter router;
+
+    router.on(
+        mmo::runtime::protocol::kGrantInstanceRewardRequest,
+        [&service](const mmo::common::Envelope& envelope) {
+            mmo::internal_api::GrantInstanceRewardRequest request;
+            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 404, "unsupported player message");
+                    envelope, 400, "invalid grant instance reward request");
             }
 
+            const auto applied = service.apply_reward(
+                request.context().player_id(),
+                request.reward_grant_id(),
+                to_rewards(request.rewards()));
+
+            mmo::internal_api::GrantInstanceRewardResponse response;
+            *response.mutable_context() =
+                mmo::runtime::protocol::make_ok_context(request.context());
+            response.set_applied(applied.applied);
+            response.set_gold(applied.gold);
+            response.set_exp(applied.exp);
+
+            return mmo::runtime::protocol::pack_message(
+                mmo::runtime::protocol::kGrantInstanceRewardResponse,
+                request.context(),
+                response);
+        });
+
+    router.on(
+        mmo::runtime::protocol::kApplyRewardRequest,
+        [&service](const mmo::common::Envelope& envelope) {
             mmo::public_api::ApplyRewardRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid apply reward request");
             }
 
-            std::vector<mmo::modules::player::Reward> rewards;
-            for (const auto& reward : request.rewards()) {
-                rewards.push_back(
-                    mmo::modules::player::Reward{reward.type(), reward.amount()});
-            }
-
             const auto applied = service.apply_reward(
                 request.context().player_id(),
                 request.idempotency_key(),
-                rewards);
+                to_rewards(request.rewards()));
 
             mmo::public_api::ApplyRewardResponse response;
             *response.mutable_context() =
@@ -53,12 +85,16 @@ int main() {
                 mmo::runtime::protocol::kApplyRewardResponse,
                 request.context(),
                 response);
-        },
-        service_name,
+        });
+
+    mmo::runtime::transport::TcpEnvelopeServer server(
+        app.service_config().tcp_port,
+        router.handler(),
+        app.service_name(),
         tcp_options);
 
     mmo::runtime::observability::log_info(
-        mmo::runtime::observability::LogContext{service_name},
+        mmo::runtime::observability::LogContext{app.service_name()},
         "service_starting");
     return server.run();
 }

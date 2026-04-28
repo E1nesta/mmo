@@ -4,29 +4,30 @@
 
 #include <google/protobuf/message.h>
 
-#include "public/common.pb.h"
+#include "common/context.pb.h"
+#include "common/envelope.pb.h"
 
 namespace mmo::runtime::protocol {
 
-mmo::public_api::ResponseContext make_ok_context(
-    const mmo::public_api::RequestContext& request);
+mmo::common::ResponseContext make_ok_context(
+    const mmo::common::RequestContext& request);
 
-mmo::public_api::ResponseContext make_error_context(
-    const mmo::public_api::RequestContext& request,
+mmo::common::ResponseContext make_error_context(
+    const mmo::common::RequestContext& request,
     int error_code,
     const std::string& error_message);
 
-mmo::public_api::Envelope make_error_envelope(
-    const mmo::public_api::Envelope& request,
+mmo::common::Envelope make_error_envelope(
+    const mmo::common::Envelope& request,
     int error_code,
     const std::string& error_message);
 
 template <typename Message>
-mmo::public_api::Envelope pack_message(
+mmo::common::Envelope pack_message(
     const std::string& message_type,
-    const mmo::public_api::RequestContext& context,
+    const mmo::common::RequestContext& context,
     const Message& message) {
-    mmo::public_api::Envelope envelope;
+    mmo::common::Envelope envelope;
     envelope.set_request_id(context.request_id());
     envelope.set_message_type(message_type);
     envelope.set_player_id(context.player_id());
@@ -36,7 +37,7 @@ mmo::public_api::Envelope pack_message(
 }
 
 template <typename Message>
-bool unpack_message(const mmo::public_api::Envelope& envelope, Message& message) {
+bool unpack_message(const mmo::common::Envelope& envelope, Message& message) {
     return message.ParseFromString(envelope.payload());
 }
 

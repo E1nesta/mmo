@@ -17,4 +17,12 @@ TransportOptions make_transport_options(
     return options;
 }
 
+TransportEndpoint make_transport_endpoint(
+    const mmo::runtime::foundation::ServiceConfig& config) {
+    TransportEndpoint endpoint;
+    endpoint.host = config.host;
+    endpoint.port = config.tcp_port;
+    return endpoint;
+}
+
 }  // namespace mmo::runtime::transport

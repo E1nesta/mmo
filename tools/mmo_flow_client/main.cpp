@@ -8,16 +8,16 @@
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
-#include "runtime/transport/tcp_envelope_server.h"
+#include "runtime/transport/tcp_envelope_client.h"
 
 namespace {
 
-mmo::public_api::RequestContext make_context(
+mmo::common::RequestContext make_context(
     std::uint64_t request_id,
     std::int64_t account_id = 0,
     std::int64_t player_id = 0,
     const std::string& session_token = {}) {
-    mmo::public_api::RequestContext context;
+    mmo::common::RequestContext context;
     context.set_request_id(request_id);
     context.set_account_id(account_id);
     context.set_player_id(player_id);
@@ -26,7 +26,7 @@ mmo::public_api::RequestContext make_context(
     return context;
 }
 
-bool context_ok(const mmo::public_api::ResponseContext& context) {
+bool context_ok(const mmo::common::ResponseContext& context) {
     if (context.success()) {
         return true;
     }
@@ -37,7 +37,7 @@ bool context_ok(const mmo::public_api::ResponseContext& context) {
 
 template <typename Response>
 bool parse_response(
-    const mmo::public_api::Envelope& envelope,
+    const mmo::common::Envelope& envelope,
     const std::string& expected_type,
     Response& response) {
     if (envelope.message_type() != expected_type) {
@@ -58,6 +58,7 @@ int main() {
     const auto config = mmo::runtime::foundation::load_server_config_from_env();
     const auto tcp_options =
         mmo::runtime::transport::make_transport_options(config.transport.tcp);
+    mmo::runtime::transport::TcpEnvelopeClient client(tcp_options);
 
     mmo::public_api::LoginRequest login_request;
     *login_request.mutable_context() = make_context(1);
@@ -69,11 +70,9 @@ int main() {
         mmo::runtime::protocol::kLoginRequest,
         login_request.context(),
         login_request);
-    const auto login_response_envelope = mmo::runtime::transport::send_envelope(
-        config.network.upstream_host,
-        config.service("auth_server").tcp_port,
-        login_envelope,
-        tcp_options);
+    const auto login_response_envelope = client.send(
+        mmo::runtime::transport::make_transport_endpoint(config.service("auth_server")),
+        login_envelope);
 
     mmo::public_api::LoginResponse login_response;
     if (!parse_response(
@@ -100,11 +99,10 @@ int main() {
         mmo::runtime::protocol::kGateLoginRequest,
         gate_request.context(),
         gate_request);
-    const auto gate_response_envelope = mmo::runtime::transport::send_envelope(
-        config.network.upstream_host,
-        config.service("gateway_server").tcp_port,
-        gate_envelope,
-        tcp_options);
+    const auto gate_response_envelope = client.send(
+        mmo::runtime::transport::make_transport_endpoint(
+            config.service("gateway_server")),
+        gate_envelope);
 
     mmo::public_api::GateLoginResponse gate_response;
     if (!parse_response(
@@ -130,11 +128,10 @@ int main() {
         mmo::runtime::protocol::kEnterWorldRequest,
         world_request.context(),
         world_request);
-    const auto world_response_envelope = mmo::runtime::transport::send_envelope(
-        config.network.upstream_host,
-        config.service("gateway_server").tcp_port,
-        world_envelope,
-        tcp_options);
+    const auto world_response_envelope = client.send(
+        mmo::runtime::transport::make_transport_endpoint(
+            config.service("gateway_server")),
+        world_envelope);
 
     mmo::public_api::EnterWorldResponse world_response;
     if (!parse_response(

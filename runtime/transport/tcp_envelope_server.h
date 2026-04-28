@@ -24,15 +24,4 @@ private:
     TransportOptions options_;
 };
 
-mmo::public_api::Envelope send_envelope(
-    const std::string& host,
-    std::uint16_t port,
-    const mmo::public_api::Envelope& request);
-
-mmo::public_api::Envelope send_envelope(
-    const std::string& host,
-    std::uint16_t port,
-    const mmo::public_api::Envelope& request,
-    const TransportOptions& options);
-
 }  // namespace mmo::runtime::transport

@@ -1,19 +1,19 @@
-#include <iostream>
-
+#include "internal/gateway_world.pb.h"
+#include "internal/world_scene.pb.h"
 #include "modules/world/world_service.h"
-#include "public/scene.pb.h"
-#include "public/world.pb.h"
-#include "runtime/foundation/server_config.h"
+#include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
+#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/transport/envelope_transport.h"
+#include "runtime/transport/tcp_envelope_client.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 namespace {
 
-mmo::public_api::SceneRoute to_proto(const mmo::modules::world::SceneRoute& route) {
-    mmo::public_api::SceneRoute proto;
+mmo::common::SceneRoute to_proto(const mmo::modules::world::SceneRoute& route) {
+    mmo::common::SceneRoute proto;
     proto.set_map_id(route.map_id);
     proto.set_line_id(route.line_id);
     proto.set_scene_id(route.scene_id);
@@ -23,24 +23,21 @@ mmo::public_api::SceneRoute to_proto(const mmo::modules::world::SceneRoute& rout
 }  // namespace
 
 int main() {
-    const std::string service_name = "world_server";
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    mmo::runtime::foundation::ServerApp app("world_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(config.transport.tcp);
+        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+    mmo::runtime::transport::TcpEnvelopeClient upstream_client(tcp_options);
+
     mmo::modules::world::WorldService service;
+    mmo::runtime::protocol::MessageRouter router;
 
-    mmo::runtime::transport::TcpEnvelopeServer server(
-        config.service(service_name).tcp_port,
-        [&service, &config, &tcp_options](const mmo::public_api::Envelope& envelope) {
-            if (envelope.message_type() != mmo::runtime::protocol::kEnterWorldRequest) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 404, "unsupported world message");
-            }
-
-            mmo::public_api::EnterWorldRequest request;
+    router.on(
+        mmo::runtime::protocol::kGatewayEnterWorldRequest,
+        [&service, &app, &upstream_client](const mmo::common::Envelope& envelope) {
+            mmo::internal_api::GatewayEnterWorldRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid enter world request");
+                    envelope, 400, "invalid gateway enter world request");
             }
 
             const auto route = service.enter_world(
@@ -48,29 +45,33 @@ int main() {
                 request.preferred_map_id(),
                 request.preferred_line_id());
 
-            mmo::public_api::EnterSceneRequest scene_request;
+            mmo::internal_api::AllocateSceneEntityRequest scene_request;
             *scene_request.mutable_context() = request.context();
             *scene_request.mutable_route() = to_proto(route);
 
             const auto scene_envelope = mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kEnterSceneRequest,
+                mmo::runtime::protocol::kAllocateSceneEntityRequest,
                 request.context(),
                 scene_request);
-            const auto scene_response_envelope =
-                mmo::runtime::transport::send_envelope(
-                    config.network.upstream_host,
-                    config.service("scene_server").tcp_port,
-                    scene_envelope,
-                    tcp_options);
+            const auto scene_response_envelope = upstream_client.send(
+                mmo::runtime::transport::make_transport_endpoint(
+                    app.service_config("scene_server")),
+                scene_envelope);
 
-            mmo::public_api::EnterSceneResponse scene_response;
+            mmo::internal_api::AllocateSceneEntityResponse scene_response;
             if (!mmo::runtime::protocol::unpack_message(
                     scene_response_envelope, scene_response)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 502, "invalid scene response");
             }
+            if (!scene_response.context().success()) {
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope,
+                    scene_response.context().error_code(),
+                    scene_response.context().error_message());
+            }
 
-            mmo::public_api::EnterWorldResponse response;
+            mmo::internal_api::GatewayEnterWorldResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             *response.mutable_route() = to_proto(route);
@@ -78,15 +79,19 @@ int main() {
             *response.mutable_spawn_position() = scene_response.position();
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kEnterWorldResponse,
+                mmo::runtime::protocol::kGatewayEnterWorldResponse,
                 request.context(),
                 response);
-        },
-        service_name,
+        });
+
+    mmo::runtime::transport::TcpEnvelopeServer server(
+        app.service_config().tcp_port,
+        router.handler(),
+        app.service_name(),
         tcp_options);
 
     mmo::runtime::observability::log_info(
-        mmo::runtime::observability::LogContext{service_name},
+        mmo::runtime::observability::LogContext{app.service_name()},
         "service_starting");
     return server.run();
 }

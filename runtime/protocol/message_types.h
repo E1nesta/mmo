@@ -2,7 +2,7 @@
 
 namespace mmo::runtime::protocol {
 
-inline constexpr const char* kErrorResponse = "public.common.ErrorResponse";
+inline constexpr const char* kErrorResponse = "common.ResponseContext";
 
 inline constexpr const char* kLoginRequest = "public.auth.LoginRequest";
 inline constexpr const char* kLoginResponse = "public.auth.LoginResponse";
@@ -31,5 +31,20 @@ inline constexpr const char* kApplyRewardResponse = "public.player.ApplyRewardRe
 
 inline constexpr const char* kSocialBoundaryRequest = "public.social.SocialBoundaryRequest";
 inline constexpr const char* kSocialBoundaryResponse = "public.social.SocialBoundaryResponse";
+
+inline constexpr const char* kGatewayEnterWorldRequest =
+    "internal.gateway_world.GatewayEnterWorldRequest";
+inline constexpr const char* kGatewayEnterWorldResponse =
+    "internal.gateway_world.GatewayEnterWorldResponse";
+
+inline constexpr const char* kAllocateSceneEntityRequest =
+    "internal.world_scene.AllocateSceneEntityRequest";
+inline constexpr const char* kAllocateSceneEntityResponse =
+    "internal.world_scene.AllocateSceneEntityResponse";
+
+inline constexpr const char* kGrantInstanceRewardRequest =
+    "internal.instance_player.GrantInstanceRewardRequest";
+inline constexpr const char* kGrantInstanceRewardResponse =
+    "internal.instance_player.GrantInstanceRewardResponse";
 
 }  // namespace mmo::runtime::protocol

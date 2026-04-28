@@ -31,7 +31,7 @@ std::string format_line(
 
 LogContext context_from_envelope(
     const std::string& service_name,
-    const mmo::public_api::Envelope& envelope) {
+    const mmo::common::Envelope& envelope) {
     LogContext context;
     context.service_name = service_name;
     context.request_id = envelope.request_id();

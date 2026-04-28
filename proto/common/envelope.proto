@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package mmo.common;
+
+message Envelope {
+  uint64 request_id = 1;
+  string message_type = 2;
+  int64 player_id = 3;
+  string session_token = 4;
+  bytes payload = 5;
+}

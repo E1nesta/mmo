@@ -2,17 +2,18 @@ syntax = "proto3";
 
 package mmo.public_api;
 
-import "public/common.proto";
+import "common/context.proto";
+import "common/types.proto";
 
 message EnterWorldRequest {
-  RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   int32 preferred_map_id = 2;
   int32 preferred_line_id = 3;
 }
 
 message EnterWorldResponse {
-  ResponseContext context = 1;
-  SceneRoute route = 2;
+  mmo.common.ResponseContext context = 1;
+  mmo.common.SceneRoute route = 2;
   int64 scene_entity_id = 3;
-  Position spawn_position = 4;
+  mmo.common.Position spawn_position = 4;
 }

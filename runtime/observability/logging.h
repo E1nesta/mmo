@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-#include "public/common.pb.h"
+#include "common/envelope.pb.h"
 
 namespace mmo::runtime::observability {
 
@@ -23,7 +23,7 @@ struct LogContext {
 
 LogContext context_from_envelope(
     const std::string& service_name,
-    const mmo::public_api::Envelope& envelope);
+    const mmo::common::Envelope& envelope);
 
 void log_info(const LogContext& context, const std::string& event);
 void log_warn(const LogContext& context, const std::string& event);

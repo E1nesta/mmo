@@ -11,11 +11,11 @@ inline constexpr const char* kDefaultConfigPath = "configs/local/server.yaml";
 
 struct NetworkConfig {
     std::string bind_host;
-    std::string upstream_host;
     std::string public_host;
 };
 
 struct ServiceConfig {
+    std::string host;
     std::uint16_t tcp_port{};
     std::uint16_t udp_kcp_port{};
 };

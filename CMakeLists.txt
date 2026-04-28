@@ -47,7 +47,9 @@ function(generate_proto_sources proto_relative_path out_srcs out_hdrs)
 endfunction()
 
 set(PROTO_FILES
-    public/common.proto
+    common/context.proto
+    common/envelope.proto
+    common/types.proto
     public/auth.proto
     public/gateway.proto
     public/world.proto
@@ -91,6 +93,7 @@ function(mmo_defaults target)
 endfunction()
 
 add_library(runtime_foundation STATIC
+    runtime/foundation/server_app.cpp
     runtime/foundation/server_config.cpp
 )
 mmo_defaults(runtime_foundation)
@@ -102,6 +105,7 @@ endif()
 
 add_library(runtime_protocol STATIC
     runtime/protocol/envelope_utils.cpp
+    runtime/protocol/message_router.cpp
 )
 mmo_defaults(runtime_protocol)
 target_link_libraries(runtime_protocol PUBLIC runtime_foundation mmo_protocol)
@@ -143,8 +147,10 @@ target_link_libraries(runtime_storage PUBLIC
 
 add_library(runtime_transport STATIC
     runtime/transport/envelope_transport.cpp
+    runtime/transport/kcp_session.cpp
+    runtime/transport/realtime_transport.cpp
+    runtime/transport/tcp_envelope_client.cpp
     runtime/transport/tcp_envelope_server.cpp
-    runtime/transport/udp_kcp_endpoint.cpp
 )
 mmo_defaults(runtime_transport)
 target_link_libraries(runtime_transport PUBLIC

@@ -1,30 +1,24 @@
-#include <iostream>
-
 #include "modules/social/social_boundary.h"
 #include "public/social.pb.h"
-#include "runtime/foundation/server_config.h"
+#include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
+#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
-    const std::string service_name = "social_server";
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    mmo::runtime::foundation::ServerApp app("social_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(config.transport.tcp);
+        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+
     mmo::modules::social::SocialBoundaryService service;
+    mmo::runtime::protocol::MessageRouter router;
 
-    mmo::runtime::transport::TcpEnvelopeServer server(
-        config.service(service_name).tcp_port,
-        [&service](const mmo::public_api::Envelope& envelope) {
-            if (envelope.message_type() !=
-                mmo::runtime::protocol::kSocialBoundaryRequest) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 404, "unsupported social message");
-            }
-
+    router.on(
+        mmo::runtime::protocol::kSocialBoundaryRequest,
+        [&service](const mmo::common::Envelope& envelope) {
             mmo::public_api::SocialBoundaryRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
@@ -45,12 +39,16 @@ int main() {
                 mmo::runtime::protocol::kSocialBoundaryResponse,
                 request.context(),
                 response);
-        },
-        service_name,
+        });
+
+    mmo::runtime::transport::TcpEnvelopeServer server(
+        app.service_config().tcp_port,
+        router.handler(),
+        app.service_name(),
         tcp_options);
 
     mmo::runtime::observability::log_info(
-        mmo::runtime::observability::LogContext{service_name},
+        mmo::runtime::observability::LogContext{app.service_name()},
         "service_starting");
     return server.run();
 }

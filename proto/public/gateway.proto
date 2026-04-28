@@ -2,27 +2,27 @@ syntax = "proto3";
 
 package mmo.public_api;
 
-import "public/common.proto";
+import "common/context.proto";
 
 message GateLoginRequest {
-  RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   int64 player_id = 2;
   string session_token = 3;
   string device_id = 4;
 }
 
 message GateLoginResponse {
-  ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   bool bound = 2;
   uint64 connection_id = 3;
 }
 
 message PingRequest {
-  RequestContext context = 1;
+  mmo.common.RequestContext context = 1;
   int64 client_time_ms = 2;
 }
 
 message PingResponse {
-  ResponseContext context = 1;
+  mmo.common.ResponseContext context = 1;
   int64 server_time_ms = 2;
 }

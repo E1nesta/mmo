@@ -66,6 +66,7 @@ std::uint32_t read_uint32(const YAML::Node& node, const std::string& key) {
 
 ServiceConfig read_service(const YAML::Node& node) {
     ServiceConfig config;
+    config.host = read_string(node, "host");
     config.tcp_port = read_port(node, "tcp_port");
     if (node["udp_kcp_port"] || node["udp_kcp_port_env"]) {
         config.udp_kcp_port = read_port(node, "udp_kcp_port");
@@ -112,7 +113,6 @@ ServerConfig load_server_config(const std::string& path) {
 
     const YAML::Node network = root["network"];
     config.network.bind_host = read_string(network, "bind_host");
-    config.network.upstream_host = read_string(network, "upstream_host");
     config.network.public_host = read_string(network, "public_host");
 
     const YAML::Node services = root["services"];

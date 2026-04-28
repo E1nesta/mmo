@@ -2,24 +2,30 @@ environment: prod
 
 network:
   bind_host: "0.0.0.0"
-  upstream_host_env: "MMO_UPSTREAM_HOST"
   public_host_env: "MMO_PUBLIC_HOST"
 
 services:
   auth_server:
+    host_env: "MMO_AUTH_HOST"
     tcp_port_env: "MMO_AUTH_TCP_PORT"
   gateway_server:
+    host_env: "MMO_GATEWAY_HOST"
     tcp_port_env: "MMO_GATEWAY_TCP_PORT"
     udp_kcp_port_env: "MMO_GATEWAY_UDP_KCP_PORT"
   world_server:
+    host_env: "MMO_WORLD_HOST"
     tcp_port_env: "MMO_WORLD_TCP_PORT"
   scene_server:
+    host_env: "MMO_SCENE_HOST"
     tcp_port_env: "MMO_SCENE_TCP_PORT"
   instance_server:
+    host_env: "MMO_INSTANCE_HOST"
     tcp_port_env: "MMO_INSTANCE_TCP_PORT"
   player_server:
+    host_env: "MMO_PLAYER_HOST"
     tcp_port_env: "MMO_PLAYER_TCP_PORT"
   social_server:
+    host_env: "MMO_SOCIAL_HOST"
     tcp_port_env: "MMO_SOCIAL_TCP_PORT"
 
 transport:

@@ -4,9 +4,9 @@
 
 namespace mmo::runtime::protocol {
 
-mmo::public_api::ResponseContext make_ok_context(
-    const mmo::public_api::RequestContext& request) {
-    mmo::public_api::ResponseContext response;
+mmo::common::ResponseContext make_ok_context(
+    const mmo::common::RequestContext& request) {
+    mmo::common::ResponseContext response;
     response.set_request_id(request.request_id());
     response.set_account_id(request.account_id());
     response.set_player_id(request.player_id());
@@ -16,8 +16,8 @@ mmo::public_api::ResponseContext make_ok_context(
     return response;
 }
 
-mmo::public_api::ResponseContext make_error_context(
-    const mmo::public_api::RequestContext& request,
+mmo::common::ResponseContext make_error_context(
+    const mmo::common::RequestContext& request,
     int error_code,
     const std::string& error_message) {
     auto response = make_ok_context(request);
@@ -27,19 +27,19 @@ mmo::public_api::ResponseContext make_error_context(
     return response;
 }
 
-mmo::public_api::Envelope make_error_envelope(
-    const mmo::public_api::Envelope& request,
+mmo::common::Envelope make_error_envelope(
+    const mmo::common::Envelope& request,
     int error_code,
     const std::string& error_message) {
-    mmo::public_api::RequestContext context;
+    mmo::common::RequestContext context;
     context.set_request_id(request.request_id());
     context.set_player_id(request.player_id());
     context.set_session_token(request.session_token());
 
-    mmo::public_api::ResponseContext response =
+    mmo::common::ResponseContext response =
         make_error_context(context, error_code, error_message);
 
-    mmo::public_api::Envelope envelope;
+    mmo::common::Envelope envelope;
     envelope.set_request_id(request.request_id());
     envelope.set_message_type(kErrorResponse);
     envelope.set_player_id(request.player_id());
