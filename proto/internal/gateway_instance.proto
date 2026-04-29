@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package mmo.internal_api;
+
+import "common/context.proto";
+import "common/types.proto";
+
+message GatewayEnterInstanceRequest {
+  mmo.common.RequestContext context = 1;
+  int32 dungeon_id = 2;
+}
+
+message GatewayEnterInstanceResponse {
+  mmo.common.ResponseContext context = 1;
+  int64 instance_id = 2;
+  int64 boss_entity_id = 3;
+}
+
+message GatewaySettleInstanceRequest {
+  mmo.common.RequestContext context = 1;
+  int64 instance_id = 2;
+  string idempotency_key = 3;
+  bool win = 4;
+}
+
+message GatewaySettleInstanceResponse {
+  mmo.common.ResponseContext context = 1;
+  string reward_grant_id = 2;
+  repeated mmo.common.Reward rewards = 3;
+  bool duplicate = 4;
+}

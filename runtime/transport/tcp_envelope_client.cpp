@@ -2,14 +2,13 @@
 
 #include <boost/asio.hpp>
 
-#include <arpa/inet.h>
-
+#include <array>
 #include <chrono>
-#include <cstdint>
 #include <iostream>
 #include <string>
 
 #include "runtime/protocol/envelope_utils.h"
+#include "runtime/transport/envelope_codec.h"
 
 namespace mmo::runtime::transport {
 namespace {
@@ -31,13 +30,15 @@ bool read_envelope(
     std::istream& input,
     mmo::common::Envelope& envelope,
     std::uint32_t max_payload_bytes) {
-    std::uint32_t network_size = 0;
-    if (!read_exact(input, &network_size, sizeof(network_size))) {
+    std::array<char, EnvelopeCodec::kHeaderBytes> header{};
+    if (!read_exact(input, header.data(), header.size())) {
         return false;
     }
 
-    const std::uint32_t payload_size = ntohl(network_size);
-    if (payload_size > max_payload_bytes) {
+    std::uint32_t payload_size = 0;
+    std::string error_message;
+    if (!EnvelopeCodec::decode_payload_size(
+            header, max_payload_bytes, &payload_size, &error_message)) {
         return false;
     }
 
@@ -47,7 +48,7 @@ bool read_envelope(
         return false;
     }
 
-    return envelope.ParseFromString(payload);
+    return EnvelopeCodec::parse_payload(payload, &envelope, &error_message);
 }
 
 bool write_envelope(
@@ -55,14 +56,15 @@ bool write_envelope(
     const mmo::common::Envelope& envelope,
     std::uint32_t max_payload_bytes) {
     std::string payload;
-    envelope.SerializeToString(&payload);
-    if (payload.size() > max_payload_bytes) {
+    std::string error_message;
+    if (!EnvelopeCodec::serialize_payload(
+            envelope, max_payload_bytes, &payload, &error_message)) {
         return false;
     }
 
-    const std::uint32_t network_size =
-        htonl(static_cast<std::uint32_t>(payload.size()));
-    return write_exact(output, &network_size, sizeof(network_size)) &&
+    const auto header = EnvelopeCodec::encode_payload_size(
+        static_cast<std::uint32_t>(payload.size()));
+    return write_exact(output, header.data(), header.size()) &&
            write_exact(output, payload.data(), payload.size());
 }
 

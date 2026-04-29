@@ -37,6 +37,30 @@ inline constexpr const char* kGatewayEnterWorldRequest =
 inline constexpr const char* kGatewayEnterWorldResponse =
     "internal.gateway_world.GatewayEnterWorldResponse";
 
+inline constexpr const char* kGatewayAuthLoginRequest =
+    "internal.gateway_auth.GatewayAuthLoginRequest";
+inline constexpr const char* kGatewayAuthLoginResponse =
+    "internal.gateway_auth.GatewayAuthLoginResponse";
+
+inline constexpr const char* kGatewayEnterInstanceRequest =
+    "internal.gateway_instance.GatewayEnterInstanceRequest";
+inline constexpr const char* kGatewayEnterInstanceResponse =
+    "internal.gateway_instance.GatewayEnterInstanceResponse";
+inline constexpr const char* kGatewaySettleInstanceRequest =
+    "internal.gateway_instance.GatewaySettleInstanceRequest";
+inline constexpr const char* kGatewaySettleInstanceResponse =
+    "internal.gateway_instance.GatewaySettleInstanceResponse";
+
+inline constexpr const char* kGatewayApplyRewardRequest =
+    "internal.gateway_player.GatewayApplyRewardRequest";
+inline constexpr const char* kGatewayApplyRewardResponse =
+    "internal.gateway_player.GatewayApplyRewardResponse";
+
+inline constexpr const char* kGatewaySocialBoundaryRequest =
+    "internal.gateway_social.GatewaySocialBoundaryRequest";
+inline constexpr const char* kGatewaySocialBoundaryResponse =
+    "internal.gateway_social.GatewaySocialBoundaryResponse";
+
 inline constexpr const char* kAllocateSceneEntityRequest =
     "internal.world_scene.AllocateSceneEntityRequest";
 inline constexpr const char* kAllocateSceneEntityResponse =

@@ -1,13 +1,17 @@
+#include <memory>
+
 #include "internal/gateway_world.pb.h"
 #include "internal/world_scene.pb.h"
 #include "modules/world/world_service.h"
+#include "runtime/channel/channel_connection_pool.h"
+#include "runtime/channel/static_endpoint_resolver.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_client.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
-#include "runtime/transport/tcp_envelope_client.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 namespace {
@@ -25,15 +29,25 @@ mmo::common::SceneRoute to_proto(const mmo::modules::world::SceneRoute& route) {
 int main() {
     mmo::runtime::foundation::ServerApp app("world_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
-    mmo::runtime::transport::TcpEnvelopeClient upstream_client(tcp_options);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
+    auto resolver =
+        std::make_shared<mmo::runtime::channel::StaticEndpointResolver>(app.config());
+    mmo::runtime::rpc::RpcClient rpc_client(
+        resolver,
+        tcp_options,
+        mmo::runtime::channel::make_channel_connection_pool_options(
+            app.config().channel),
+        mmo::runtime::rpc::make_rpc_client_options(
+            app.service_name(), app.config()));
 
     mmo::modules::world::WorldService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
+    rpc_server.on(
         mmo::runtime::protocol::kGatewayEnterWorldRequest,
-        [&service, &app, &upstream_client](const mmo::common::Envelope& envelope) {
+        [&service, &app, &rpc_client](const mmo::common::Envelope& envelope) {
             mmo::internal_api::GatewayEnterWorldRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
@@ -49,18 +63,21 @@ int main() {
             *scene_request.mutable_context() = request.context();
             *scene_request.mutable_route() = to_proto(route);
 
-            const auto scene_envelope = mmo::runtime::protocol::pack_message(
+            mmo::runtime::rpc::RpcController controller;
+            controller.source_service = app.service_name();
+            const auto rpc_result = rpc_client.call(
+                "scene_server",
                 mmo::runtime::protocol::kAllocateSceneEntityRequest,
                 request.context(),
-                scene_request);
-            const auto scene_response_envelope = upstream_client.send(
-                mmo::runtime::transport::make_transport_endpoint(
-                    app.service_config("scene_server")),
-                scene_envelope);
+                scene_request,
+                controller);
+            if (!rpc_result.ok()) {
+                return rpc_result.make_error_envelope(envelope);
+            }
 
             mmo::internal_api::AllocateSceneEntityResponse scene_response;
             if (!mmo::runtime::protocol::unpack_message(
-                    scene_response_envelope, scene_response)) {
+                    rpc_result.response(), scene_response)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 502, "invalid scene response");
             }
@@ -86,7 +103,7 @@ int main() {
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

@@ -5,11 +5,14 @@ network:
   public_host_env: "MMO_PUBLIC_HOST"
 
 services:
+  api_gateway_server:
+    host_env: "MMO_API_GATEWAY_HOST"
+    tcp_port: 4100
   auth_server:
     host_env: "MMO_AUTH_HOST"
     tcp_port: 4101
-  gateway_server:
-    host_env: "MMO_GATEWAY_HOST"
+  game_gateway_server:
+    host_env: "MMO_GAME_GATEWAY_HOST"
     tcp_port: 4102
     udp_kcp_port: 4202
   world_server:
@@ -27,6 +30,10 @@ services:
   social_server:
     host_env: "MMO_SOCIAL_HOST"
     tcp_port: 4107
+  realtime_gateway_server:
+    host_env: "MMO_REALTIME_GATEWAY_HOST"
+    tcp_port: 4108
+    udp_kcp_port: 4208
 
 transport:
   tcp:
@@ -55,6 +62,30 @@ storage:
     database_env: "MMO_REDIS_DATABASE"
     password_env: "MMO_REDIS_PASSWORD"
     pool_size: 16
+
+execution:
+  io_threads: 2
+  handler_shards: 4
+  max_handler_queue_depth_per_shard: 1024
+  player_shards: 4
+  scene_shards: 4
+  instance_shards: 2
+
+channel:
+  connect_timeout_millis: 1000
+  request_timeout_millis: 3000
+  connections_per_upstream: 2
+  max_pending_requests_per_connection: 128
+  max_pending_requests_per_upstream: 256
+
+security:
+  internal_auth:
+    shared_secret_env: "MMO_INTERNAL_AUTH_SHARED_SECRET"
+    max_clock_skew_millis: 10000
+  gateway_ticket:
+    shared_secret_env: "MMO_GATEWAY_TICKET_SHARED_SECRET"
+    gateway_ticket_ttl_millis: 60000
+    access_token_ttl_millis: 3600000
 
 observability:
   log_level: "info"

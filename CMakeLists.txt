@@ -11,6 +11,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(Threads REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 find_path(MYSQL_INCLUDE_DIR mysql/mysql.h REQUIRED)
 find_library(MYSQL_LIBRARY mysqlclient REQUIRED)
@@ -59,7 +60,11 @@ set(PROTO_FILES
     public/player.proto
     public/social.proto
     internal/auth_gateway.proto
+    internal/gateway_auth.proto
     internal/gateway_world.proto
+    internal/gateway_instance.proto
+    internal/gateway_player.proto
+    internal/gateway_social.proto
     internal/world_scene.proto
     internal/instance_player.proto
 )
@@ -104,19 +109,24 @@ else()
 endif()
 
 add_library(runtime_protocol STATIC
+    runtime/protocol/auth_tokens.cpp
     runtime/protocol/envelope_utils.cpp
+    runtime/protocol/internal_auth.cpp
     runtime/protocol/message_router.cpp
 )
 mmo_defaults(runtime_protocol)
 target_link_libraries(runtime_protocol PUBLIC runtime_foundation mmo_protocol)
+target_link_libraries(runtime_protocol PUBLIC OpenSSL::Crypto)
 
 add_library(runtime_execution STATIC
+    runtime/execution/io_context_pool.cpp
     runtime/execution/sharded_executor.cpp
+    runtime/execution/shard_router.cpp
     runtime/execution/scene_worker.cpp
     runtime/execution/instance_shard.cpp
 )
 mmo_defaults(runtime_execution)
-target_link_libraries(runtime_execution PUBLIC Threads::Threads)
+target_link_libraries(runtime_execution PUBLIC Boost::system Threads::Threads)
 
 add_library(runtime_session STATIC
     runtime/session/session_context.cpp
@@ -125,6 +135,7 @@ mmo_defaults(runtime_session)
 
 add_library(runtime_observability STATIC
     runtime/observability/logging.cpp
+    runtime/observability/metrics.cpp
 )
 mmo_defaults(runtime_observability)
 target_link_libraries(runtime_observability PUBLIC mmo_protocol)
@@ -132,7 +143,9 @@ target_link_libraries(runtime_observability PUBLIC spdlog::spdlog)
 
 add_library(runtime_storage STATIC
     runtime/storage/mysql_client.cpp
+    runtime/storage/mysql_connection_pool.cpp
     runtime/storage/redis_client.cpp
+    runtime/storage/redis_connection_pool.cpp
     runtime/storage/redis_keys.cpp
 )
 mmo_defaults(runtime_storage)
@@ -146,6 +159,8 @@ target_link_libraries(runtime_storage PUBLIC
 )
 
 add_library(runtime_transport STATIC
+    runtime/transport/connection_session.cpp
+    runtime/transport/envelope_codec.cpp
     runtime/transport/envelope_transport.cpp
     runtime/transport/kcp_session.cpp
     runtime/transport/realtime_transport.cpp
@@ -154,6 +169,7 @@ add_library(runtime_transport STATIC
 )
 mmo_defaults(runtime_transport)
 target_link_libraries(runtime_transport PUBLIC
+    runtime_execution
     runtime_protocol
     runtime_observability
     ${IKCP_LIBRARY}
@@ -164,11 +180,49 @@ target_include_directories(runtime_transport PUBLIC
     ${IKCP_INCLUDE_DIR}
 )
 
+add_library(runtime_channel STATIC
+    runtime/channel/channel.cpp
+    runtime/channel/channel_client.cpp
+    runtime/channel/channel_connection_pool.cpp
+    runtime/channel/channel_error.cpp
+    runtime/channel/channel_result.cpp
+    runtime/channel/static_endpoint_resolver.cpp
+)
+mmo_defaults(runtime_channel)
+target_link_libraries(runtime_channel PUBLIC
+    runtime_foundation
+    runtime_protocol
+    runtime_transport
+)
+
+add_library(runtime_rpc STATIC
+    runtime/rpc/rpc_client.cpp
+    runtime/rpc/rpc_error.cpp
+    runtime/rpc/rpc_result.cpp
+    runtime/rpc/rpc_server.cpp
+)
+mmo_defaults(runtime_rpc)
+target_link_libraries(runtime_rpc PUBLIC
+    runtime_channel
+    runtime_foundation
+    runtime_protocol
+)
+
+add_library(runtime_routing STATIC
+    runtime/routing/forward_result.cpp
+    runtime/routing/gateway_forwarder.cpp
+    runtime/routing/gateway_router.cpp
+    runtime/routing/pending_response_table.cpp
+    runtime/routing/route_table.cpp
+)
+mmo_defaults(runtime_routing)
+target_link_libraries(runtime_routing PUBLIC
+    runtime_channel
+    runtime_protocol
+)
+
 add_library(modules_auth STATIC modules/auth/auth_service.cpp)
 mmo_defaults(modules_auth)
-
-add_library(modules_gateway STATIC modules/gateway/gateway_session.cpp)
-mmo_defaults(modules_gateway)
 
 add_library(modules_world STATIC modules/world/world_service.cpp)
 mmo_defaults(modules_world)
@@ -206,6 +260,7 @@ function(add_mmo_server target)
     mmo_defaults(${target})
     target_link_libraries(${target} PRIVATE
         runtime_transport
+        runtime_channel
         runtime_execution
         runtime_session
         runtime_observability
@@ -214,26 +269,33 @@ function(add_mmo_server target)
 endfunction()
 
 add_mmo_server(auth_server apps/auth_server/main.cpp)
-target_link_libraries(auth_server PRIVATE modules_auth)
+target_link_libraries(auth_server PRIVATE modules_auth runtime_rpc)
 
-add_mmo_server(gateway_server apps/gateway_server/main.cpp)
-target_link_libraries(gateway_server PRIVATE modules_gateway)
+add_mmo_server(api_gateway_server apps/api_gateway_server/main.cpp)
+target_link_libraries(api_gateway_server PRIVATE runtime_routing)
+
+add_mmo_server(game_gateway_server apps/game_gateway_server/main.cpp)
+target_link_libraries(game_gateway_server PRIVATE runtime_routing)
 
 add_mmo_server(world_server apps/world_server/main.cpp)
-target_link_libraries(world_server PRIVATE modules_world)
+target_link_libraries(world_server PRIVATE modules_world runtime_rpc)
 
 add_mmo_server(scene_server apps/scene_server/main.cpp)
-target_link_libraries(scene_server PRIVATE modules_scene)
+target_link_libraries(scene_server PRIVATE modules_scene runtime_rpc)
 
 add_mmo_server(instance_server apps/instance_server/main.cpp)
-target_link_libraries(instance_server PRIVATE modules_instance modules_player)
+target_link_libraries(instance_server PRIVATE modules_instance modules_player runtime_rpc)
 
 add_mmo_server(player_server apps/player_server/main.cpp)
-target_link_libraries(player_server PRIVATE modules_player)
+target_link_libraries(player_server PRIVATE modules_player runtime_rpc)
 
 add_mmo_server(social_server apps/social_server/main.cpp)
-target_link_libraries(social_server PRIVATE modules_social)
+target_link_libraries(social_server PRIVATE modules_social runtime_rpc)
 
 add_executable(mmo_flow_client tools/mmo_flow_client/main.cpp)
 mmo_defaults(mmo_flow_client)
 target_link_libraries(mmo_flow_client PRIVATE runtime_transport mmo_protocol)
+
+add_executable(internal_auth_probe tools/internal_auth_probe/main.cpp)
+mmo_defaults(internal_auth_probe)
+target_link_libraries(internal_auth_probe PRIVATE runtime_foundation runtime_transport mmo_protocol)

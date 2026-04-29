@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -16,6 +17,9 @@ struct TransportOptions {
     std::uint32_t max_payload_bytes{kDefaultMaxEnvelopePayloadBytes};
     int timeout_millis{kDefaultTransportTimeoutMillis};
     int listen_backlog{64};
+    int io_thread_count{1};
+    int handler_shard_count{1};
+    std::size_t max_handler_queue_depth_per_shard{1024};
 };
 
 struct TransportEndpoint {
@@ -25,6 +29,10 @@ struct TransportEndpoint {
 
 TransportOptions make_transport_options(
     const mmo::runtime::foundation::TcpTransportConfig& config);
+
+TransportOptions make_transport_options(
+    const mmo::runtime::foundation::TcpTransportConfig& config,
+    const mmo::runtime::foundation::ExecutionConfig& execution_config);
 
 TransportEndpoint make_transport_endpoint(
     const mmo::runtime::foundation::ServiceConfig& config);

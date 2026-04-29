@@ -1,28 +1,42 @@
+#include <memory>
+
+#include "internal/gateway_instance.pb.h"
 #include "internal/instance_player.pb.h"
 #include "modules/instance/instance_service.h"
-#include "public/instance.pb.h"
+#include "runtime/channel/channel_connection_pool.h"
+#include "runtime/channel/static_endpoint_resolver.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_client.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
-#include "runtime/transport/tcp_envelope_client.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
     mmo::runtime::foundation::ServerApp app("instance_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
-    mmo::runtime::transport::TcpEnvelopeClient upstream_client(tcp_options);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
+    auto resolver =
+        std::make_shared<mmo::runtime::channel::StaticEndpointResolver>(app.config());
+    mmo::runtime::rpc::RpcClient rpc_client(
+        resolver,
+        tcp_options,
+        mmo::runtime::channel::make_channel_connection_pool_options(
+            app.config().channel),
+        mmo::runtime::rpc::make_rpc_client_options(
+            app.service_name(), app.config()));
 
     mmo::modules::instance::InstanceService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
-        mmo::runtime::protocol::kEnterInstanceRequest,
+    rpc_server.on(
+        mmo::runtime::protocol::kGatewayEnterInstanceRequest,
         [&service](const mmo::common::Envelope& envelope) {
-            mmo::public_api::EnterInstanceRequest request;
+            mmo::internal_api::GatewayEnterInstanceRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid enter instance request");
@@ -32,22 +46,22 @@ int main() {
                 request.context().player_id(),
                 request.dungeon_id());
 
-            mmo::public_api::EnterInstanceResponse response;
+            mmo::internal_api::GatewayEnterInstanceResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_instance_id(instance.instance_id);
             response.set_boss_entity_id(instance.boss_entity_id);
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kEnterInstanceResponse,
+                mmo::runtime::protocol::kGatewayEnterInstanceResponse,
                 request.context(),
                 response);
         });
 
-    router.on(
-        mmo::runtime::protocol::kSettleInstanceRequest,
-        [&service, &app, &upstream_client](const mmo::common::Envelope& envelope) {
-            mmo::public_api::SettleInstanceRequest request;
+    rpc_server.on(
+        mmo::runtime::protocol::kGatewaySettleInstanceRequest,
+        [&service, &app, &rpc_client](const mmo::common::Envelope& envelope) {
+            mmo::internal_api::GatewaySettleInstanceRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid settle instance request");
@@ -68,18 +82,21 @@ int main() {
                 proto_reward->set_amount(reward.amount);
             }
 
-            const auto reward_envelope = mmo::runtime::protocol::pack_message(
+            mmo::runtime::rpc::RpcController controller;
+            controller.source_service = app.service_name();
+            const auto rpc_result = rpc_client.call(
+                "player_server",
                 mmo::runtime::protocol::kGrantInstanceRewardRequest,
                 request.context(),
-                reward_request);
-            const auto reward_response_envelope = upstream_client.send(
-                mmo::runtime::transport::make_transport_endpoint(
-                    app.service_config("player_server")),
-                reward_envelope);
+                reward_request,
+                controller);
+            if (!rpc_result.ok()) {
+                return rpc_result.make_error_envelope(envelope);
+            }
 
             mmo::internal_api::GrantInstanceRewardResponse reward_response;
             if (!mmo::runtime::protocol::unpack_message(
-                    reward_response_envelope, reward_response)) {
+                    rpc_result.response(), reward_response)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 502, "invalid player reward response");
             }
@@ -90,7 +107,7 @@ int main() {
                     reward_response.context().error_message());
             }
 
-            mmo::public_api::SettleInstanceResponse response;
+            mmo::internal_api::GatewaySettleInstanceResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_reward_grant_id(settled.reward_grant_id);
@@ -102,14 +119,14 @@ int main() {
             }
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kSettleInstanceResponse,
+                mmo::runtime::protocol::kGatewaySettleInstanceResponse,
                 request.context(),
                 response);
         });
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

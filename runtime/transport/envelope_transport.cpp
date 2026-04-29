@@ -17,6 +17,18 @@ TransportOptions make_transport_options(
     return options;
 }
 
+TransportOptions make_transport_options(
+    const mmo::runtime::foundation::TcpTransportConfig& config,
+    const mmo::runtime::foundation::ExecutionConfig& execution_config) {
+    auto options = make_transport_options(config);
+    options.io_thread_count = execution_config.io_threads;
+    options.handler_shard_count = execution_config.handler_shards;
+    options.max_handler_queue_depth_per_shard =
+        static_cast<std::size_t>(
+            execution_config.max_handler_queue_depth_per_shard);
+    return options;
+}
+
 TransportEndpoint make_transport_endpoint(
     const mmo::runtime::foundation::ServiceConfig& config) {
     TransportEndpoint endpoint;

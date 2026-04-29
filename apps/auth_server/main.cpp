@@ -1,25 +1,29 @@
+#include "internal/gateway_auth.pb.h"
 #include "modules/auth/auth_service.h"
-#include "public/auth.pb.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
+#include "runtime/protocol/auth_tokens.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
+#include "runtime/protocol/internal_auth.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
     mmo::runtime::foundation::ServerApp app("auth_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
 
     mmo::modules::auth::AuthService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
-        mmo::runtime::protocol::kLoginRequest,
-        [&service](const mmo::common::Envelope& envelope) {
-            mmo::public_api::LoginRequest request;
+    rpc_server.on(
+        mmo::runtime::protocol::kGatewayAuthLoginRequest,
+        [&service, &app](const mmo::common::Envelope& envelope) {
+            mmo::internal_api::GatewayAuthLoginRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid login request");
@@ -27,22 +31,61 @@ int main() {
 
             const auto login =
                 service.login(request.account_name(), request.device_id());
+            const auto now_millis = mmo::runtime::protocol::current_time_millis();
+            const auto& ticket_config = app.config().security.gateway_ticket;
+            std::string access_token;
+            std::string gateway_ticket;
+            std::int64_t access_expires_at = 0;
+            std::int64_t gateway_ticket_expires_at = 0;
+            std::string token_error;
+            if (!mmo::runtime::protocol::issue_auth_token(
+                    mmo::runtime::protocol::AuthTokenPurpose::kAccess,
+                    login.account_id,
+                    login.player_id,
+                    login.session_token,
+                    now_millis,
+                    ticket_config.access_token_ttl_millis,
+                    ticket_config.shared_secret,
+                    &access_token,
+                    &access_expires_at,
+                    &token_error) ||
+                !mmo::runtime::protocol::issue_auth_token(
+                    mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+                    login.account_id,
+                    login.player_id,
+                    login.session_token,
+                    now_millis,
+                    ticket_config.gateway_ticket_ttl_millis,
+                    ticket_config.shared_secret,
+                    &gateway_ticket,
+                    &gateway_ticket_expires_at,
+                    &token_error)) {
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 500, token_error);
+            }
 
-            mmo::public_api::LoginResponse response;
+            mmo::internal_api::GatewayAuthLoginResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_account_id(login.account_id);
             response.set_player_id(login.player_id);
             response.set_session_token(login.session_token);
             response.set_expires_at_epoch_seconds(login.expires_at_epoch_seconds);
+            response.set_access_token(access_token);
+            response.set_gateway_ticket(gateway_ticket);
+            response.set_access_token_expires_at_epoch_millis(access_expires_at);
+            response.set_gateway_ticket_expires_at_epoch_millis(
+                gateway_ticket_expires_at);
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kLoginResponse, request.context(), response);
+                mmo::runtime::protocol::kGatewayAuthLoginResponse,
+                request.context(),
+                response);
         });
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

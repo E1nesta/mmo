@@ -1,13 +1,13 @@
 #include <vector>
 
+#include "internal/gateway_player.pb.h"
 #include "internal/instance_player.pb.h"
 #include "modules/player/player_service.h"
-#include "public/player.pb.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
@@ -28,12 +28,14 @@ std::vector<mmo::modules::player::Reward> to_rewards(
 int main() {
     mmo::runtime::foundation::ServerApp app("player_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
 
     mmo::modules::player::PlayerService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
+    rpc_server.on(
         mmo::runtime::protocol::kGrantInstanceRewardRequest,
         [&service](const mmo::common::Envelope& envelope) {
             mmo::internal_api::GrantInstanceRewardRequest request;
@@ -60,10 +62,10 @@ int main() {
                 response);
         });
 
-    router.on(
-        mmo::runtime::protocol::kApplyRewardRequest,
+    rpc_server.on(
+        mmo::runtime::protocol::kGatewayApplyRewardRequest,
         [&service](const mmo::common::Envelope& envelope) {
-            mmo::public_api::ApplyRewardRequest request;
+            mmo::internal_api::GatewayApplyRewardRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid apply reward request");
@@ -74,7 +76,7 @@ int main() {
                 request.idempotency_key(),
                 to_rewards(request.rewards()));
 
-            mmo::public_api::ApplyRewardResponse response;
+            mmo::internal_api::GatewayApplyRewardResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_applied(applied.applied);
@@ -82,14 +84,14 @@ int main() {
             response.set_exp(applied.exp);
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kApplyRewardResponse,
+                mmo::runtime::protocol::kGatewayApplyRewardResponse,
                 request.context(),
                 response);
         });
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

@@ -9,6 +9,7 @@ message GateLoginRequest {
   int64 player_id = 2;
   string session_token = 3;
   string device_id = 4;
+  string gateway_ticket = 5;
 }
 
 message GateLoginResponse {

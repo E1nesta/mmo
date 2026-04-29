@@ -3,20 +3,22 @@
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
     mmo::runtime::foundation::ServerApp app("scene_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
 
     mmo::modules::scene::SceneService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
+    rpc_server.on(
         mmo::runtime::protocol::kAllocateSceneEntityRequest,
         [&service](const mmo::common::Envelope& envelope) {
             mmo::internal_api::AllocateSceneEntityRequest request;
@@ -45,7 +47,7 @@ int main() {
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

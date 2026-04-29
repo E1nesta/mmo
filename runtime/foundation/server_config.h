@@ -62,9 +62,42 @@ struct StorageConfig {
     RedisConfig redis;
 };
 
+struct ExecutionConfig {
+    int io_threads{};
+    int handler_shards{};
+    int max_handler_queue_depth_per_shard{1024};
+    int player_shards{};
+    int scene_shards{};
+    int instance_shards{};
+};
+
+struct ChannelConfig {
+    int connect_timeout_millis{};
+    int request_timeout_millis{};
+    int connections_per_upstream{};
+    int max_pending_requests_per_connection{};
+    int max_pending_requests_per_upstream{256};
+};
+
 struct ObservabilityConfig {
     std::string log_level;
     std::string log_format;
+};
+
+struct InternalAuthConfig {
+    std::string shared_secret;
+    int max_clock_skew_millis{10000};
+};
+
+struct GatewayTicketConfig {
+    std::string shared_secret;
+    int gateway_ticket_ttl_millis{60000};
+    int access_token_ttl_millis{3600000};
+};
+
+struct SecurityConfig {
+    InternalAuthConfig internal_auth;
+    GatewayTicketConfig gateway_ticket;
 };
 
 class ServerConfig {
@@ -73,7 +106,10 @@ public:
     NetworkConfig network;
     TransportConfig transport;
     StorageConfig storage;
+    ExecutionConfig execution;
+    ChannelConfig channel;
     ObservabilityConfig observability;
+    SecurityConfig security;
     std::unordered_map<std::string, ServiceConfig> services;
 
     const ServiceConfig& service(const std::string& service_name) const;

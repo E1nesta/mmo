@@ -14,7 +14,7 @@ std::int64_t SceneWorker::scene_id() const {
 }
 
 void SceneWorker::post(Task task) {
-    executor_->post(static_cast<std::uint64_t>(scene_id_), std::move(task));
+    (void)executor_->post(static_cast<std::uint64_t>(scene_id_), std::move(task));
 }
 
 }  // namespace mmo::runtime::execution

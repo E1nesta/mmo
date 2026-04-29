@@ -5,13 +5,16 @@ network:
   public_host_env: "MMO_PUBLIC_HOST"
 
 services:
+  api_gateway_server:
+    host_env: "MMO_API_GATEWAY_HOST"
+    tcp_port_env: "MMO_API_GATEWAY_TCP_PORT"
   auth_server:
     host_env: "MMO_AUTH_HOST"
     tcp_port_env: "MMO_AUTH_TCP_PORT"
-  gateway_server:
-    host_env: "MMO_GATEWAY_HOST"
-    tcp_port_env: "MMO_GATEWAY_TCP_PORT"
-    udp_kcp_port_env: "MMO_GATEWAY_UDP_KCP_PORT"
+  game_gateway_server:
+    host_env: "MMO_GAME_GATEWAY_HOST"
+    tcp_port_env: "MMO_GAME_GATEWAY_TCP_PORT"
+    udp_kcp_port_env: "MMO_GAME_GATEWAY_UDP_KCP_PORT"
   world_server:
     host_env: "MMO_WORLD_HOST"
     tcp_port_env: "MMO_WORLD_TCP_PORT"
@@ -27,6 +30,10 @@ services:
   social_server:
     host_env: "MMO_SOCIAL_HOST"
     tcp_port_env: "MMO_SOCIAL_TCP_PORT"
+  realtime_gateway_server:
+    host_env: "MMO_REALTIME_GATEWAY_HOST"
+    tcp_port_env: "MMO_REALTIME_GATEWAY_TCP_PORT"
+    udp_kcp_port_env: "MMO_REALTIME_GATEWAY_UDP_KCP_PORT"
 
 transport:
   tcp:
@@ -55,6 +62,30 @@ storage:
     database_env: "MMO_REDIS_DATABASE"
     password_env: "MMO_REDIS_PASSWORD"
     pool_size_env: "MMO_REDIS_POOL_SIZE"
+
+execution:
+  io_threads_env: "MMO_IO_THREADS"
+  handler_shards_env: "MMO_HANDLER_SHARDS"
+  max_handler_queue_depth_per_shard_env: "MMO_MAX_HANDLER_QUEUE_DEPTH_PER_SHARD"
+  player_shards_env: "MMO_PLAYER_SHARDS"
+  scene_shards_env: "MMO_SCENE_SHARDS"
+  instance_shards_env: "MMO_INSTANCE_SHARDS"
+
+channel:
+  connect_timeout_millis_env: "MMO_CHANNEL_CONNECT_TIMEOUT_MILLIS"
+  request_timeout_millis_env: "MMO_CHANNEL_REQUEST_TIMEOUT_MILLIS"
+  connections_per_upstream_env: "MMO_CHANNEL_CONNECTIONS_PER_UPSTREAM"
+  max_pending_requests_per_connection_env: "MMO_CHANNEL_MAX_PENDING_REQUESTS_PER_CONNECTION"
+  max_pending_requests_per_upstream_env: "MMO_CHANNEL_MAX_PENDING_REQUESTS_PER_UPSTREAM"
+
+security:
+  internal_auth:
+    shared_secret_env: "MMO_INTERNAL_AUTH_SHARED_SECRET"
+    max_clock_skew_millis_env: "MMO_INTERNAL_AUTH_MAX_CLOCK_SKEW_MILLIS"
+  gateway_ticket:
+    shared_secret_env: "MMO_GATEWAY_TICKET_SHARED_SECRET"
+    gateway_ticket_ttl_millis_env: "MMO_GATEWAY_TICKET_TTL_MILLIS"
+    access_token_ttl_millis_env: "MMO_ACCESS_TOKEN_TTL_MILLIS"
 
 observability:
   log_level_env: "MMO_LOG_LEVEL"

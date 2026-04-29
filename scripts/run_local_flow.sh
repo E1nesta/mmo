@@ -42,16 +42,29 @@ cmake --build "${BUILD_DIR}" --parallel
 
 "${BUILD_DIR}/auth_server" &
 PIDS+=("$!")
+"${BUILD_DIR}/api_gateway_server" &
+PIDS+=("$!")
 "${BUILD_DIR}/scene_server" &
 PIDS+=("$!")
 "${BUILD_DIR}/world_server" &
 PIDS+=("$!")
-"${BUILD_DIR}/gateway_server" &
+"${BUILD_DIR}/instance_server" &
+PIDS+=("$!")
+"${BUILD_DIR}/player_server" &
+PIDS+=("$!")
+"${BUILD_DIR}/social_server" &
+PIDS+=("$!")
+"${BUILD_DIR}/game_gateway_server" &
 PIDS+=("$!")
 
 wait_for_port 4101
+wait_for_port 4100
 wait_for_port 4104
 wait_for_port 4103
+wait_for_port 4105
+wait_for_port 4106
+wait_for_port 4107
 wait_for_port 4102
 
+"${BUILD_DIR}/internal_auth_probe"
 "${BUILD_DIR}/mmo_flow_client"

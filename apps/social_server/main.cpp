@@ -1,25 +1,27 @@
+#include "internal/gateway_social.pb.h"
 #include "modules/social/social_boundary.h"
-#include "public/social.pb.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_router.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/rpc/rpc_server.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
     mmo::runtime::foundation::ServerApp app("social_server");
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(app.config().transport.tcp);
+        mmo::runtime::transport::make_transport_options(
+            app.config().transport.tcp, app.config().execution);
 
     mmo::modules::social::SocialBoundaryService service;
-    mmo::runtime::protocol::MessageRouter router;
+    mmo::runtime::rpc::RpcServer rpc_server(
+        mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
-    router.on(
-        mmo::runtime::protocol::kSocialBoundaryRequest,
+    rpc_server.on(
+        mmo::runtime::protocol::kGatewaySocialBoundaryRequest,
         [&service](const mmo::common::Envelope& envelope) {
-            mmo::public_api::SocialBoundaryRequest request;
+            mmo::internal_api::GatewaySocialBoundaryRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 400, "invalid social boundary request");
@@ -27,7 +29,7 @@ int main() {
 
             const auto boundary = service.boundary_for(request.context().player_id());
 
-            mmo::public_api::SocialBoundaryResponse response;
+            mmo::internal_api::GatewaySocialBoundaryResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_friend_boundary_available(
@@ -36,14 +38,14 @@ int main() {
             response.set_team_boundary_available(boundary.team_boundary_available);
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kSocialBoundaryResponse,
+                mmo::runtime::protocol::kGatewaySocialBoundaryResponse,
                 request.context(),
                 response);
         });
 
     mmo::runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
-        router.handler(),
+        rpc_server.handler(),
         app.service_name(),
         tcp_options);
 

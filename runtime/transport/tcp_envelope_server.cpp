@@ -2,75 +2,25 @@
 
 #include <boost/asio.hpp>
 
-#include <chrono>
-#include <cstdint>
-#include <cstring>
+#include <algorithm>
+#include <csignal>
+#include <exception>
+#include <functional>
+#include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
-#include <arpa/inet.h>
-
+#include "runtime/execution/io_context_pool.h"
 #include "runtime/observability/logging.h"
-#include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "runtime/transport/connection_session.h"
 
 namespace mmo::runtime::transport {
 namespace {
 
 using boost::asio::ip::tcp;
 
-bool read_exact(tcp::socket& socket, void* buffer, std::size_t size) {
-    boost::system::error_code error;
-    boost::asio::read(socket, boost::asio::buffer(buffer, size), error);
-    return !error;
-}
-
-bool write_exact(tcp::socket& socket, const void* buffer, std::size_t size) {
-    boost::system::error_code error;
-    boost::asio::write(socket, boost::asio::buffer(buffer, size), error);
-    return !error;
-}
-
-template <typename Reader>
-bool read_envelope_impl(
-    Reader& reader,
-    mmo::common::Envelope& envelope,
-    std::uint32_t max_payload_bytes) {
-    std::uint32_t network_size = 0;
-    if (!read_exact(reader, &network_size, sizeof(network_size))) {
-        return false;
-    }
-
-    const std::uint32_t payload_size = ntohl(network_size);
-    if (payload_size > max_payload_bytes) {
-        return false;
-    }
-
-    std::string payload(payload_size, '\0');
-    if (payload_size > 0 &&
-        !read_exact(reader, payload.data(), static_cast<std::size_t>(payload_size))) {
-        return false;
-    }
-
-    return envelope.ParseFromString(payload);
-}
-
-template <typename Writer>
-bool write_envelope_impl(
-    Writer& writer,
-    const mmo::common::Envelope& envelope,
-    std::uint32_t max_payload_bytes) {
-    std::string payload;
-    envelope.SerializeToString(&payload);
-    if (payload.size() > max_payload_bytes) {
-        return false;
-    }
-
-    const std::uint32_t network_size =
-        htonl(static_cast<std::uint32_t>(payload.size()));
-    return write_exact(writer, &network_size, sizeof(network_size)) &&
-           write_exact(writer, payload.data(), payload.size());
+std::size_t positive_count(int value) {
+    return static_cast<std::size_t>(std::max(1, value));
 }
 
 }  // namespace
@@ -79,70 +29,88 @@ TcpEnvelopeServer::TcpEnvelopeServer(
     std::uint16_t port,
     EnvelopeHandler handler,
     std::string service_name,
-    TransportOptions options)
+    TransportOptions options,
+    std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor,
+    std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics)
     : port_(port),
       handler_(std::move(handler)),
       service_name_(std::move(service_name)),
-      options_(options) {}
+      options_(options),
+      handler_executor_(std::move(handler_executor)),
+      metrics_(std::move(metrics)) {}
 
 int TcpEnvelopeServer::run() {
     try {
-        boost::asio::io_context io_context;
-        tcp::acceptor acceptor(io_context);
+        mmo::runtime::execution::IOContextPool io_context_pool(
+            positive_count(options_.io_thread_count));
+        if (handler_executor_ == nullptr) {
+            handler_executor_ = std::make_shared<mmo::runtime::execution::ShardedExecutor>(
+                mmo::runtime::execution::ShardedExecutorOptions{
+                    positive_count(options_.handler_shard_count),
+                    options_.max_handler_queue_depth_per_shard});
+        }
+        if (metrics_ == nullptr) {
+            metrics_ =
+                std::make_shared<mmo::runtime::observability::MetricsRegistry>();
+        }
+
+        auto& accept_context = io_context_pool.next();
+        tcp::acceptor acceptor(accept_context);
         const tcp::endpoint endpoint(tcp::v4(), port_);
         acceptor.open(endpoint.protocol());
         acceptor.set_option(tcp::acceptor::reuse_address(true));
         acceptor.bind(endpoint);
         acceptor.listen(options_.listen_backlog);
 
+        boost::asio::signal_set signals(accept_context, SIGINT, SIGTERM);
+        signals.async_wait(
+            [&](const boost::system::error_code&, int) {
+                boost::system::error_code ignored;
+                acceptor.close(ignored);
+                io_context_pool.stop();
+                handler_executor_->stop();
+            });
+
+        std::function<void()> accept_next;
+        accept_next = [&]() {
+            auto socket = std::make_shared<tcp::socket>(io_context_pool.next());
+            acceptor.async_accept(
+                *socket,
+                [&, socket](const boost::system::error_code& error) {
+                    if (!error) {
+                        std::make_shared<ConnectionSession>(
+                            std::move(*socket),
+                            handler_,
+                            service_name_,
+                            options_,
+                            handler_executor_,
+                            metrics_)
+                            ->start();
+                    } else if (acceptor.is_open()) {
+                        mmo::runtime::observability::log_error(
+                            mmo::runtime::observability::LogContext{service_name_},
+                            "tcp_accept_failed error=" + error.message());
+                    }
+
+                    if (acceptor.is_open()) {
+                        accept_next();
+                    }
+                });
+        };
+        accept_next();
+
         mmo::runtime::observability::log_info(
             mmo::runtime::observability::LogContext{service_name_},
-            "tcp_server_listening port=" + std::to_string(port_));
+                "tcp_server_listening port=" + std::to_string(port_) +
+                " io_threads=" + std::to_string(io_context_pool.size()) +
+                " handler_shards=" +
+                std::to_string(handler_executor_->shard_count()) +
+                " max_handler_queue_depth_per_shard=" +
+                std::to_string(options_.max_handler_queue_depth_per_shard));
 
-        while (true) {
-            tcp::socket socket(io_context);
-            boost::system::error_code accept_error;
-            acceptor.accept(socket, accept_error);
-            if (accept_error) {
-                mmo::runtime::observability::log_error(
-                    mmo::runtime::observability::LogContext{service_name_},
-                    "tcp_accept_failed error=" + accept_error.message());
-                continue;
-            }
-
-            mmo::common::Envelope request;
-            if (!read_envelope_impl(socket, request, options_.max_payload_bytes)) {
-                mmo::runtime::observability::log_warn(
-                    mmo::runtime::observability::LogContext{service_name_},
-                    "tcp_invalid_envelope");
-                continue;
-            }
-
-            auto log_context =
-                mmo::runtime::observability::context_from_envelope(
-                    service_name_, request);
-            const auto started = std::chrono::steady_clock::now();
-            mmo::runtime::observability::log_info(log_context, "request_received");
-
-            const mmo::common::Envelope response = handler_(request);
-
-            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - started);
-            log_context.latency_ms = elapsed.count();
-            if (!write_envelope_impl(socket, response, options_.max_payload_bytes)) {
-                mmo::runtime::observability::log_error(
-                    log_context,
-                    "response_write_failed");
-                continue;
-            }
-
-            if (response.message_type() == mmo::runtime::protocol::kErrorResponse) {
-                log_context.error_code = 1;
-                mmo::runtime::observability::log_error(log_context, "request_failed");
-            } else {
-                mmo::runtime::observability::log_info(log_context, "request_handled");
-            }
-        }
+        io_context_pool.run();
+        handler_executor_->stop();
+        return 0;
     } catch (const std::exception& error) {
         mmo::runtime::observability::log_error(
             mmo::runtime::observability::LogContext{service_name_},

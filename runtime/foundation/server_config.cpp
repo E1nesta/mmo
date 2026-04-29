@@ -48,6 +48,23 @@ int read_int(const YAML::Node& node, const std::string& key) {
     throw std::runtime_error("missing config field: " + key);
 }
 
+int read_optional_int(
+    const YAML::Node& node,
+    const std::string& key,
+    int default_value) {
+    if (node[key]) {
+        return node[key].as<int>();
+    }
+    const std::string env_key = key + "_env";
+    if (node[env_key]) {
+        const char* value = std::getenv(node[env_key].as<std::string>().c_str());
+        if (value != nullptr && *value != '\0') {
+            return std::stoi(value);
+        }
+    }
+    return default_value;
+}
+
 std::uint16_t read_port(const YAML::Node& node, const std::string& key) {
     const int value = read_int(node, key);
     if (value <= 0 || value > 65535) {
@@ -95,6 +112,76 @@ RedisConfig read_redis(const YAML::Node& node) {
     return config;
 }
 
+ExecutionConfig read_execution(const YAML::Node& node) {
+    ExecutionConfig config;
+    config.io_threads = read_int(node, "io_threads");
+    config.handler_shards = read_int(node, "handler_shards");
+    config.max_handler_queue_depth_per_shard =
+        read_optional_int(node, "max_handler_queue_depth_per_shard", 1024);
+    config.player_shards = read_int(node, "player_shards");
+    config.scene_shards = read_int(node, "scene_shards");
+    config.instance_shards = read_int(node, "instance_shards");
+    if (config.io_threads <= 0 || config.handler_shards <= 0 ||
+        config.max_handler_queue_depth_per_shard <= 0 ||
+        config.player_shards <= 0 || config.scene_shards <= 0 ||
+        config.instance_shards <= 0) {
+        throw std::runtime_error("execution config values must be greater than zero");
+    }
+    return config;
+}
+
+ChannelConfig read_channel(const YAML::Node& node) {
+    ChannelConfig config;
+    config.connect_timeout_millis = read_int(node, "connect_timeout_millis");
+    config.request_timeout_millis = read_int(node, "request_timeout_millis");
+    config.connections_per_upstream = read_int(node, "connections_per_upstream");
+    config.max_pending_requests_per_connection =
+        read_int(node, "max_pending_requests_per_connection");
+    config.max_pending_requests_per_upstream =
+        read_optional_int(node, "max_pending_requests_per_upstream", 256);
+    if (config.connect_timeout_millis <= 0 || config.request_timeout_millis <= 0 ||
+        config.connections_per_upstream <= 0 ||
+        config.max_pending_requests_per_connection <= 0 ||
+        config.max_pending_requests_per_upstream <= 0) {
+        throw std::runtime_error("channel config values must be greater than zero");
+    }
+    return config;
+}
+
+SecurityConfig read_security(const YAML::Node& node) {
+    SecurityConfig config;
+    const YAML::Node internal_auth = node["internal_auth"];
+    config.internal_auth.shared_secret = read_string(internal_auth, "shared_secret");
+    config.internal_auth.max_clock_skew_millis =
+        read_optional_int(internal_auth, "max_clock_skew_millis", 10000);
+    if (config.internal_auth.shared_secret.empty()) {
+        throw std::runtime_error(
+            "security.internal_auth.shared_secret must not be empty");
+    }
+    if (config.internal_auth.max_clock_skew_millis <= 0) {
+        throw std::runtime_error(
+            "security.internal_auth.max_clock_skew_millis must be greater than zero");
+    }
+
+    const YAML::Node gateway_ticket = node["gateway_ticket"];
+    config.gateway_ticket.shared_secret =
+        read_string(gateway_ticket, "shared_secret");
+    config.gateway_ticket.gateway_ticket_ttl_millis =
+        read_optional_int(gateway_ticket, "gateway_ticket_ttl_millis", 60000);
+    config.gateway_ticket.access_token_ttl_millis =
+        read_optional_int(gateway_ticket, "access_token_ttl_millis", 3600000);
+    if (config.gateway_ticket.shared_secret.empty()) {
+        throw std::runtime_error(
+            "security.gateway_ticket.shared_secret must not be empty");
+    }
+    if (config.gateway_ticket.gateway_ticket_ttl_millis <= 0 ||
+        config.gateway_ticket.access_token_ttl_millis <= 0) {
+        throw std::runtime_error(
+            "security.gateway_ticket ttl values must be greater than zero");
+    }
+    return config;
+}
+
 }  // namespace
 
 const ServiceConfig& ServerConfig::service(const std::string& service_name) const {
@@ -139,6 +226,9 @@ ServerConfig load_server_config(const std::string& path) {
 
     config.storage.mysql = read_mysql(root["storage"]["mysql"]);
     config.storage.redis = read_redis(root["storage"]["redis"]);
+    config.execution = read_execution(root["execution"]);
+    config.channel = read_channel(root["channel"]);
+    config.security = read_security(root["security"]);
 
     const YAML::Node observability = root["observability"];
     config.observability.log_level = read_string(observability, "log_level");
