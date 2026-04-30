@@ -34,6 +34,7 @@ mmo::common::Envelope RpcServer::dispatch(
                 options_.internal_auth_shared_secret,
                 options_.internal_auth_max_clock_skew_millis,
                 &error_message)) {
+            metrics_.record_internal_auth_failed();
             return mmo::runtime::protocol::make_error_envelope(
                 envelope, 401, "internal call authentication failed");
         }

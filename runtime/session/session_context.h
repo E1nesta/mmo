@@ -16,11 +16,20 @@ struct RequestContext {
 };
 
 struct ConnectionBinding {
+    std::string game_session_id;
     std::uint64_t connection_id{};
+    std::int64_t account_id{};
     std::int64_t player_id{};
     std::string session_token;
+    std::string gateway_id;
+    std::string device_id;
+    std::uint64_t issued_at_millis{};
     std::uint64_t last_seen_millis{};
+    std::uint64_t expire_at_millis{};
+    std::uint64_t heartbeat_timeout_millis{};
     bool authenticated{};
+
+    bool valid(std::uint64_t now_millis) const;
 };
 
 struct HeartbeatState {
@@ -33,8 +42,10 @@ struct HeartbeatState {
 
 struct ReconnectTicket {
     std::uint64_t connection_id{};
+    std::string game_session_id;
     std::int64_t player_id{};
     std::string session_token;
+    std::string gateway_id;
     std::uint64_t expire_at_millis{};
 
     bool valid(std::uint64_t now_millis) const;
@@ -46,8 +57,26 @@ public:
         std::int64_t player_id,
         const std::string& session_token,
         std::uint64_t now_millis = 0);
+    ConnectionBinding bind(
+        std::int64_t account_id,
+        std::int64_t player_id,
+        const std::string& session_token,
+        const std::string& gateway_id,
+        const std::string& device_id,
+        std::uint64_t now_millis,
+        std::uint64_t expire_at_millis,
+        std::uint64_t heartbeat_timeout_millis = 0);
     bool is_bound(std::int64_t player_id, const std::string& session_token) const;
+    bool is_bound(
+        std::int64_t player_id,
+        const std::string& session_token,
+        const std::string& game_session_id,
+        std::uint64_t now_millis) const;
     bool touch(std::int64_t player_id, std::uint64_t now_millis);
+    bool touch(
+        std::int64_t player_id,
+        const std::string& game_session_id,
+        std::uint64_t now_millis);
     std::optional<ConnectionBinding> find(std::int64_t player_id) const;
     std::optional<ReconnectTicket> make_reconnect_ticket(
         std::int64_t player_id,
@@ -56,6 +85,7 @@ public:
     bool can_reconnect(
         std::int64_t player_id,
         const std::string& session_token,
+        const std::string& game_session_id,
         std::uint64_t now_millis) const;
     void unbind(std::int64_t player_id);
 

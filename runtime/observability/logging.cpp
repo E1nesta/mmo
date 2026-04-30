@@ -18,6 +18,15 @@ std::string format_line(
     if (!context.message_type.empty()) {
         output << " message_type=" << context.message_type;
     }
+    if (!context.trace_id.empty()) {
+        output << " trace_id=" << context.trace_id;
+    }
+    if (!context.gateway_id.empty()) {
+        output << " gateway_id=" << context.gateway_id;
+    }
+    if (!context.game_session_id.empty()) {
+        output << " game_session_id=" << context.game_session_id;
+    }
     if (context.error_code != 0) {
         output << " error_code=" << context.error_code;
     }
@@ -37,6 +46,10 @@ LogContext context_from_envelope(
     context.request_id = envelope.request_id();
     context.player_id = envelope.player_id();
     context.message_type = envelope.message_type();
+    context.trace_id = envelope.trace_id();
+    context.gateway_id =
+        envelope.source_service().empty() ? service_name : envelope.source_service();
+    context.game_session_id = envelope.game_session_id();
     return context;
 }
 

@@ -14,6 +14,7 @@
 #include "internal/gateway_auth.pb.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
+#include "runtime/observability/metrics.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/routing/gateway_forwarder.h"
@@ -146,8 +147,9 @@ class ApiHandler {
 public:
     ApiHandler(
         const mmo::runtime::foundation::ServerConfig& config,
-        mmo::runtime::routing::GatewayForwarder& forwarder)
-        : config_(config), forwarder_(forwarder) {}
+        mmo::runtime::routing::GatewayForwarder& forwarder,
+        mmo::runtime::observability::MetricsRegistry& metrics)
+        : config_(config), forwarder_(forwarder), metrics_(metrics) {}
 
     http::response<http::string_body> handle(
         const http::request<http::string_body>& request) {
@@ -183,7 +185,8 @@ private:
              << "\",\"tcp_port\":" << game.tcp_port << "}"
              << ",\"realtime_gateway\":{\"host\":\""
              << json_escape(realtime.host)
-             << "\",\"udp_kcp_port\":" << realtime.udp_kcp_port << "}"
+             << "\",\"udp_kcp_port\":" << realtime.udp_kcp_port
+             << ",\"enabled\":false,\"status\":\"reserved\"}"
              << "}";
         return json_response(
             http::status::ok, body.str(), request.version(), request.keep_alive());
@@ -196,6 +199,7 @@ private:
         const auto password = find_field(fields, "password");
         const auto device_id = find_field(fields, "device_id");
         if (account_name.empty() || device_id.empty()) {
+            metrics_.record_login_failed();
             return json_response(
                 http::status::bad_request,
                 error_body(400, "account_name and device_id are required"),
@@ -217,6 +221,7 @@ private:
             context,
             internal_request);
         if (!forward_result.ok()) {
+            metrics_.record_login_failed();
             return json_response(
                 http::status::bad_gateway,
                 error_body(502, "auth backend request failed"),
@@ -227,6 +232,7 @@ private:
         mmo::internal_api::GatewayAuthLoginResponse response;
         if (!mmo::runtime::protocol::unpack_message(
                 forward_result.response(), response)) {
+            metrics_.record_login_failed();
             return json_response(
                 http::status::bad_gateway,
                 error_body(502, "invalid auth backend response"),
@@ -234,6 +240,7 @@ private:
                 request.keep_alive());
         }
         if (!response.context().success()) {
+            metrics_.record_login_failed();
             return json_response(
                 http::status::unauthorized,
                 error_body(
@@ -242,6 +249,9 @@ private:
                 request.version(),
                 request.keep_alive());
         }
+
+        metrics_.record_login_success();
+        metrics_.record_gateway_ticket_issued();
 
         std::ostringstream body;
         body << "{\"success\":true"
@@ -261,6 +271,7 @@ private:
 
     const mmo::runtime::foundation::ServerConfig& config_;
     mmo::runtime::routing::GatewayForwarder& forwarder_;
+    mmo::runtime::observability::MetricsRegistry& metrics_;
     std::atomic<std::uint64_t> next_request_id_{1};
 };
 
@@ -293,7 +304,8 @@ int main() {
                 app.config().transport.tcp, app.config().execution);
         mmo::runtime::routing::GatewayForwarder forwarder(
             app.service_name(), app.config(), tcp_options);
-        ApiHandler handler(app.config(), forwarder);
+        mmo::runtime::observability::MetricsRegistry metrics;
+        ApiHandler handler(app.config(), forwarder, metrics);
 
         boost::asio::io_context io_context;
         tcp::acceptor acceptor(

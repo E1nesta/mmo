@@ -130,6 +130,7 @@ target_link_libraries(runtime_execution PUBLIC Boost::system Threads::Threads)
 
 add_library(runtime_session STATIC
     runtime/session/session_context.cpp
+    runtime/session/ticket_replay_guard.cpp
 )
 mmo_defaults(runtime_session)
 
@@ -205,6 +206,7 @@ mmo_defaults(runtime_rpc)
 target_link_libraries(runtime_rpc PUBLIC
     runtime_channel
     runtime_foundation
+    runtime_observability
     runtime_protocol
 )
 
@@ -299,3 +301,7 @@ target_link_libraries(mmo_flow_client PRIVATE runtime_transport mmo_protocol)
 add_executable(internal_auth_probe tools/internal_auth_probe/main.cpp)
 mmo_defaults(internal_auth_probe)
 target_link_libraries(internal_auth_probe PRIVATE runtime_foundation runtime_transport mmo_protocol)
+
+add_executable(security_governance_probe tools/security_governance_probe/main.cpp)
+mmo_defaults(security_governance_probe)
+target_link_libraries(security_governance_probe PRIVATE runtime_protocol runtime_session)

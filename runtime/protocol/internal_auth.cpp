@@ -36,6 +36,8 @@ std::string canonical_payload(const mmo::common::Envelope& envelope) {
     append_field(envelope.message_type(), &output);
     append_field(std::to_string(envelope.player_id()), &output);
     append_field(envelope.session_token(), &output);
+    append_field(envelope.game_session_id(), &output);
+    append_field(envelope.trace_id(), &output);
     append_field(std::to_string(envelope.internal_timestamp_millis()), &output);
     append_field(envelope.payload(), &output);
     return output;

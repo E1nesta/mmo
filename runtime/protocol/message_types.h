@@ -9,6 +9,8 @@ inline constexpr const char* kLoginResponse = "public.auth.LoginResponse";
 
 inline constexpr const char* kGateLoginRequest = "public.gateway.GateLoginRequest";
 inline constexpr const char* kGateLoginResponse = "public.gateway.GateLoginResponse";
+inline constexpr const char* kPingRequest = "public.gateway.PingRequest";
+inline constexpr const char* kPingResponse = "public.gateway.PingResponse";
 
 inline constexpr const char* kEnterWorldRequest = "public.world.EnterWorldRequest";
 inline constexpr const char* kEnterWorldResponse = "public.world.EnterWorldResponse";

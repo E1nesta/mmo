@@ -27,12 +27,14 @@ mmo::common::RequestContext make_context(
     std::uint64_t request_id,
     std::int64_t account_id = 0,
     std::int64_t player_id = 0,
-    const std::string& session_token = {}) {
+    const std::string& session_token = {},
+    const std::string& game_session_id = {}) {
     mmo::common::RequestContext context;
     context.set_request_id(request_id);
     context.set_account_id(account_id);
     context.set_player_id(player_id);
     context.set_session_token(session_token);
+    context.set_game_session_id(game_session_id);
     context.set_trace_id("local-flow-" + std::to_string(request_id));
     return context;
 }
@@ -269,14 +271,43 @@ int main() {
     }
 
     std::cout << "[gateway] gate login ok connection_id="
-              << gate_response.connection_id() << '\n';
+              << gate_response.connection_id()
+              << " game_session_id=" << gate_response.game_session_id() << '\n';
+
+    const auto replay_gate_response =
+        client.send(gateway_endpoint, gate_envelope);
+    if (!expect_error_response(replay_gate_response, 401)) {
+        return 1;
+    }
+    std::cout << "[gateway] replayed gate ticket rejected\n";
+
+    mmo::public_api::EnterWorldRequest unbound_world_request;
+    *unbound_world_request.mutable_context() = make_context(
+        201,
+        login_response.account_id(),
+        login_response.player_id(),
+        login_response.session_token());
+    unbound_world_request.set_preferred_map_id(1001);
+    unbound_world_request.set_preferred_line_id(1);
+
+    const auto unbound_world_envelope = mmo::runtime::protocol::pack_message(
+        mmo::runtime::protocol::kEnterWorldRequest,
+        unbound_world_request.context(),
+        unbound_world_request);
+    const auto unbound_world_response =
+        client.send(gateway_endpoint, unbound_world_envelope);
+    if (!expect_error_response(unbound_world_response, 401)) {
+        return 1;
+    }
+    std::cout << "[gateway] unbound game session rejected\n";
 
     mmo::public_api::EnterWorldRequest world_request;
     *world_request.mutable_context() = make_context(
         3,
         login_response.account_id(),
         login_response.player_id(),
-        login_response.session_token());
+        login_response.session_token(),
+        gate_response.game_session_id());
     world_request.set_preferred_map_id(1001);
     world_request.set_preferred_line_id(1);
 
@@ -310,7 +341,8 @@ int main() {
         4,
         login_response.account_id(),
         login_response.player_id(),
-        login_response.session_token());
+        login_response.session_token(),
+        gate_response.game_session_id());
     enter_instance_request.set_dungeon_id(101);
 
     const auto enter_instance_envelope = mmo::runtime::protocol::pack_message(
@@ -338,7 +370,8 @@ int main() {
         5,
         login_response.account_id(),
         login_response.player_id(),
-        login_response.session_token());
+        login_response.session_token(),
+        gate_response.game_session_id());
     settle_instance_request.set_instance_id(
         enter_instance_response.instance_id());
     settle_instance_request.set_idempotency_key(
@@ -371,7 +404,8 @@ int main() {
         6,
         login_response.account_id(),
         login_response.player_id(),
-        login_response.session_token());
+        login_response.session_token(),
+        gate_response.game_session_id());
     social_request.set_target_player_id(login_response.player_id());
 
     const auto social_envelope = mmo::runtime::protocol::pack_message(

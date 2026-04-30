@@ -5,11 +5,9 @@
 #include <openssl/hmac.h>
 
 #include <array>
-#include <chrono>
 #include <random>
 #include <sstream>
 #include <string>
-#include <vector>
 
 namespace mmo::runtime::protocol {
 namespace {
@@ -24,6 +22,14 @@ std::string purpose_name(AuthTokenPurpose purpose) {
             return "gateway";
     }
     return "unknown";
+}
+
+std::string audience_for(
+    AuthTokenPurpose purpose,
+    const AuthTokenOptions& options) {
+    return purpose == AuthTokenPurpose::kAccess
+               ? options.access_audience
+               : options.gateway_audience;
 }
 
 bool parse_purpose(const std::string& value, AuthTokenPurpose* purpose) {
@@ -70,7 +76,7 @@ bool from_hex(const std::string& input, std::string* output) {
     output->reserve(input.size() / 2U);
     for (std::size_t index = 0; index < input.size(); index += 2U) {
         const int high = from_hex_digit(input[index]);
-        const int low = from_hex_digit(input[index + 1]);
+        const int low = from_hex_digit(input[index + 1U]);
         if (high < 0 || low < 0) {
             return false;
         }
@@ -93,10 +99,10 @@ bool read_field(
     if (colon == std::string::npos || colon == *offset) {
         return false;
     }
-    const std::string length_text = payload.substr(*offset, colon - *offset);
     std::size_t length = 0;
     try {
-        length = static_cast<std::size_t>(std::stoull(length_text));
+        length = static_cast<std::size_t>(
+            std::stoull(payload.substr(*offset, colon - *offset)));
     } catch (...) {
         return false;
     }
@@ -111,18 +117,23 @@ bool read_field(
 
 std::string canonical_payload(const AuthTokenClaims& claims) {
     std::string output;
-    output.reserve(claims.session_token.size() + 160);
+    output.reserve(claims.session_token.size() + 240);
+    append_field(claims.version, &output);
+    append_field(claims.key_id, &output);
+    append_field(claims.issuer, &output);
+    append_field(claims.audience, &output);
     append_field(purpose_name(claims.purpose), &output);
     append_field(std::to_string(claims.account_id), &output);
     append_field(std::to_string(claims.player_id), &output);
     append_field(claims.session_token, &output);
+    append_field(std::to_string(claims.issued_at_epoch_millis), &output);
     append_field(std::to_string(claims.expires_at_epoch_millis), &output);
-    append_field(claims.nonce, &output);
+    append_field(claims.jti, &output);
     return output;
 }
 
 bool parse_payload(const std::string& payload, AuthTokenClaims* claims) {
-    std::array<std::string, 6> fields;
+    std::array<std::string, 11> fields;
     std::size_t offset = 0;
     for (auto& field : fields) {
         if (!read_field(payload, &offset, &field)) {
@@ -134,17 +145,22 @@ bool parse_payload(const std::string& payload, AuthTokenClaims* claims) {
     }
 
     AuthTokenPurpose purpose;
-    if (!parse_purpose(fields[0], &purpose)) {
+    if (!parse_purpose(fields[4], &purpose)) {
         return false;
     }
 
     try {
+        claims->version = fields[0];
+        claims->key_id = fields[1];
+        claims->issuer = fields[2];
+        claims->audience = fields[3];
         claims->purpose = purpose;
-        claims->account_id = std::stoll(fields[1]);
-        claims->player_id = std::stoll(fields[2]);
-        claims->session_token = fields[3];
-        claims->expires_at_epoch_millis = std::stoll(fields[4]);
-        claims->nonce = fields[5];
+        claims->account_id = std::stoll(fields[5]);
+        claims->player_id = std::stoll(fields[6]);
+        claims->session_token = fields[7];
+        claims->issued_at_epoch_millis = std::stoll(fields[8]);
+        claims->expires_at_epoch_millis = std::stoll(fields[9]);
+        claims->jti = fields[10];
     } catch (...) {
         return false;
     }
@@ -178,7 +194,7 @@ bool timing_safe_equal(const std::string& left, const std::string& right) {
     return CRYPTO_memcmp(left.data(), right.data(), left.size()) == 0;
 }
 
-std::string make_nonce(std::int64_t now_epoch_millis) {
+std::string make_jti(std::int64_t now_epoch_millis) {
     std::random_device random_device;
     std::mt19937_64 generator(random_device());
     std::uniform_int_distribution<std::uint64_t> distribution;
@@ -207,6 +223,38 @@ bool split_token(
     return !payload_hex->empty() && !signature->empty();
 }
 
+std::string secret_for_key_id(
+    const std::string& key_id,
+    const AuthTokenOptions& options) {
+    if (key_id == options.active_key_id) {
+        return options.active_shared_secret;
+    }
+    if (!options.previous_key_id.empty() &&
+        key_id == options.previous_key_id) {
+        return options.previous_shared_secret;
+    }
+    return {};
+}
+
+bool previous_key_is_acceptable(
+    const AuthTokenClaims& claims,
+    const AuthTokenOptions& options,
+    std::int64_t now_epoch_millis) {
+    if (claims.key_id != options.previous_key_id) {
+        return true;
+    }
+    return options.previous_key_accept_millis > 0 &&
+           now_epoch_millis >= claims.issued_at_epoch_millis &&
+           now_epoch_millis - claims.issued_at_epoch_millis <=
+               options.previous_key_accept_millis;
+}
+
+bool options_valid_for_issue(const AuthTokenOptions& options) {
+    return !options.issuer.empty() && !options.active_key_id.empty() &&
+           !options.active_shared_secret.empty() &&
+           !options.access_audience.empty() && !options.gateway_audience.empty();
+}
+
 }  // namespace
 
 bool issue_auth_token(
@@ -216,7 +264,7 @@ bool issue_auth_token(
     const std::string& session_token,
     std::int64_t now_epoch_millis,
     std::int64_t ttl_millis,
-    const std::string& shared_secret,
+    const AuthTokenOptions& options,
     std::string* token,
     std::int64_t* expires_at_epoch_millis,
     std::string* error_message) {
@@ -226,9 +274,9 @@ bool issue_auth_token(
         }
         return false;
     }
-    if (shared_secret.empty()) {
+    if (!options_valid_for_issue(options)) {
         if (error_message != nullptr) {
-            *error_message = "auth token shared secret is empty";
+            *error_message = "auth token options are invalid";
         }
         return false;
     }
@@ -241,16 +289,21 @@ bool issue_auth_token(
     }
 
     AuthTokenClaims claims;
+    claims.version = kTokenVersion;
+    claims.key_id = options.active_key_id;
+    claims.issuer = options.issuer;
+    claims.audience = audience_for(purpose, options);
     claims.purpose = purpose;
     claims.account_id = account_id;
     claims.player_id = player_id;
     claims.session_token = session_token;
+    claims.issued_at_epoch_millis = now_epoch_millis;
     claims.expires_at_epoch_millis = now_epoch_millis + ttl_millis;
-    claims.nonce = make_nonce(now_epoch_millis);
+    claims.jti = make_jti(now_epoch_millis);
 
     const std::string payload = canonical_payload(claims);
     std::string signature;
-    if (!compute_hmac_sha256(payload, shared_secret, &signature)) {
+    if (!compute_hmac_sha256(payload, options.active_shared_secret, &signature)) {
         if (error_message != nullptr) {
             *error_message = "failed to compute auth token signature";
         }
@@ -268,7 +321,8 @@ bool issue_auth_token(
 bool validate_auth_token(
     const std::string& token,
     AuthTokenPurpose expected_purpose,
-    const std::string& shared_secret,
+    const std::string& expected_audience,
+    const AuthTokenOptions& options,
     std::int64_t now_epoch_millis,
     AuthTokenClaims* claims,
     std::string* error_message) {
@@ -278,7 +332,7 @@ bool validate_auth_token(
         }
         return false;
     }
-    if (token.empty() || shared_secret.empty() || now_epoch_millis <= 0) {
+    if (token.empty() || now_epoch_millis <= 0 || expected_audience.empty()) {
         if (error_message != nullptr) {
             *error_message = "auth token input is invalid";
         }
@@ -301,24 +355,26 @@ bool validate_auth_token(
         }
         return false;
     }
+    if (claims->version != kTokenVersion ||
+        claims->purpose != expected_purpose ||
+        claims->issuer != options.issuer ||
+        claims->audience != expected_audience ||
+        now_epoch_millis < claims->issued_at_epoch_millis ||
+        now_epoch_millis > claims->expires_at_epoch_millis ||
+        !previous_key_is_acceptable(*claims, options, now_epoch_millis)) {
+        if (error_message != nullptr) {
+            *error_message = "auth token claims are invalid";
+        }
+        return false;
+    }
 
+    const std::string shared_secret = secret_for_key_id(claims->key_id, options);
     std::string expected_signature;
-    if (!compute_hmac_sha256(payload, shared_secret, &expected_signature) ||
+    if (shared_secret.empty() ||
+        !compute_hmac_sha256(payload, shared_secret, &expected_signature) ||
         !timing_safe_equal(signature, expected_signature)) {
         if (error_message != nullptr) {
             *error_message = "auth token signature is invalid";
-        }
-        return false;
-    }
-    if (claims->purpose != expected_purpose) {
-        if (error_message != nullptr) {
-            *error_message = "auth token purpose mismatch";
-        }
-        return false;
-    }
-    if (now_epoch_millis > claims->expires_at_epoch_millis) {
-        if (error_message != nullptr) {
-            *error_message = "auth token is expired";
         }
         return false;
     }

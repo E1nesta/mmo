@@ -32,6 +32,8 @@ mmo::common::Envelope pack_message(
     envelope.set_message_type(message_type);
     envelope.set_player_id(context.player_id());
     envelope.set_session_token(context.session_token());
+    envelope.set_game_session_id(context.game_session_id());
+    envelope.set_trace_id(context.trace_id());
     message.SerializeToString(envelope.mutable_payload());
     return envelope;
 }

@@ -17,6 +17,9 @@ struct LogContext {
     std::uint64_t request_id{};
     std::int64_t player_id{};
     std::string message_type;
+    std::string trace_id;
+    std::string gateway_id;
+    std::string game_session_id;
     int error_code{};
     std::int64_t latency_ms{-1};
 };

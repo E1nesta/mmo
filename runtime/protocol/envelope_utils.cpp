@@ -12,6 +12,7 @@ mmo::common::ResponseContext make_ok_context(
     response.set_player_id(request.player_id());
     response.set_session_token(request.session_token());
     response.set_trace_id(request.trace_id());
+    response.set_game_session_id(request.game_session_id());
     response.set_success(true);
     return response;
 }
@@ -35,6 +36,8 @@ mmo::common::Envelope make_error_envelope(
     context.set_request_id(request.request_id());
     context.set_player_id(request.player_id());
     context.set_session_token(request.session_token());
+    context.set_game_session_id(request.game_session_id());
+    context.set_trace_id(request.trace_id());
 
     mmo::common::ResponseContext response =
         make_error_context(context, error_code, error_message);
@@ -44,6 +47,8 @@ mmo::common::Envelope make_error_envelope(
     envelope.set_message_type(kErrorResponse);
     envelope.set_player_id(request.player_id());
     envelope.set_session_token(request.session_token());
+    envelope.set_game_session_id(request.game_session_id());
+    envelope.set_trace_id(request.trace_id());
     response.SerializeToString(envelope.mutable_payload());
     return envelope;
 }

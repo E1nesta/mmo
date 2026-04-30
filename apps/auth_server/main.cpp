@@ -10,6 +10,24 @@
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
+namespace {
+
+mmo::runtime::protocol::AuthTokenOptions make_token_options(
+    const mmo::runtime::foundation::GatewayTicketConfig& config) {
+    mmo::runtime::protocol::AuthTokenOptions options;
+    options.issuer = config.issuer;
+    options.access_audience = config.access_audience;
+    options.gateway_audience = config.gateway_audience;
+    options.active_key_id = config.active_key_id;
+    options.active_shared_secret = config.active_shared_secret;
+    options.previous_key_id = config.previous_key_id;
+    options.previous_shared_secret = config.previous_shared_secret;
+    options.previous_key_accept_millis = config.previous_key_accept_millis;
+    return options;
+}
+
+}  // namespace
+
 int main() {
     mmo::runtime::foundation::ServerApp app("auth_server");
     const auto tcp_options =
@@ -33,6 +51,7 @@ int main() {
                 service.login(request.account_name(), request.device_id());
             const auto now_millis = mmo::runtime::protocol::current_time_millis();
             const auto& ticket_config = app.config().security.gateway_ticket;
+            const auto token_options = make_token_options(ticket_config);
             std::string access_token;
             std::string gateway_ticket;
             std::int64_t access_expires_at = 0;
@@ -45,7 +64,7 @@ int main() {
                     login.session_token,
                     now_millis,
                     ticket_config.access_token_ttl_millis,
-                    ticket_config.shared_secret,
+                    token_options,
                     &access_token,
                     &access_expires_at,
                     &token_error) ||
@@ -56,7 +75,7 @@ int main() {
                     login.session_token,
                     now_millis,
                     ticket_config.gateway_ticket_ttl_millis,
-                    ticket_config.shared_secret,
+                    token_options,
                     &gateway_ticket,
                     &gateway_ticket_expires_at,
                     &token_error)) {

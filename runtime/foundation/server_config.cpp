@@ -34,6 +34,13 @@ std::string read_optional_string(
     if (node[key]) {
         return node[key].as<std::string>();
     }
+    const std::string env_key = key + "_env";
+    if (node[env_key]) {
+        const char* value = std::getenv(node[env_key].as<std::string>().c_str());
+        if (value != nullptr && *value != '\0') {
+            return value;
+        }
+    }
     return default_value;
 }
 
@@ -165,19 +172,61 @@ SecurityConfig read_security(const YAML::Node& node) {
 
     const YAML::Node gateway_ticket = node["gateway_ticket"];
     config.gateway_ticket.shared_secret =
-        read_string(gateway_ticket, "shared_secret");
+        read_optional_string(gateway_ticket, "shared_secret");
+    config.gateway_ticket.issuer =
+        read_optional_string(gateway_ticket, "issuer", "mmo-auth");
+    config.gateway_ticket.access_audience =
+        read_optional_string(
+            gateway_ticket, "access_audience", "api_gateway_server");
+    config.gateway_ticket.gateway_audience =
+        read_optional_string(
+            gateway_ticket, "gateway_audience", "game_gateway_server");
+    config.gateway_ticket.active_key_id =
+        read_optional_string(gateway_ticket, "active_key_id", "local-v1");
+    config.gateway_ticket.active_shared_secret =
+        read_optional_string(gateway_ticket, "active_shared_secret");
+    if (config.gateway_ticket.active_shared_secret.empty()) {
+        config.gateway_ticket.active_shared_secret =
+            config.gateway_ticket.shared_secret;
+    }
+    config.gateway_ticket.previous_key_id =
+        read_optional_string(gateway_ticket, "previous_key_id");
+    config.gateway_ticket.previous_shared_secret =
+        read_optional_string(gateway_ticket, "previous_shared_secret");
+    config.gateway_ticket.previous_key_accept_millis =
+        read_optional_int(gateway_ticket, "previous_key_accept_millis", 0);
     config.gateway_ticket.gateway_ticket_ttl_millis =
         read_optional_int(gateway_ticket, "gateway_ticket_ttl_millis", 60000);
     config.gateway_ticket.access_token_ttl_millis =
         read_optional_int(gateway_ticket, "access_token_ttl_millis", 3600000);
-    if (config.gateway_ticket.shared_secret.empty()) {
+    if (config.gateway_ticket.active_shared_secret.empty()) {
         throw std::runtime_error(
-            "security.gateway_ticket.shared_secret must not be empty");
+            "security.gateway_ticket.active_shared_secret must not be empty");
     }
+    config.gateway_ticket.shared_secret =
+        config.gateway_ticket.active_shared_secret;
     if (config.gateway_ticket.gateway_ticket_ttl_millis <= 0 ||
-        config.gateway_ticket.access_token_ttl_millis <= 0) {
+        config.gateway_ticket.access_token_ttl_millis <= 0 ||
+        config.gateway_ticket.previous_key_accept_millis < 0) {
         throw std::runtime_error(
-            "security.gateway_ticket ttl values must be greater than zero");
+            "security.gateway_ticket ttl values must be valid");
+    }
+
+    const YAML::Node gateway_session = node["gateway_session"];
+    config.gateway_session.gateway_id =
+        read_optional_string(
+            gateway_session, "gateway_id", "game_gateway_server");
+    config.gateway_session.game_session_ttl_millis =
+        read_optional_int(gateway_session, "game_session_ttl_millis", 1800000);
+    config.gateway_session.heartbeat_timeout_millis =
+        read_optional_int(gateway_session, "heartbeat_timeout_millis", 30000);
+    config.gateway_session.reconnect_ticket_ttl_millis =
+        read_optional_int(gateway_session, "reconnect_ticket_ttl_millis", 60000);
+    if (config.gateway_session.game_session_ttl_millis <= 0 ||
+        config.gateway_session.heartbeat_timeout_millis <= 0 ||
+        config.gateway_session.reconnect_ticket_ttl_millis <= 0) {
+        throw std::runtime_error(
+            "security.gateway_session ttl values must be greater than zero");
     }
     return config;
 }

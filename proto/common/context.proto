@@ -8,6 +8,7 @@ message RequestContext {
   int64 player_id = 3;
   string session_token = 4;
   string trace_id = 5;
+  string game_session_id = 9;
 }
 
 message ResponseContext {
@@ -19,4 +20,5 @@ message ResponseContext {
   bool success = 6;
   int32 error_code = 7;
   string error_message = 8;
+  string game_session_id = 9;
 }

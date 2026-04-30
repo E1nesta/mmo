@@ -84,8 +84,21 @@ security:
     max_clock_skew_millis_env: "MMO_INTERNAL_AUTH_MAX_CLOCK_SKEW_MILLIS"
   gateway_ticket:
     shared_secret_env: "MMO_GATEWAY_TICKET_SHARED_SECRET"
+    issuer_env: "MMO_TOKEN_ISSUER"
+    access_audience_env: "MMO_ACCESS_TOKEN_AUDIENCE"
+    gateway_audience_env: "MMO_GATEWAY_TICKET_AUDIENCE"
+    active_key_id_env: "MMO_GATEWAY_TICKET_ACTIVE_KEY_ID"
+    active_shared_secret_env: "MMO_GATEWAY_TICKET_ACTIVE_SECRET"
+    previous_key_id_env: "MMO_GATEWAY_TICKET_PREVIOUS_KEY_ID"
+    previous_shared_secret_env: "MMO_GATEWAY_TICKET_PREVIOUS_SECRET"
+    previous_key_accept_millis_env: "MMO_GATEWAY_TICKET_PREVIOUS_KEY_ACCEPT_MILLIS"
     gateway_ticket_ttl_millis_env: "MMO_GATEWAY_TICKET_TTL_MILLIS"
     access_token_ttl_millis_env: "MMO_ACCESS_TOKEN_TTL_MILLIS"
+  gateway_session:
+    gateway_id_env: "MMO_GAME_GATEWAY_ID"
+    game_session_ttl_millis_env: "MMO_GAME_SESSION_TTL_MILLIS"
+    heartbeat_timeout_millis_env: "MMO_GAME_SESSION_HEARTBEAT_TIMEOUT_MILLIS"
+    reconnect_ticket_ttl_millis_env: "MMO_RECONNECT_TICKET_TTL_MILLIS"
 
 observability:
   log_level_env: "MMO_LOG_LEVEL"

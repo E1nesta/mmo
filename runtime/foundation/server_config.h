@@ -91,13 +91,29 @@ struct InternalAuthConfig {
 
 struct GatewayTicketConfig {
     std::string shared_secret;
+    std::string issuer{"mmo-auth"};
+    std::string access_audience{"api_gateway_server"};
+    std::string gateway_audience{"game_gateway_server"};
+    std::string active_key_id{"local-v1"};
+    std::string active_shared_secret;
+    std::string previous_key_id;
+    std::string previous_shared_secret;
+    int previous_key_accept_millis{};
     int gateway_ticket_ttl_millis{60000};
     int access_token_ttl_millis{3600000};
+};
+
+struct GatewaySessionConfig {
+    std::string gateway_id{"game_gateway_server"};
+    int game_session_ttl_millis{1800000};
+    int heartbeat_timeout_millis{30000};
+    int reconnect_ticket_ttl_millis{60000};
 };
 
 struct SecurityConfig {
     InternalAuthConfig internal_auth;
     GatewayTicketConfig gateway_ticket;
+    GatewaySessionConfig gateway_session;
 };
 
 class ServerConfig {

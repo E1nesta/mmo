@@ -3,6 +3,7 @@
 #include <string>
 
 #include "runtime/foundation/server_config.h"
+#include "runtime/observability/metrics.h"
 #include "runtime/protocol/message_router.h"
 #include "runtime/transport/envelope_transport.h"
 
@@ -30,6 +31,7 @@ public:
 private:
     mmo::runtime::protocol::MessageRouter router_;
     RpcServerOptions options_;
+    mutable mmo::runtime::observability::MetricsRegistry metrics_;
 };
 
 }  // namespace mmo::runtime::rpc

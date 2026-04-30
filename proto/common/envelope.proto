@@ -11,4 +11,6 @@ message Envelope {
   string source_service = 6;
   int64 internal_timestamp_millis = 7;
   string internal_signature = 8;
+  string game_session_id = 9;
+  string trace_id = 10;
 }

@@ -83,6 +83,50 @@ void MetricsRegistry::record_rpc_remote_error() {
     rpc_remote_error_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
+void MetricsRegistry::record_login_success() {
+    login_success_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_login_failed() {
+    login_failed_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_gateway_ticket_issued() {
+    gateway_ticket_issued_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_gateway_ticket_rejected() {
+    gateway_ticket_rejected_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_gateway_ticket_replay() {
+    gateway_ticket_replay_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_gate_login_success() {
+    gate_login_success_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_gate_login_failed() {
+    gate_login_failed_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_game_session_expired() {
+    game_session_expired_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_reconnect_success() {
+    reconnect_success_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_reconnect_failed() {
+    reconnect_failed_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void MetricsRegistry::record_internal_auth_failed() {
+    internal_auth_failed_total_.fetch_add(1, std::memory_order_relaxed);
+}
+
 MetricsSnapshot MetricsRegistry::snapshot() const {
     MetricsSnapshot snapshot;
     snapshot.active_connections =
@@ -122,6 +166,28 @@ MetricsSnapshot MetricsRegistry::snapshot() const {
         rpc_timeout_total_.load(std::memory_order_relaxed);
     snapshot.rpc_remote_error_total =
         rpc_remote_error_total_.load(std::memory_order_relaxed);
+    snapshot.login_success_total =
+        login_success_total_.load(std::memory_order_relaxed);
+    snapshot.login_failed_total =
+        login_failed_total_.load(std::memory_order_relaxed);
+    snapshot.gateway_ticket_issued_total =
+        gateway_ticket_issued_total_.load(std::memory_order_relaxed);
+    snapshot.gateway_ticket_rejected_total =
+        gateway_ticket_rejected_total_.load(std::memory_order_relaxed);
+    snapshot.gateway_ticket_replay_total =
+        gateway_ticket_replay_total_.load(std::memory_order_relaxed);
+    snapshot.gate_login_success_total =
+        gate_login_success_total_.load(std::memory_order_relaxed);
+    snapshot.gate_login_failed_total =
+        gate_login_failed_total_.load(std::memory_order_relaxed);
+    snapshot.game_session_expired_total =
+        game_session_expired_total_.load(std::memory_order_relaxed);
+    snapshot.reconnect_success_total =
+        reconnect_success_total_.load(std::memory_order_relaxed);
+    snapshot.reconnect_failed_total =
+        reconnect_failed_total_.load(std::memory_order_relaxed);
+    snapshot.internal_auth_failed_total =
+        internal_auth_failed_total_.load(std::memory_order_relaxed);
     return snapshot;
 }
 

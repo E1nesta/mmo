@@ -26,6 +26,17 @@ struct MetricsSnapshot {
     std::uint64_t rpc_errors_total{};
     std::uint64_t rpc_timeout_total{};
     std::uint64_t rpc_remote_error_total{};
+    std::uint64_t login_success_total{};
+    std::uint64_t login_failed_total{};
+    std::uint64_t gateway_ticket_issued_total{};
+    std::uint64_t gateway_ticket_rejected_total{};
+    std::uint64_t gateway_ticket_replay_total{};
+    std::uint64_t gate_login_success_total{};
+    std::uint64_t gate_login_failed_total{};
+    std::uint64_t game_session_expired_total{};
+    std::uint64_t reconnect_success_total{};
+    std::uint64_t reconnect_failed_total{};
+    std::uint64_t internal_auth_failed_total{};
 };
 
 class MetricsRegistry {
@@ -50,6 +61,17 @@ public:
     void record_rpc_error();
     void record_rpc_timeout();
     void record_rpc_remote_error();
+    void record_login_success();
+    void record_login_failed();
+    void record_gateway_ticket_issued();
+    void record_gateway_ticket_rejected();
+    void record_gateway_ticket_replay();
+    void record_gate_login_success();
+    void record_gate_login_failed();
+    void record_game_session_expired();
+    void record_reconnect_success();
+    void record_reconnect_failed();
+    void record_internal_auth_failed();
 
     MetricsSnapshot snapshot() const;
 
@@ -74,6 +96,17 @@ private:
     std::atomic<std::uint64_t> rpc_errors_total_{};
     std::atomic<std::uint64_t> rpc_timeout_total_{};
     std::atomic<std::uint64_t> rpc_remote_error_total_{};
+    std::atomic<std::uint64_t> login_success_total_{};
+    std::atomic<std::uint64_t> login_failed_total_{};
+    std::atomic<std::uint64_t> gateway_ticket_issued_total_{};
+    std::atomic<std::uint64_t> gateway_ticket_rejected_total_{};
+    std::atomic<std::uint64_t> gateway_ticket_replay_total_{};
+    std::atomic<std::uint64_t> gate_login_success_total_{};
+    std::atomic<std::uint64_t> gate_login_failed_total_{};
+    std::atomic<std::uint64_t> game_session_expired_total_{};
+    std::atomic<std::uint64_t> reconnect_success_total_{};
+    std::atomic<std::uint64_t> reconnect_failed_total_{};
+    std::atomic<std::uint64_t> internal_auth_failed_total_{};
 };
 
 }  // namespace mmo::runtime::observability

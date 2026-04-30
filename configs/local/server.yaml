@@ -84,8 +84,19 @@ security:
     max_clock_skew_millis: 10000
   gateway_ticket:
     shared_secret: "local-dev-gateway-ticket-shared-secret"
+    issuer: "mmo-auth"
+    access_audience: "api_gateway_server"
+    gateway_audience: "game_gateway_server"
+    active_key_id: "local-v1"
+    active_shared_secret: "local-dev-gateway-ticket-shared-secret"
+    previous_key_accept_millis: 0
     gateway_ticket_ttl_millis: 60000
     access_token_ttl_millis: 3600000
+  gateway_session:
+    gateway_id: "game_gateway_server-local"
+    game_session_ttl_millis: 1800000
+    heartbeat_timeout_millis: 30000
+    reconnect_ticket_ttl_millis: 60000
 
 observability:
   log_level: "info"

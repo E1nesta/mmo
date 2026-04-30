@@ -16,6 +16,8 @@ message GateLoginResponse {
   mmo.common.ResponseContext context = 1;
   bool bound = 2;
   uint64 connection_id = 3;
+  string game_session_id = 4;
+  int64 expires_at_epoch_millis = 5;
 }
 
 message PingRequest {
