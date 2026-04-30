@@ -22,7 +22,10 @@ struct PlayerProfile {
 };
 
 struct ApplyRewardResult {
+    bool success{true};
     bool applied{};
+    int error_code{};
+    std::string error_message;
     std::int64_t gold{};
     std::int64_t exp{};
 };

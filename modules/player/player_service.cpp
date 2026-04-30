@@ -13,9 +13,28 @@ ApplyRewardResult PlayerService::apply_reward(
     std::int64_t player_id,
     const std::string& idempotency_key,
     const std::vector<Reward>& rewards) {
+    if (repository_ != nullptr) {
+        ApplyRewardResult result;
+        std::string error_message;
+        if (repository_->apply_reward_once(
+                player_id, idempotency_key, rewards, &result, &error_message)) {
+            return result;
+        }
+        result.success = false;
+        result.applied = false;
+        result.error_code = 500;
+        result.error_message =
+            error_message.empty() ? "failed to apply reward" : error_message;
+        return result;
+    }
+
     auto& profile = profile_for(player_id);
     if (reward_ledger_.count(idempotency_key) > 0) {
-        return ApplyRewardResult{false, profile.gold, profile.exp};
+        ApplyRewardResult result;
+        result.applied = false;
+        result.gold = profile.gold;
+        result.exp = profile.exp;
+        return result;
     }
 
     for (const auto& reward : rewards) {
@@ -27,18 +46,11 @@ ApplyRewardResult PlayerService::apply_reward(
     }
 
     reward_ledger_.insert(idempotency_key);
-    if (repository_ != nullptr) {
-        std::string error_message;
-        RewardLedgerRecord record;
-        record.player_id = player_id;
-        record.idempotency_key = idempotency_key;
-        record.request_id = idempotency_key;
-        record.gold = profile.gold;
-        record.exp = profile.exp;
-        repository_->record_reward_ledger(record, &error_message);
-        repository_->save_profile(profile, &error_message);
-    }
-    return ApplyRewardResult{true, profile.gold, profile.exp};
+    ApplyRewardResult result;
+    result.applied = true;
+    result.gold = profile.gold;
+    result.exp = profile.exp;
+    return result;
 }
 
 PlayerProfile& PlayerService::profile_for(std::int64_t player_id) {

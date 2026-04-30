@@ -98,6 +98,7 @@ function(mmo_defaults target)
 endfunction()
 
 add_library(runtime_foundation STATIC
+    runtime/foundation/readiness.cpp
     runtime/foundation/server_app.cpp
     runtime/foundation/server_config.cpp
 )
@@ -129,6 +130,8 @@ mmo_defaults(runtime_execution)
 target_link_libraries(runtime_execution PUBLIC Boost::system Threads::Threads)
 
 add_library(runtime_session STATIC
+    runtime/session/redis_session_store.cpp
+    runtime/session/redis_ticket_replay_store.cpp
     runtime/session/session_context.cpp
     runtime/session/ticket_replay_guard.cpp
 )
@@ -137,6 +140,7 @@ mmo_defaults(runtime_session)
 add_library(runtime_observability STATIC
     runtime/observability/logging.cpp
     runtime/observability/metrics.cpp
+    runtime/observability/metrics_exporter.cpp
 )
 mmo_defaults(runtime_observability)
 target_link_libraries(runtime_observability PUBLIC mmo_protocol)
@@ -148,6 +152,8 @@ add_library(runtime_storage STATIC
     runtime/storage/redis_client.cpp
     runtime/storage/redis_connection_pool.cpp
     runtime/storage/redis_keys.cpp
+    runtime/storage/schema_migration.cpp
+    runtime/storage/storage_bootstrap.cpp
 )
 mmo_defaults(runtime_storage)
 target_include_directories(runtime_storage PUBLIC
@@ -155,9 +161,12 @@ target_include_directories(runtime_storage PUBLIC
     ${HIREDIS_INCLUDE_DIR}
 )
 target_link_libraries(runtime_storage PUBLIC
+    runtime_foundation
+    OpenSSL::Crypto
     ${MYSQL_LIBRARY}
     ${HIREDIS_LIBRARY}
 )
+target_link_libraries(runtime_session PUBLIC runtime_storage)
 
 add_library(runtime_transport STATIC
     runtime/transport/connection_session.cpp
@@ -223,8 +232,14 @@ target_link_libraries(runtime_routing PUBLIC
     runtime_protocol
 )
 
-add_library(modules_auth STATIC modules/auth/auth_service.cpp)
+add_library(modules_auth STATIC
+    modules/auth/auth_service.cpp
+    modules/auth/mysql_account_repository.cpp
+    modules/auth/mysql_player_identity_repository.cpp
+    modules/auth/password_hasher.cpp
+)
 mmo_defaults(modules_auth)
+target_link_libraries(modules_auth PUBLIC runtime_storage OpenSSL::Crypto)
 
 add_library(modules_world STATIC modules/world/world_service.cpp)
 mmo_defaults(modules_world)
@@ -305,3 +320,21 @@ target_link_libraries(internal_auth_probe PRIVATE runtime_foundation runtime_tra
 add_executable(security_governance_probe tools/security_governance_probe/main.cpp)
 mmo_defaults(security_governance_probe)
 target_link_libraries(security_governance_probe PRIVATE runtime_protocol runtime_session)
+
+add_executable(auth_data_probe tools/auth_data_probe/main.cpp)
+mmo_defaults(auth_data_probe)
+target_link_libraries(auth_data_probe PRIVATE modules_auth)
+
+add_executable(storage_governance_probe tools/storage_governance_probe/main.cpp)
+mmo_defaults(storage_governance_probe)
+target_link_libraries(storage_governance_probe PRIVATE modules_player runtime_session)
+
+add_executable(production_runtime_governance_probe
+    tools/production_runtime_governance_probe/main.cpp
+)
+mmo_defaults(production_runtime_governance_probe)
+target_link_libraries(production_runtime_governance_probe PRIVATE
+    runtime_foundation
+    runtime_observability
+    runtime_storage
+)

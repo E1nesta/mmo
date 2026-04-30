@@ -1,13 +1,16 @@
+#include <memory>
 #include <vector>
 
 #include "internal/gateway_player.pb.h"
 #include "internal/instance_player.pb.h"
+#include "modules/player/mysql_player_repository.h"
 #include "modules/player/player_service.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/rpc/rpc_server.h"
+#include "runtime/storage/storage_bootstrap.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
@@ -31,7 +34,18 @@ int main() {
         mmo::runtime::transport::make_transport_options(
             app.config().transport.tcp, app.config().execution);
 
-    mmo::modules::player::PlayerService service;
+    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
+    std::string storage_error;
+    if (!mmo::runtime::storage::initialize_mysql_pool(
+            app.config(), &mysql_pool, &storage_error)) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{app.service_name()},
+            "mysql_pool_init_failed error=" + storage_error);
+        return 1;
+    }
+    auto player_repository =
+        std::make_shared<mmo::modules::player::MysqlPlayerRepository>(mysql_pool);
+    mmo::modules::player::PlayerService service(player_repository);
     mmo::runtime::rpc::RpcServer rpc_server(
         mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
@@ -48,6 +62,14 @@ int main() {
                 request.context().player_id(),
                 request.reward_grant_id(),
                 to_rewards(request.rewards()));
+            if (!applied.success) {
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope,
+                    applied.error_code == 0 ? 500 : applied.error_code,
+                    applied.error_message.empty()
+                        ? "failed to apply reward"
+                        : applied.error_message);
+            }
 
             mmo::internal_api::GrantInstanceRewardResponse response;
             *response.mutable_context() =
@@ -75,6 +97,14 @@ int main() {
                 request.context().player_id(),
                 request.idempotency_key(),
                 to_rewards(request.rewards()));
+            if (!applied.success) {
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope,
+                    applied.error_code == 0 ? 500 : applied.error_code,
+                    applied.error_message.empty()
+                        ? "failed to apply reward"
+                        : applied.error_message);
+            }
 
             mmo::internal_api::GatewayApplyRewardResponse response;
             *response.mutable_context() =

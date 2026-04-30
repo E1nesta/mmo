@@ -5,15 +5,15 @@
 #include <spdlog/spdlog.h>
 
 namespace mmo::runtime::observability {
-namespace {
 
-std::string format_line(
+std::string format_log_line(
     const LogContext& context,
     const std::string& event) {
     std::ostringstream output;
-    output << "service_name=" << context.service_name
+    output << "service=" << context.service_name
            << " event=" << event
            << " request_id=" << context.request_id
+           << " account_id=" << context.account_id
            << " player_id=" << context.player_id;
     if (!context.message_type.empty()) {
         output << " message_type=" << context.message_type;
@@ -27,6 +27,12 @@ std::string format_line(
     if (!context.game_session_id.empty()) {
         output << " game_session_id=" << context.game_session_id;
     }
+    if (!context.upstream.empty()) {
+        output << " upstream=" << context.upstream;
+    }
+    if (!context.status.empty()) {
+        output << " status=" << context.status;
+    }
     if (context.error_code != 0) {
         output << " error_code=" << context.error_code;
     }
@@ -35,8 +41,6 @@ std::string format_line(
     }
     return output.str();
 }
-
-}  // namespace
 
 LogContext context_from_envelope(
     const std::string& service_name,
@@ -54,15 +58,15 @@ LogContext context_from_envelope(
 }
 
 void log_info(const LogContext& context, const std::string& event) {
-    spdlog::info("{}", format_line(context, event));
+    spdlog::info("{}", format_log_line(context, event));
 }
 
 void log_warn(const LogContext& context, const std::string& event) {
-    spdlog::warn("{}", format_line(context, event));
+    spdlog::warn("{}", format_log_line(context, event));
 }
 
 void log_error(const LogContext& context, const std::string& event) {
-    spdlog::error("{}", format_line(context, event));
+    spdlog::error("{}", format_log_line(context, event));
 }
 
 }  // namespace mmo::runtime::observability

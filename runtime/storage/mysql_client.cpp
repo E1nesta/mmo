@@ -1,6 +1,7 @@
 #include "runtime/storage/mysql_client.h"
 
 #include <utility>
+#include <vector>
 
 namespace mmo::runtime::storage {
 
@@ -37,6 +38,18 @@ bool MysqlClient::connect(const MysqlConfig& config, std::string* error_message)
 
     connected_ = true;
     return true;
+}
+
+bool MysqlClient::begin_transaction(std::string* error_message) {
+    return execute("START TRANSACTION", error_message);
+}
+
+bool MysqlClient::commit(std::string* error_message) {
+    return execute("COMMIT", error_message);
+}
+
+bool MysqlClient::rollback(std::string* error_message) {
+    return execute("ROLLBACK", error_message);
 }
 
 bool MysqlClient::execute(const std::string& sql, std::string* error_message) {
@@ -109,6 +122,23 @@ bool MysqlClient::query(
     }
     mysql_free_result(result);
     return true;
+}
+
+std::string MysqlClient::escape_string(const std::string& value) const {
+    if (handle_ == nullptr || value.empty()) {
+        return value;
+    }
+    std::vector<char> buffer(value.size() * 2U + 1U);
+    const unsigned long size = mysql_real_escape_string(
+        handle_,
+        buffer.data(),
+        value.data(),
+        static_cast<unsigned long>(value.size()));
+    return std::string(buffer.data(), size);
+}
+
+unsigned int MysqlClient::last_error_code() const {
+    return handle_ == nullptr ? 0U : mysql_errno(handle_);
 }
 
 bool MysqlClient::is_connected() const {

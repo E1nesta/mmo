@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT_DIR}/build/local-flow"
 export MMO_CONFIG_PATH="${ROOT_DIR}/configs/local/server.yaml"
+export MMO_MYSQL_PASSWORD="${MMO_MYSQL_PASSWORD:-mmo_dev_local}"
+export MMO_REDIS_PASSWORD="${MMO_REDIS_PASSWORD:-}"
 
 PIDS=()
 
@@ -40,6 +42,8 @@ PY
 cmake -S "${ROOT_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Debug
 cmake --build "${BUILD_DIR}" --parallel
 
+"${ROOT_DIR}/scripts/dev_up.sh"
+
 "${BUILD_DIR}/auth_server" &
 PIDS+=("$!")
 "${BUILD_DIR}/api_gateway_server" &
@@ -67,4 +71,7 @@ wait_for_port 4107
 wait_for_port 4102
 
 "${BUILD_DIR}/internal_auth_probe"
+"${BUILD_DIR}/auth_data_probe"
+"${BUILD_DIR}/storage_governance_probe"
+"${BUILD_DIR}/production_runtime_governance_probe"
 "${BUILD_DIR}/mmo_flow_client"

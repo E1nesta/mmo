@@ -1,3 +1,4 @@
+#include <memory>
 #include <optional>
 
 #include "internal/gateway_world.pb.h"
@@ -21,8 +22,10 @@
 #include "runtime/routing/gateway_forwarder.h"
 #include "runtime/routing/gateway_router.h"
 #include "runtime/routing/route_table.h"
+#include "runtime/session/redis_session_store.h"
+#include "runtime/session/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
-#include "runtime/session/ticket_replay_guard.h"
+#include "runtime/storage/storage_bootstrap.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
@@ -31,6 +34,7 @@ namespace {
 std::optional<mmo::common::Envelope> validate_bound_public_request(
     const mmo::common::Envelope& envelope,
     const mmo::runtime::session::SessionRegistry& sessions,
+    const mmo::runtime::session::RedisSessionStore& redis_sessions,
     const mmo::common::RequestContext& context,
     mmo::runtime::observability::MetricsRegistry* metrics = nullptr) {
     if (envelope.player_id() != context.player_id() ||
@@ -39,13 +43,21 @@ std::optional<mmo::common::Envelope> validate_bound_public_request(
         return mmo::runtime::protocol::make_error_envelope(
             envelope, 400, "request context does not match envelope");
     }
+    const auto now_millis = static_cast<std::uint64_t>(
+        mmo::runtime::protocol::current_time_millis());
+    std::string redis_error;
     if (envelope.game_session_id().empty() ||
         !sessions.is_bound(
             envelope.player_id(),
             envelope.session_token(),
             envelope.game_session_id(),
-            static_cast<std::uint64_t>(
-                mmo::runtime::protocol::current_time_millis()))) {
+            now_millis) ||
+        !redis_sessions.is_bound(
+            envelope.player_id(),
+            envelope.session_token(),
+            envelope.game_session_id(),
+            now_millis,
+            &redis_error)) {
         if (metrics != nullptr) {
             metrics->record_game_session_expired();
         }
@@ -76,6 +88,17 @@ int main() {
     const auto tcp_options =
         mmo::runtime::transport::make_transport_options(
             app.config().transport.tcp, app.config().execution);
+
+    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> redis_pool;
+    std::string storage_error;
+    if (!mmo::runtime::storage::initialize_redis_pool(
+            app.config(), &redis_pool, &storage_error)) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{app.service_name()},
+            "redis_pool_init_failed error=" + storage_error);
+        return 1;
+    }
+
     mmo::runtime::routing::GatewayForwarder forwarder(
         app.service_name(),
         app.config(),
@@ -119,7 +142,8 @@ int main() {
             true});
 
     mmo::runtime::session::SessionRegistry sessions;
-    mmo::runtime::session::TicketReplayGuard ticket_replay_guard;
+    mmo::runtime::session::RedisTicketReplayStore ticket_replay_guard(redis_pool);
+    mmo::runtime::session::RedisSessionStore redis_sessions(redis_pool);
     mmo::runtime::observability::MetricsRegistry security_metrics;
     mmo::runtime::routing::GatewayRouter gateway_router;
 
@@ -189,7 +213,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kEnterInstanceRequest,
-        [&sessions, &security_metrics, &forwarder, &route_table](
+        [&sessions, &redis_sessions, &security_metrics, &forwarder, &route_table](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::EnterInstanceRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -198,7 +222,11 @@ int main() {
             }
             const auto validation_error =
                 validate_bound_public_request(
-                    envelope, sessions, request.context(), &security_metrics);
+                    envelope,
+                    sessions,
+                    redis_sessions,
+                    request.context(),
+                    &security_metrics);
             if (validation_error.has_value()) {
                 return *validation_error;
             }
@@ -249,7 +277,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kSettleInstanceRequest,
-        [&sessions, &security_metrics, &forwarder, &route_table](
+        [&sessions, &redis_sessions, &security_metrics, &forwarder, &route_table](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::SettleInstanceRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -258,7 +286,11 @@ int main() {
             }
             const auto validation_error =
                 validate_bound_public_request(
-                    envelope, sessions, request.context(), &security_metrics);
+                    envelope,
+                    sessions,
+                    redis_sessions,
+                    request.context(),
+                    &security_metrics);
             if (validation_error.has_value()) {
                 return *validation_error;
             }
@@ -314,7 +346,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kApplyRewardRequest,
-        [&sessions, &security_metrics, &forwarder, &route_table](
+        [&sessions, &redis_sessions, &security_metrics, &forwarder, &route_table](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::ApplyRewardRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -323,7 +355,11 @@ int main() {
             }
             const auto validation_error =
                 validate_bound_public_request(
-                    envelope, sessions, request.context(), &security_metrics);
+                    envelope,
+                    sessions,
+                    redis_sessions,
+                    request.context(),
+                    &security_metrics);
             if (validation_error.has_value()) {
                 return *validation_error;
             }
@@ -378,7 +414,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kSocialBoundaryRequest,
-        [&sessions, &security_metrics, &forwarder, &route_table](
+        [&sessions, &redis_sessions, &security_metrics, &forwarder, &route_table](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::SocialBoundaryRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -387,7 +423,11 @@ int main() {
             }
             const auto validation_error =
                 validate_bound_public_request(
-                    envelope, sessions, request.context(), &security_metrics);
+                    envelope,
+                    sessions,
+                    redis_sessions,
+                    request.context(),
+                    &security_metrics);
             if (validation_error.has_value()) {
                 return *validation_error;
             }
@@ -442,7 +482,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kGateLoginRequest,
-        [&sessions, &ticket_replay_guard, &security_metrics, &app](
+        [&sessions, &redis_sessions, &ticket_replay_guard, &security_metrics, &app](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::GateLoginRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -512,6 +552,12 @@ int main() {
                         .security
                         .gateway_session
                         .heartbeat_timeout_millis));
+            std::string session_store_error;
+            if (!redis_sessions.save_binding(binding, &session_store_error)) {
+                security_metrics.record_gate_login_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 503, "gateway session store is unavailable");
+            }
             security_metrics.record_gate_login_success();
 
             mmo::public_api::GateLoginResponse response;
@@ -533,7 +579,8 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kPingRequest,
-        [&sessions, &security_metrics](const mmo::common::Envelope& envelope) {
+        [&sessions, &redis_sessions, &security_metrics](
+            const mmo::common::Envelope& envelope) {
             mmo::public_api::PingRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
                 return mmo::runtime::protocol::make_error_envelope(
@@ -541,14 +588,32 @@ int main() {
             }
             const auto validation_error =
                 validate_bound_public_request(
-                    envelope, sessions, request.context(), &security_metrics);
+                    envelope,
+                    sessions,
+                    redis_sessions,
+                    request.context(),
+                    &security_metrics);
             if (validation_error.has_value()) {
                 return *validation_error;
             }
             const auto now_millis = static_cast<std::uint64_t>(
                 mmo::runtime::protocol::current_time_millis());
-            sessions.touch(
-                envelope.player_id(), envelope.game_session_id(), now_millis);
+            if (!sessions.touch(
+                    envelope.player_id(), envelope.game_session_id(), now_millis)) {
+                security_metrics.record_game_session_expired();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 401, "game session is not bound to gateway");
+            }
+            std::string session_store_error;
+            if (!redis_sessions.touch_binding(
+                    envelope.player_id(),
+                    envelope.game_session_id(),
+                    now_millis,
+                    &session_store_error)) {
+                security_metrics.record_game_session_expired();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 401, "game session is not bound to gateway");
+            }
 
             mmo::public_api::PingResponse response;
             *response.mutable_context() =
@@ -562,7 +627,7 @@ int main() {
 
     gateway_router.on(
         mmo::runtime::protocol::kEnterWorldRequest,
-        [&sessions, &security_metrics, &forwarder, &route_table](
+        [&sessions, &redis_sessions, &security_metrics, &forwarder, &route_table](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::EnterWorldRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -578,7 +643,11 @@ int main() {
             if (route->require_session) {
                 const auto validation_error =
                     validate_bound_public_request(
-                        envelope, sessions, request.context(), &security_metrics);
+                        envelope,
+                        sessions,
+                        redis_sessions,
+                        request.context(),
+                        &security_metrics);
                 if (validation_error.has_value()) {
                     return *validation_error;
                 }

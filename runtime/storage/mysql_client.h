@@ -24,11 +24,16 @@ public:
     ~MysqlClient();
 
     bool connect(const MysqlConfig& config, std::string* error_message);
+    bool begin_transaction(std::string* error_message);
+    bool commit(std::string* error_message);
+    bool rollback(std::string* error_message);
     bool execute(const std::string& sql, std::string* error_message);
     bool query(
         const std::string& sql,
         std::vector<std::vector<std::string>>* rows,
         std::string* error_message);
+    std::string escape_string(const std::string& value) const;
+    unsigned int last_error_code() const;
     bool is_connected() const;
     void close();
 

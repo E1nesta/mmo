@@ -1,5 +1,9 @@
+#include <memory>
+
 #include "internal/gateway_auth.pb.h"
 #include "modules/auth/auth_service.h"
+#include "modules/auth/mysql_account_repository.h"
+#include "modules/auth/mysql_player_identity_repository.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/auth_tokens.h"
@@ -7,6 +11,7 @@
 #include "runtime/protocol/internal_auth.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/rpc/rpc_server.h"
+#include "runtime/storage/storage_bootstrap.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
@@ -34,7 +39,23 @@ int main() {
         mmo::runtime::transport::make_transport_options(
             app.config().transport.tcp, app.config().execution);
 
-    mmo::modules::auth::AuthService service;
+    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
+    std::string storage_error;
+    if (!mmo::runtime::storage::initialize_mysql_pool(
+            app.config(), &mysql_pool, &storage_error)) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{app.service_name()},
+            "mysql_pool_init_failed error=" + storage_error);
+        return 1;
+    }
+
+    auto account_repository =
+        std::make_shared<mmo::modules::auth::MysqlAccountRepository>(mysql_pool);
+    auto identity_repository =
+        std::make_shared<mmo::modules::auth::MysqlPlayerIdentityRepository>(
+            mysql_pool);
+    mmo::modules::auth::AuthService service(
+        account_repository, identity_repository);
     mmo::runtime::rpc::RpcServer rpc_server(
         mmo::runtime::rpc::make_rpc_server_options(app.config()));
 
@@ -48,7 +69,18 @@ int main() {
             }
 
             const auto login =
-                service.login(request.account_name(), request.device_id());
+                service.login(
+                    request.account_name(), request.password(), request.device_id());
+            if (!login.success) {
+                auto log_context =
+                    mmo::runtime::observability::context_from_envelope(
+                        app.service_name(), envelope);
+                mmo::runtime::observability::log_warn(
+                    log_context,
+                    "login_rejected reason=" + login.internal_reason);
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, login.error_code, login.error_message);
+            }
             const auto now_millis = mmo::runtime::protocol::current_time_millis();
             const auto& ticket_config = app.config().security.gateway_ticket;
             const auto token_options = make_token_options(ticket_config);

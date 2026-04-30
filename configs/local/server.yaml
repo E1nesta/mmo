@@ -51,7 +51,8 @@ transport:
 storage:
   mysql:
     host: "127.0.0.1"
-    port: 3306
+    port: 13306
+    port_env: "MMO_MYSQL_PORT"
     database: "mmo_local"
     user: "mmo"
     password_env: "MMO_MYSQL_PASSWORD"

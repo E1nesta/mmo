@@ -2,6 +2,7 @@
 #include <boost/beast.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -12,9 +13,11 @@
 #include <utility>
 
 #include "internal/gateway_auth.pb.h"
+#include "runtime/foundation/readiness.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/observability/metrics.h"
+#include "runtime/observability/metrics_exporter.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/routing/gateway_forwarder.h"
@@ -124,9 +127,31 @@ http::response<http::string_body> json_response(
     return response;
 }
 
+http::response<http::string_body> text_response(
+    http::status status,
+    const std::string& body,
+    const std::string& content_type,
+    unsigned int version,
+    bool keep_alive) {
+    http::response<http::string_body> response{status, version};
+    response.set(http::field::server, "mmo-api-gateway");
+    response.set(http::field::content_type, content_type);
+    response.keep_alive(keep_alive);
+    response.body() = body;
+    response.prepare_payload();
+    return response;
+}
+
 std::string error_body(int code, const std::string& message) {
     return "{\"success\":false,\"error_code\":" + std::to_string(code) +
            ",\"error_message\":\"" + json_escape(message) + "\"}";
+}
+
+std::string error_body(
+    const std::string& code,
+    const std::string& message) {
+    return "{\"success\":false,\"error_code\":\"" + json_escape(code) +
+           "\",\"error_message\":\"" + json_escape(message) + "\"}";
 }
 
 mmo::common::RequestContext make_context(std::uint64_t request_id) {
@@ -161,6 +186,12 @@ public:
                 request.version(),
                 request.keep_alive());
         }
+        if (request.method() == http::verb::get && target == "/ready") {
+            return handle_ready(request);
+        }
+        if (request.method() == http::verb::get && target == "/metrics") {
+            return handle_metrics(request);
+        }
         if (request.method() == http::verb::get && target == "/v1/servers") {
             return handle_servers(request);
         }
@@ -175,6 +206,38 @@ public:
     }
 
 private:
+    http::response<http::string_body> handle_ready(
+        const http::request<http::string_body>& request) const {
+        const auto readiness =
+            mmo::runtime::foundation::check_tcp_dependency(
+                "auth_server",
+                config_.service("auth_server"),
+                std::chrono::milliseconds(300));
+        if (!readiness.ready) {
+            return json_response(
+                http::status::service_unavailable,
+                error_body(readiness.error_code, readiness.message),
+                request.version(),
+                request.keep_alive());
+        }
+        return json_response(
+            http::status::ok,
+            "{\"success\":true,\"ready\":true}",
+            request.version(),
+                request.keep_alive());
+    }
+
+    http::response<http::string_body> handle_metrics(
+        const http::request<http::string_body>& request) const {
+        return text_response(
+            http::status::ok,
+            mmo::runtime::observability::render_prometheus_metrics(
+                metrics_.snapshot()),
+            "text/plain; version=0.0.4",
+            request.version(),
+            request.keep_alive());
+    }
+
     http::response<http::string_body> handle_servers(
         const http::request<http::string_body>& request) const {
         const auto& game = config_.service("game_gateway_server");
@@ -221,6 +284,26 @@ private:
             context,
             internal_request);
         if (!forward_result.ok()) {
+            if (forward_result.has_response() &&
+                forward_result.response().message_type() ==
+                    mmo::runtime::protocol::kErrorResponse) {
+                mmo::common::ResponseContext error_context;
+                if (mmo::runtime::protocol::unpack_message(
+                        forward_result.response(), error_context)) {
+                    metrics_.record_login_failed();
+                    const auto status =
+                        error_context.error_code() == 401
+                            ? http::status::unauthorized
+                            : http::status::bad_gateway;
+                    return json_response(
+                        status,
+                        error_body(
+                            error_context.error_code(),
+                            error_context.error_message()),
+                        request.version(),
+                        request.keep_alive());
+                }
+            }
             metrics_.record_login_failed();
             return json_response(
                 http::status::bad_gateway,

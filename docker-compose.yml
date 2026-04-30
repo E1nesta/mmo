@@ -9,7 +9,7 @@ services:
       MYSQL_USER: ${MMO_MYSQL_USER:-mmo}
       MYSQL_PASSWORD: ${MMO_MYSQL_PASSWORD:-mmo_dev_local}
     ports:
-      - "${MMO_MYSQL_PORT:-3306}:3306"
+      - "${MMO_MYSQL_PORT:-13306}:3306"
     volumes:
       - mmo_mysql_data:/var/lib/mysql
       - ./deploy/mysql/init:/docker-entrypoint-initdb.d:ro

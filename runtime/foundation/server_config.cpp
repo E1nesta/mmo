@@ -17,10 +17,16 @@ std::string env_value(const std::string& name) {
 }
 
 std::string read_string(const YAML::Node& node, const std::string& key) {
+    const std::string env_key = key + "_env";
+    if (node[env_key]) {
+        const char* value = std::getenv(node[env_key].as<std::string>().c_str());
+        if (value != nullptr && *value != '\0') {
+            return value;
+        }
+    }
     if (node[key]) {
         return node[key].as<std::string>();
     }
-    const std::string env_key = key + "_env";
     if (node[env_key]) {
         return env_value(node[env_key].as<std::string>());
     }
@@ -31,9 +37,6 @@ std::string read_optional_string(
     const YAML::Node& node,
     const std::string& key,
     const std::string& default_value = {}) {
-    if (node[key]) {
-        return node[key].as<std::string>();
-    }
     const std::string env_key = key + "_env";
     if (node[env_key]) {
         const char* value = std::getenv(node[env_key].as<std::string>().c_str());
@@ -41,14 +44,23 @@ std::string read_optional_string(
             return value;
         }
     }
+    if (node[key]) {
+        return node[key].as<std::string>();
+    }
     return default_value;
 }
 
 int read_int(const YAML::Node& node, const std::string& key) {
+    const std::string env_key = key + "_env";
+    if (node[env_key]) {
+        const char* value = std::getenv(node[env_key].as<std::string>().c_str());
+        if (value != nullptr && *value != '\0') {
+            return std::stoi(value);
+        }
+    }
     if (node[key]) {
         return node[key].as<int>();
     }
-    const std::string env_key = key + "_env";
     if (node[env_key]) {
         return std::stoi(env_value(node[env_key].as<std::string>()));
     }
@@ -59,15 +71,15 @@ int read_optional_int(
     const YAML::Node& node,
     const std::string& key,
     int default_value) {
-    if (node[key]) {
-        return node[key].as<int>();
-    }
     const std::string env_key = key + "_env";
     if (node[env_key]) {
         const char* value = std::getenv(node[env_key].as<std::string>().c_str());
         if (value != nullptr && *value != '\0') {
             return std::stoi(value);
         }
+    }
+    if (node[key]) {
+        return node[key].as<int>();
     }
     return default_value;
 }

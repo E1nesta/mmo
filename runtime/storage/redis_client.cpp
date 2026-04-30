@@ -60,6 +60,22 @@ bool RedisClient::connect(const RedisConfig& config, std::string* error_message)
         close();
         return false;
     }
+    if (!config.password.empty()) {
+        ReplyGuard auth_reply(static_cast<redisReply*>(
+            redisCommand(context_, "AUTH %b", config.password.data(), config.password.size())));
+        if (!reply_ok(auth_reply.reply, error_message)) {
+            close();
+            return false;
+        }
+    }
+    if (config.database > 0) {
+        ReplyGuard select_reply(static_cast<redisReply*>(
+            redisCommand(context_, "SELECT %d", config.database)));
+        if (!reply_ok(select_reply.reply, error_message)) {
+            close();
+            return false;
+        }
+    }
     return true;
 }
 
@@ -77,6 +93,80 @@ bool RedisClient::set(
         redisCommand(context_, "SET %b %b", key.data(), key.size(), value.data(), value.size()));
     ReplyGuard reply(raw_reply);
     return reply_ok(reply.reply, error_message);
+}
+
+bool RedisClient::set_with_ttl_millis(
+    const std::string& key,
+    const std::string& value,
+    std::uint64_t ttl_millis,
+    std::string* error_message) {
+    if (!is_connected()) {
+        if (error_message != nullptr) {
+            *error_message = "redis client is not connected";
+        }
+        return false;
+    }
+    if (ttl_millis == 0) {
+        if (error_message != nullptr) {
+            *error_message = "redis ttl must be greater than zero";
+        }
+        return false;
+    }
+    auto* raw_reply = static_cast<redisReply*>(redisCommand(
+        context_,
+        "SET %b %b PX %llu",
+        key.data(),
+        key.size(),
+        value.data(),
+        value.size(),
+        static_cast<unsigned long long>(ttl_millis)));
+    ReplyGuard reply(raw_reply);
+    return reply_ok(reply.reply, error_message);
+}
+
+bool RedisClient::set_if_absent_with_ttl_millis(
+    const std::string& key,
+    const std::string& value,
+    std::uint64_t ttl_millis,
+    bool* stored,
+    std::string* error_message) {
+    if (stored == nullptr) {
+        if (error_message != nullptr) {
+            *error_message = "redis stored output is null";
+        }
+        return false;
+    }
+    *stored = false;
+    if (!is_connected()) {
+        if (error_message != nullptr) {
+            *error_message = "redis client is not connected";
+        }
+        return false;
+    }
+    if (ttl_millis == 0) {
+        if (error_message != nullptr) {
+            *error_message = "redis ttl must be greater than zero";
+        }
+        return false;
+    }
+    auto* raw_reply = static_cast<redisReply*>(redisCommand(
+        context_,
+        "SET %b %b NX PX %llu",
+        key.data(),
+        key.size(),
+        value.data(),
+        value.size(),
+        static_cast<unsigned long long>(ttl_millis)));
+    ReplyGuard reply(raw_reply);
+    if (!reply_ok(reply.reply, error_message)) {
+        return false;
+    }
+    if (reply.reply->type == REDIS_REPLY_NIL) {
+        *stored = false;
+        return true;
+    }
+    *stored = true;
+    return true;
 }
 
 std::optional<std::string> RedisClient::get(
