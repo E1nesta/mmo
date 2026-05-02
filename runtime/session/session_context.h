@@ -41,11 +41,13 @@ struct HeartbeatState {
 };
 
 struct ReconnectTicket {
+    std::int64_t account_id{};
     std::uint64_t connection_id{};
     std::string game_session_id;
     std::int64_t player_id{};
     std::string session_token;
     std::string gateway_id;
+    std::string device_id;
     std::uint64_t expire_at_millis{};
 
     bool valid(std::uint64_t now_millis) const;
@@ -82,6 +84,16 @@ public:
         std::int64_t player_id,
         std::uint64_t now_millis,
         std::uint64_t ttl_millis);
+    ConnectionBinding reconnect(
+        std::int64_t account_id,
+        std::int64_t player_id,
+        const std::string& session_token,
+        const std::string& game_session_id,
+        const std::string& gateway_id,
+        const std::string& device_id,
+        std::uint64_t now_millis,
+        std::uint64_t expire_at_millis,
+        std::uint64_t heartbeat_timeout_millis = 0);
     bool can_reconnect(
         std::int64_t player_id,
         const std::string& session_token,

@@ -38,6 +38,16 @@ public:
     std::optional<OnlineBinding> find_online(
         std::int64_t player_id,
         std::string* error_message) const;
+    bool save_reconnect_ticket(
+        const std::string& ticket_id,
+        const ReconnectTicket& ticket,
+        std::uint64_t now_millis,
+        std::string* error_message);
+    bool consume_reconnect_ticket(
+        const std::string& ticket_id,
+        std::uint64_t now_millis,
+        ReconnectTicket* ticket,
+        std::string* error_message);
 
 private:
     std::optional<ConnectionBinding> load_binding(

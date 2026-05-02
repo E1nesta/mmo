@@ -13,6 +13,15 @@ TcpChannelClient::TcpChannelClient(
           transport_options,
           pool_options) {}
 
+TcpChannelClient::TcpChannelClient(
+    std::shared_ptr<ServiceRegistry> service_registry,
+    mmo::runtime::transport::TransportOptions transport_options,
+    ChannelConnectionPoolOptions pool_options)
+    : connection_pool_(
+          std::move(service_registry),
+          transport_options,
+          pool_options) {}
+
 ChannelResult TcpChannelClient::call_envelope(
     const std::string& target_service,
     const mmo::common::Envelope& request,

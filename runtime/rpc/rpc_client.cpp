@@ -68,6 +68,17 @@ RpcClient::RpcClient(
       options_(std::move(options)) {}
 
 RpcClient::RpcClient(
+    std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
+    mmo::runtime::transport::TransportOptions transport_options,
+    mmo::runtime::channel::ChannelConnectionPoolOptions pool_options,
+    RpcClientOptions options)
+    : channel_client_(std::make_unique<mmo::runtime::channel::TcpChannelClient>(
+          std::move(service_registry),
+          transport_options,
+          pool_options)),
+      options_(std::move(options)) {}
+
+RpcClient::RpcClient(
     std::unique_ptr<mmo::runtime::channel::ChannelClient> channel_client,
     RpcClientOptions options)
     : channel_client_(std::move(channel_client)),
@@ -83,6 +94,9 @@ RpcResult RpcClient::call_envelope(
     options.source_service = controller.source_service;
     options.target_service = controller.target_service;
     options.trace_id = controller.trace_id;
+    options.routing_policy = controller.routing_policy;
+    options.route_key = controller.route_key;
+    options.target_instance_id = controller.target_instance_id;
     options.connect_timeout_millis = controller.connect_timeout_millis;
     options.request_timeout_millis = controller.request_timeout_millis;
     options.retry_enabled = controller.retry_enabled;

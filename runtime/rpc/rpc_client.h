@@ -9,6 +9,7 @@
 #include "common/context.pb.h"
 #include "runtime/channel/channel_client.h"
 #include "runtime/channel/endpoint_resolver.h"
+#include "runtime/channel/service_registry.h"
 #include "runtime/foundation/server_config.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/rpc/rpc_controller.h"
@@ -29,6 +30,11 @@ class RpcClient {
 public:
     RpcClient(
         std::shared_ptr<mmo::runtime::channel::EndpointResolver> resolver,
+        mmo::runtime::transport::TransportOptions transport_options,
+        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options,
+        RpcClientOptions options = {});
+    RpcClient(
+        std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
         mmo::runtime::transport::TransportOptions transport_options,
         mmo::runtime::channel::ChannelConnectionPoolOptions pool_options,
         RpcClientOptions options = {});

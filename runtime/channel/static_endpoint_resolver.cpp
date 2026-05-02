@@ -1,13 +1,22 @@
 #include "runtime/channel/static_endpoint_resolver.h"
 
+#include <stdexcept>
+#include <utility>
+
 namespace mmo::runtime::channel {
 
 StaticEndpointResolver::StaticEndpointResolver(
     const mmo::runtime::foundation::ServerConfig& config) {
     for (const auto& [service_name, service_config] : config.services) {
-        endpoints_.emplace(
-            service_name,
-            mmo::runtime::transport::make_transport_endpoint(service_config));
+        if (service_config.instances.empty()) {
+            throw std::runtime_error(
+                "service instances must be configured: " + service_name);
+        }
+        const auto& instance = service_config.instances.front();
+        mmo::runtime::transport::TransportEndpoint endpoint;
+        endpoint.host = instance.host;
+        endpoint.port = instance.tcp_port;
+        endpoints_.emplace(service_name, std::move(endpoint));
     }
 }
 

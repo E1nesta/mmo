@@ -8,32 +8,97 @@ services:
   api_gateway_server:
     host: "127.0.0.1"
     tcp_port: 4100
+    instances:
+      - instance_id: "api-gateway-1"
+        host: "127.0.0.1"
+        tcp_port: 4100
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   auth_server:
     host: "127.0.0.1"
     tcp_port: 4101
+    instances:
+      - instance_id: "auth-1"
+        host: "127.0.0.1"
+        tcp_port: 4101
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   game_gateway_server:
     host: "127.0.0.1"
     tcp_port: 4102
     udp_kcp_port: 4202
+    instances:
+      - instance_id: "game-gateway-1"
+        host: "127.0.0.1"
+        tcp_port: 4102
+        udp_kcp_port: 4202
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   world_server:
     host: "127.0.0.1"
     tcp_port: 4103
+    instances:
+      - instance_id: "world-1"
+        host: "127.0.0.1"
+        tcp_port: 4103
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   scene_server:
     host: "127.0.0.1"
     tcp_port: 4104
+    instances:
+      - instance_id: "scene-1"
+        host: "127.0.0.1"
+        tcp_port: 4104
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   instance_server:
     host: "127.0.0.1"
     tcp_port: 4105
+    instances:
+      - instance_id: "instance-1"
+        host: "127.0.0.1"
+        tcp_port: 4105
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   player_server:
     host: "127.0.0.1"
     tcp_port: 4106
+    instances:
+      - instance_id: "player-1"
+        host: "127.0.0.1"
+        tcp_port: 4106
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   social_server:
     host: "127.0.0.1"
     tcp_port: 4107
+    instances:
+      - instance_id: "social-1"
+        host: "127.0.0.1"
+        tcp_port: 4107
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
   realtime_gateway_server:
     host: "127.0.0.1"
     tcp_port: 4108
     udp_kcp_port: 4208
+    instances:
+      - instance_id: "realtime-gateway-1"
+        host: "127.0.0.1"
+        tcp_port: 4108
+        udp_kcp_port: 4208
+        zone: "local-a"
+        weight: 100
+        state: "healthy"
 
 transport:
   tcp:

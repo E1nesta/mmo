@@ -74,4 +74,6 @@ wait_for_port 4102
 "${BUILD_DIR}/auth_data_probe"
 "${BUILD_DIR}/storage_governance_probe"
 "${BUILD_DIR}/production_runtime_governance_probe"
+"${BUILD_DIR}/gateway_session_governance_probe"
+"${BUILD_DIR}/cluster_routing_governance_probe"
 "${BUILD_DIR}/mmo_flow_client"

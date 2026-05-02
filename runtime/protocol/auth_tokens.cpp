@@ -20,6 +20,8 @@ std::string purpose_name(AuthTokenPurpose purpose) {
             return "access";
         case AuthTokenPurpose::kGateway:
             return "gateway";
+        case AuthTokenPurpose::kReconnect:
+            return "reconnect";
     }
     return "unknown";
 }
@@ -27,9 +29,8 @@ std::string purpose_name(AuthTokenPurpose purpose) {
 std::string audience_for(
     AuthTokenPurpose purpose,
     const AuthTokenOptions& options) {
-    return purpose == AuthTokenPurpose::kAccess
-               ? options.access_audience
-               : options.gateway_audience;
+    return purpose == AuthTokenPurpose::kAccess ? options.access_audience
+                                                : options.gateway_audience;
 }
 
 bool parse_purpose(const std::string& value, AuthTokenPurpose* purpose) {
@@ -39,6 +40,10 @@ bool parse_purpose(const std::string& value, AuthTokenPurpose* purpose) {
     }
     if (value == "gateway") {
         *purpose = AuthTokenPurpose::kGateway;
+        return true;
+    }
+    if (value == "reconnect") {
+        *purpose = AuthTokenPurpose::kReconnect;
         return true;
     }
     return false;

@@ -4,7 +4,8 @@
 #include "internal/world_scene.pb.h"
 #include "modules/world/world_service.h"
 #include "runtime/channel/channel_connection_pool.h"
-#include "runtime/channel/static_endpoint_resolver.h"
+#include "runtime/channel/routing_policy.h"
+#include "runtime/channel/service_registry.h"
 #include "runtime/foundation/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
@@ -31,10 +32,10 @@ int main() {
     const auto tcp_options =
         mmo::runtime::transport::make_transport_options(
             app.config().transport.tcp, app.config().execution);
-    auto resolver =
-        std::make_shared<mmo::runtime::channel::StaticEndpointResolver>(app.config());
+    auto service_registry =
+        std::make_shared<mmo::runtime::channel::StaticServiceRegistry>(app.config());
     mmo::runtime::rpc::RpcClient rpc_client(
-        resolver,
+        service_registry,
         tcp_options,
         mmo::runtime::channel::make_channel_connection_pool_options(
             app.config().channel),
@@ -65,6 +66,8 @@ int main() {
 
             mmo::runtime::rpc::RpcController controller;
             controller.source_service = app.service_name();
+            controller.routing_policy =
+                mmo::runtime::channel::RoutingPolicy::kLeastPending;
             const auto rpc_result = rpc_client.call(
                 "scene_server",
                 mmo::runtime::protocol::kAllocateSceneEntityRequest,

@@ -18,6 +18,8 @@ message GateLoginResponse {
   uint64 connection_id = 3;
   string game_session_id = 4;
   int64 expires_at_epoch_millis = 5;
+  string reconnect_ticket = 6;
+  int64 reconnect_ticket_expires_at_epoch_millis = 7;
 }
 
 message PingRequest {
@@ -28,4 +30,25 @@ message PingRequest {
 message PingResponse {
   mmo.common.ResponseContext context = 1;
   int64 server_time_ms = 2;
+  string reconnect_ticket = 3;
+  int64 reconnect_ticket_expires_at_epoch_millis = 4;
+}
+
+message ReconnectRequest {
+  mmo.common.RequestContext context = 1;
+  int64 player_id = 2;
+  string session_token = 3;
+  string game_session_id = 4;
+  string reconnect_ticket = 5;
+  string device_id = 6;
+}
+
+message ReconnectResponse {
+  mmo.common.ResponseContext context = 1;
+  bool reconnected = 2;
+  uint64 connection_id = 3;
+  string game_session_id = 4;
+  int64 expires_at_epoch_millis = 5;
+  string reconnect_ticket = 6;
+  int64 reconnect_ticket_expires_at_epoch_millis = 7;
 }

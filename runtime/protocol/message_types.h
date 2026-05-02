@@ -11,6 +11,8 @@ inline constexpr const char* kGateLoginRequest = "public.gateway.GateLoginReques
 inline constexpr const char* kGateLoginResponse = "public.gateway.GateLoginResponse";
 inline constexpr const char* kPingRequest = "public.gateway.PingRequest";
 inline constexpr const char* kPingResponse = "public.gateway.PingResponse";
+inline constexpr const char* kReconnectRequest = "public.gateway.ReconnectRequest";
+inline constexpr const char* kReconnectResponse = "public.gateway.ReconnectResponse";
 
 inline constexpr const char* kEnterWorldRequest = "public.world.EnterWorldRequest";
 inline constexpr const char* kEnterWorldResponse = "public.world.EnterWorldResponse";

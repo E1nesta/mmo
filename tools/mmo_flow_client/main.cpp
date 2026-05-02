@@ -269,10 +269,15 @@ int main() {
             gate_response)) {
         return 1;
     }
+    const std::string gate_game_session_id = gate_response.game_session_id();
 
     std::cout << "[gateway] gate login ok connection_id="
               << gate_response.connection_id()
-              << " game_session_id=" << gate_response.game_session_id() << '\n';
+              << " game_session_id=" << gate_game_session_id << '\n';
+    if (gate_response.reconnect_ticket().empty()) {
+        std::cerr << "gate login response did not include reconnect ticket\n";
+        return 1;
+    }
 
     const auto replay_gate_response =
         client.send(gateway_endpoint, gate_envelope);
@@ -280,6 +285,77 @@ int main() {
         return 1;
     }
     std::cout << "[gateway] replayed gate ticket rejected\n";
+
+    mmo::public_api::ReconnectRequest invalid_reconnect_request;
+    *invalid_reconnect_request.mutable_context() = make_context(
+        202,
+        login_response.account_id(),
+        login_response.player_id(),
+        login_response.session_token(),
+        gate_game_session_id);
+    invalid_reconnect_request.set_player_id(login_response.player_id());
+    invalid_reconnect_request.set_session_token(login_response.session_token());
+    invalid_reconnect_request.set_game_session_id(gate_game_session_id);
+    invalid_reconnect_request.set_device_id("local-flow-reconnect");
+    invalid_reconnect_request.set_reconnect_ticket(
+        gate_response.reconnect_ticket() + "-tampered");
+    const auto invalid_reconnect_envelope =
+        mmo::runtime::protocol::pack_message(
+            mmo::runtime::protocol::kReconnectRequest,
+            invalid_reconnect_request.context(),
+            invalid_reconnect_request);
+    const auto invalid_reconnect_response =
+        client.send(gateway_endpoint, invalid_reconnect_envelope);
+    if (!expect_error_response(invalid_reconnect_response, 401)) {
+        return 1;
+    }
+    std::cout << "[gateway] invalid reconnect ticket rejected\n";
+
+    mmo::public_api::ReconnectRequest reconnect_request;
+    *reconnect_request.mutable_context() = make_context(
+        203,
+        login_response.account_id(),
+        login_response.player_id(),
+        login_response.session_token(),
+        gate_game_session_id);
+    reconnect_request.set_player_id(login_response.player_id());
+    reconnect_request.set_session_token(login_response.session_token());
+    reconnect_request.set_game_session_id(gate_game_session_id);
+    reconnect_request.set_device_id("local-flow-reconnect");
+    reconnect_request.set_reconnect_ticket(gate_response.reconnect_ticket());
+    const auto reconnect_envelope = mmo::runtime::protocol::pack_message(
+        mmo::runtime::protocol::kReconnectRequest,
+        reconnect_request.context(),
+        reconnect_request);
+    const auto reconnect_response_envelope =
+        client.send(gateway_endpoint, reconnect_envelope);
+
+    mmo::public_api::ReconnectResponse reconnect_response;
+    if (!parse_response(
+            reconnect_response_envelope,
+            mmo::runtime::protocol::kReconnectResponse,
+            reconnect_response)) {
+        return 1;
+    }
+    if (reconnect_response.game_session_id() != gate_game_session_id ||
+        reconnect_response.reconnect_ticket().empty()) {
+        std::cerr << "invalid reconnect response\n";
+        return 1;
+    }
+    std::cout << "[gateway] reconnect ok connection_id="
+              << reconnect_response.connection_id()
+              << " game_session_id=" << reconnect_response.game_session_id()
+              << '\n';
+
+    const auto replay_reconnect_response =
+        client.send(gateway_endpoint, reconnect_envelope);
+    if (!expect_error_response(replay_reconnect_response, 401)) {
+        return 1;
+    }
+    std::cout << "[gateway] replayed reconnect ticket rejected\n";
+
+    const std::string active_game_session_id =
+        reconnect_response.game_session_id();
 
     mmo::public_api::EnterWorldRequest unbound_world_request;
     *unbound_world_request.mutable_context() = make_context(
@@ -307,7 +383,7 @@ int main() {
         login_response.account_id(),
         login_response.player_id(),
         login_response.session_token(),
-        gate_response.game_session_id());
+        active_game_session_id);
     world_request.set_preferred_map_id(1001);
     world_request.set_preferred_line_id(1);
 
@@ -342,7 +418,7 @@ int main() {
         login_response.account_id(),
         login_response.player_id(),
         login_response.session_token(),
-        gate_response.game_session_id());
+        active_game_session_id);
     enter_instance_request.set_dungeon_id(101);
 
     const auto enter_instance_envelope = mmo::runtime::protocol::pack_message(
@@ -371,7 +447,7 @@ int main() {
         login_response.account_id(),
         login_response.player_id(),
         login_response.session_token(),
-        gate_response.game_session_id());
+        active_game_session_id);
     settle_instance_request.set_instance_id(
         enter_instance_response.instance_id());
     settle_instance_request.set_idempotency_key(
@@ -405,7 +481,7 @@ int main() {
         login_response.account_id(),
         login_response.player_id(),
         login_response.session_token(),
-        gate_response.game_session_id());
+        active_game_session_id);
     social_request.set_target_player_id(login_response.player_id());
 
     const auto social_envelope = mmo::runtime::protocol::pack_message(

@@ -1,7 +1,9 @@
 #include "runtime/foundation/server_config.h"
 
 #include <cstdlib>
+#include <set>
 #include <stdexcept>
+#include <utility>
 
 #include <yaml-cpp/yaml.h>
 
@@ -92,6 +94,31 @@ std::uint16_t read_port(const YAML::Node& node, const std::string& key) {
     return static_cast<std::uint16_t>(value);
 }
 
+std::uint16_t read_optional_port(
+    const YAML::Node& node,
+    const std::string& key,
+    std::uint16_t default_value = 0) {
+    const std::string env_key = key + "_env";
+    if (node[env_key]) {
+        const char* value = std::getenv(node[env_key].as<std::string>().c_str());
+        if (value != nullptr && *value != '\0') {
+            const int port = std::stoi(value);
+            if (port <= 0 || port > 65535) {
+                throw std::runtime_error("invalid port for config field: " + key);
+            }
+            return static_cast<std::uint16_t>(port);
+        }
+    }
+    if (node[key]) {
+        const int port = node[key].as<int>();
+        if (port <= 0 || port > 65535) {
+            throw std::runtime_error("invalid port for config field: " + key);
+        }
+        return static_cast<std::uint16_t>(port);
+    }
+    return default_value;
+}
+
 std::uint32_t read_uint32(const YAML::Node& node, const std::string& key) {
     const int value = read_int(node, key);
     if (value <= 0) {
@@ -100,12 +127,64 @@ std::uint32_t read_uint32(const YAML::Node& node, const std::string& key) {
     return static_cast<std::uint32_t>(value);
 }
 
-ServiceConfig read_service(const YAML::Node& node) {
+ServiceInstanceConfig read_service_instance(
+    const std::string& service_name,
+    const YAML::Node& node) {
+    ServiceInstanceConfig instance;
+    instance.instance_id = read_string(node, "instance_id");
+    instance.host = read_string(node, "host");
+    instance.tcp_port = read_port(node, "tcp_port");
+    instance.udp_kcp_port = read_optional_port(node, "udp_kcp_port", 0);
+    instance.zone = read_optional_string(node, "zone");
+    instance.weight = read_optional_int(node, "weight", 100);
+    instance.state = read_optional_string(node, "state", "healthy");
+    if (instance.instance_id.empty()) {
+        throw std::runtime_error(
+            "service instance id must not be empty: " + service_name);
+    }
+    if (instance.host.empty()) {
+        throw std::runtime_error(
+            "service instance host must not be empty: " + service_name +
+            "/" + instance.instance_id);
+    }
+    if (instance.weight <= 0) {
+        throw std::runtime_error(
+            "service instance weight must be greater than zero: " +
+            service_name + "/" + instance.instance_id);
+    }
+    if (node["metadata"]) {
+        for (const auto& entry : node["metadata"]) {
+            instance.metadata.emplace(
+                entry.first.as<std::string>(),
+                entry.second.as<std::string>());
+        }
+    }
+    return instance;
+}
+
+ServiceConfig read_service(
+    const std::string& service_name,
+    const YAML::Node& node) {
     ServiceConfig config;
     config.host = read_string(node, "host");
     config.tcp_port = read_port(node, "tcp_port");
     if (node["udp_kcp_port"] || node["udp_kcp_port_env"]) {
         config.udp_kcp_port = read_port(node, "udp_kcp_port");
+    }
+    const YAML::Node instances = node["instances"];
+    if (!instances || !instances.IsSequence() || instances.size() == 0) {
+        throw std::runtime_error(
+            "service instances must be configured: " + service_name);
+    }
+    std::set<std::string> instance_ids;
+    for (const auto& instance_node : instances) {
+        auto instance = read_service_instance(service_name, instance_node);
+        if (!instance_ids.insert(instance.instance_id).second) {
+            throw std::runtime_error(
+                "duplicate service instance id: " + service_name + "/" +
+                instance.instance_id);
+        }
+        config.instances.push_back(std::move(instance));
     }
     return config;
 }
@@ -265,9 +344,10 @@ ServerConfig load_server_config(const std::string& path) {
 
     const YAML::Node services = root["services"];
     for (const auto& entry : services) {
+        const auto service_name = entry.first.as<std::string>();
         config.services.emplace(
-            entry.first.as<std::string>(),
-            read_service(entry.second));
+            service_name,
+            read_service(service_name, entry.second));
     }
 
     const YAML::Node tcp = root["transport"]["tcp"];

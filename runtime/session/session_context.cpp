@@ -141,14 +141,45 @@ std::optional<ReconnectTicket> SessionRegistry::make_reconnect_ticket(
     }
 
     ReconnectTicket ticket;
+    ticket.account_id = it->second.account_id;
     ticket.connection_id = it->second.connection_id;
     ticket.game_session_id = it->second.game_session_id;
     ticket.player_id = it->second.player_id;
     ticket.session_token = it->second.session_token;
     ticket.gateway_id = it->second.gateway_id;
+    ticket.device_id = it->second.device_id;
     ticket.expire_at_millis = now_millis + ttl_millis;
     reconnect_tickets_[player_id] = ticket;
     return ticket;
+}
+
+ConnectionBinding SessionRegistry::reconnect(
+    std::int64_t account_id,
+    std::int64_t player_id,
+    const std::string& session_token,
+    const std::string& game_session_id,
+    const std::string& gateway_id,
+    const std::string& device_id,
+    std::uint64_t now_millis,
+    std::uint64_t expire_at_millis,
+    std::uint64_t heartbeat_timeout_millis) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    ConnectionBinding binding;
+    binding.connection_id = next_connection_id_++;
+    binding.game_session_id = game_session_id;
+    binding.account_id = account_id;
+    binding.player_id = player_id;
+    binding.session_token = session_token;
+    binding.gateway_id = gateway_id;
+    binding.device_id = device_id;
+    binding.issued_at_millis = now_millis;
+    binding.last_seen_millis = now_millis;
+    binding.expire_at_millis = expire_at_millis;
+    binding.heartbeat_timeout_millis = heartbeat_timeout_millis;
+    binding.authenticated = true;
+    bindings_[player_id] = binding;
+    reconnect_tickets_.erase(player_id);
+    return binding;
 }
 
 bool SessionRegistry::can_reconnect(

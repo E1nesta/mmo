@@ -125,6 +125,47 @@ bool parse_online(const std::string& payload, OnlineBinding* online) {
     return true;
 }
 
+std::string serialize_reconnect_ticket(const ReconnectTicket& ticket) {
+    std::string output;
+    append_field(std::to_string(ticket.account_id), &output);
+    append_field(std::to_string(ticket.connection_id), &output);
+    append_field(ticket.game_session_id, &output);
+    append_field(std::to_string(ticket.player_id), &output);
+    append_field(ticket.session_token, &output);
+    append_field(ticket.gateway_id, &output);
+    append_field(ticket.device_id, &output);
+    append_field(std::to_string(ticket.expire_at_millis), &output);
+    return output;
+}
+
+bool parse_reconnect_ticket(
+    const std::string& payload,
+    ReconnectTicket* ticket) {
+    std::vector<std::string> fields(8);
+    std::size_t offset = 0;
+    for (auto& field : fields) {
+        if (!read_field(payload, &offset, &field)) {
+            return false;
+        }
+    }
+    if (offset != payload.size()) {
+        return false;
+    }
+    try {
+        ticket->account_id = std::stoll(fields[0]);
+        ticket->connection_id = std::stoull(fields[1]);
+        ticket->game_session_id = fields[2];
+        ticket->player_id = std::stoll(fields[3]);
+        ticket->session_token = fields[4];
+        ticket->gateway_id = fields[5];
+        ticket->device_id = fields[6];
+        ticket->expire_at_millis = std::stoull(fields[7]);
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
 std::uint64_t ttl_millis_for(
     const ConnectionBinding& binding,
     std::uint64_t now_millis) {
@@ -165,7 +206,15 @@ bool RedisSessionStore::save_binding(
         }
         return false;
     }
+    const auto old_online = find_online(binding.player_id, nullptr);
     const auto client = pool_->acquire();
+    if (old_online.has_value() &&
+        old_online->game_session_id != binding.game_session_id) {
+        std::string remove_error;
+        client->remove(
+            mmo::runtime::storage::game_session_key(old_online->game_session_id),
+            &remove_error);
+    }
     if (!client->set_with_ttl_millis(
             mmo::runtime::storage::game_session_key(binding.game_session_id),
             serialize_binding(binding),
@@ -191,11 +240,16 @@ bool RedisSessionStore::is_bound(
     std::uint64_t now_millis,
     std::string* error_message) const {
     const auto binding = load_binding(game_session_id, error_message);
-    return binding.has_value() &&
-           binding->player_id == player_id &&
-           binding->session_token == session_token &&
-           binding->game_session_id == game_session_id &&
-           binding->valid(now_millis);
+    if (!binding.has_value() ||
+        binding->player_id != player_id ||
+        binding->session_token != session_token ||
+        binding->game_session_id != game_session_id ||
+        !binding->valid(now_millis)) {
+        return false;
+    }
+    std::string online_error;
+    const auto online = find_online(player_id, &online_error);
+    return online.has_value() && online->game_session_id == game_session_id;
 }
 
 bool RedisSessionStore::touch_binding(
@@ -238,6 +292,54 @@ std::optional<OnlineBinding> RedisSessionStore::find_online(
         return std::nullopt;
     }
     return online;
+}
+
+bool RedisSessionStore::save_reconnect_ticket(
+    const std::string& ticket_id,
+    const ReconnectTicket& ticket,
+    std::uint64_t now_millis,
+    std::string* error_message) {
+    if (pool_ == nullptr || ticket_id.empty() || !ticket.valid(now_millis)) {
+        if (error_message != nullptr) {
+            *error_message = "redis reconnect ticket is invalid";
+        }
+        return false;
+    }
+    const auto client = pool_->acquire();
+    return client->set_with_ttl_millis(
+        mmo::runtime::storage::reconnect_ticket_key(ticket_id),
+        serialize_reconnect_ticket(ticket),
+        ticket.expire_at_millis - now_millis,
+        error_message);
+}
+
+bool RedisSessionStore::consume_reconnect_ticket(
+    const std::string& ticket_id,
+    std::uint64_t now_millis,
+    ReconnectTicket* ticket,
+    std::string* error_message) {
+    if (pool_ == nullptr || ticket_id.empty() || ticket == nullptr) {
+        if (error_message != nullptr) {
+            *error_message = "redis reconnect ticket input is invalid";
+        }
+        return false;
+    }
+    const auto client = pool_->acquire();
+    const auto value = client->get_and_remove(
+        mmo::runtime::storage::reconnect_ticket_key(ticket_id),
+        error_message);
+    if (!value.has_value()) {
+        return false;
+    }
+    ReconnectTicket parsed;
+    if (!parse_reconnect_ticket(*value, &parsed) || !parsed.valid(now_millis)) {
+        if (error_message != nullptr) {
+            *error_message = "redis reconnect ticket is malformed or expired";
+        }
+        return false;
+    }
+    *ticket = parsed;
+    return true;
 }
 
 std::optional<ConnectionBinding> RedisSessionStore::load_binding(

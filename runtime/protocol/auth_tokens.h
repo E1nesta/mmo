@@ -8,6 +8,7 @@ namespace mmo::runtime::protocol {
 enum class AuthTokenPurpose {
     kAccess,
     kGateway,
+    kReconnect,
 };
 
 struct AuthTokenClaims {

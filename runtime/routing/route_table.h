@@ -5,12 +5,18 @@
 #include <string>
 #include <unordered_map>
 
+#include "runtime/channel/routing_policy.h"
+
 namespace mmo::runtime::routing {
 
 struct RouteTarget {
     std::string target_service;
     std::string target_message_type;
     bool require_session{true};
+    mmo::runtime::channel::RoutingPolicy routing_policy{
+        mmo::runtime::channel::RoutingPolicy::kUnspecified};
+    std::string route_key_source;
+    std::string target_instance_id;
 };
 
 class RouteTable {

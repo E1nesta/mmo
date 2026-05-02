@@ -193,6 +193,30 @@ std::optional<std::string> RedisClient::get(
     return std::string(reply.reply->str, static_cast<std::size_t>(reply.reply->len));
 }
 
+std::optional<std::string> RedisClient::get_and_remove(
+    const std::string& key,
+    std::string* error_message) {
+    if (!is_connected()) {
+        if (error_message != nullptr) {
+            *error_message = "redis client is not connected";
+        }
+        return std::nullopt;
+    }
+    auto* raw_reply = static_cast<redisReply*>(
+        redisCommand(context_, "GETDEL %b", key.data(), key.size()));
+    ReplyGuard reply(raw_reply);
+    if (!reply_ok(reply.reply, error_message) || reply.reply->type == REDIS_REPLY_NIL) {
+        return std::nullopt;
+    }
+    if (reply.reply->type != REDIS_REPLY_STRING) {
+        if (error_message != nullptr) {
+            *error_message = "redis GETDEL did not return a string";
+        }
+        return std::nullopt;
+    }
+    return std::string(reply.reply->str, static_cast<std::size_t>(reply.reply->len));
+}
+
 bool RedisClient::remove(const std::string& key, std::string* error_message) {
     if (!is_connected()) {
         if (error_message != nullptr) {

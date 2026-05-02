@@ -149,8 +149,29 @@ ReadinessResult check_tcp_dependency(
     const std::string& dependency_name,
     const ServiceConfig& service,
     std::chrono::milliseconds timeout) {
-    return check_tcp_dependency(
-        dependency_name, service.host, service.tcp_port, timeout);
+    if (service.instances.empty()) {
+        return make_not_ready_result(
+            "dependency_unavailable",
+            dependency_name + " has no configured service instances");
+    }
+    ReadinessResult last_not_ready = make_not_ready_result(
+        "dependency_unavailable",
+        dependency_name + " has no healthy service instances");
+    for (const auto& instance : service.instances) {
+        if (instance.state != "healthy") {
+            continue;
+        }
+        auto result = check_tcp_dependency(
+            dependency_name + "/" + instance.instance_id,
+            instance.host,
+            instance.tcp_port,
+            timeout);
+        if (result.ready) {
+            return result;
+        }
+        last_not_ready = std::move(result);
+    }
+    return last_not_ready;
 }
 
 }  // namespace mmo::runtime::foundation

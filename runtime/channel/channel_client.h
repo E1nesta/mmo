@@ -11,6 +11,7 @@
 #include "runtime/channel/channel_call_options.h"
 #include "runtime/channel/channel_connection_pool.h"
 #include "runtime/channel/channel_result.h"
+#include "runtime/channel/service_registry.h"
 #include "runtime/protocol/envelope_utils.h"
 
 namespace mmo::runtime::channel {
@@ -29,6 +30,10 @@ class TcpChannelClient final : public ChannelClient {
 public:
     TcpChannelClient(
         std::shared_ptr<EndpointResolver> resolver,
+        mmo::runtime::transport::TransportOptions transport_options,
+        ChannelConnectionPoolOptions pool_options);
+    TcpChannelClient(
+        std::shared_ptr<ServiceRegistry> service_registry,
         mmo::runtime::transport::TransportOptions transport_options,
         ChannelConnectionPoolOptions pool_options);
 

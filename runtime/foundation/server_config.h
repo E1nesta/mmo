@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mmo::runtime::foundation {
 
@@ -14,10 +15,22 @@ struct NetworkConfig {
     std::string public_host;
 };
 
+struct ServiceInstanceConfig {
+    std::string instance_id;
+    std::string host;
+    std::uint16_t tcp_port{};
+    std::uint16_t udp_kcp_port{};
+    std::string zone;
+    int weight{100};
+    std::string state{"healthy"};
+    std::unordered_map<std::string, std::string> metadata;
+};
+
 struct ServiceConfig {
     std::string host;
     std::uint16_t tcp_port{};
     std::uint16_t udp_kcp_port{};
+    std::vector<ServiceInstanceConfig> instances;
 };
 
 struct TcpTransportConfig {

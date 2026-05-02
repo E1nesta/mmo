@@ -196,6 +196,8 @@ add_library(runtime_channel STATIC
     runtime/channel/channel_connection_pool.cpp
     runtime/channel/channel_error.cpp
     runtime/channel/channel_result.cpp
+    runtime/channel/routing_policy.cpp
+    runtime/channel/service_registry.cpp
     runtime/channel/static_endpoint_resolver.cpp
 )
 mmo_defaults(runtime_channel)
@@ -337,4 +339,22 @@ target_link_libraries(production_runtime_governance_probe PRIVATE
     runtime_foundation
     runtime_observability
     runtime_storage
+)
+
+add_executable(gateway_session_governance_probe
+    tools/gateway_session_governance_probe/main.cpp
+)
+mmo_defaults(gateway_session_governance_probe)
+target_link_libraries(gateway_session_governance_probe PRIVATE
+    runtime_foundation
+    runtime_session
+)
+
+add_executable(cluster_routing_governance_probe
+    tools/cluster_routing_governance_probe/main.cpp
+)
+mmo_defaults(cluster_routing_governance_probe)
+target_link_libraries(cluster_routing_governance_probe PRIVATE
+    runtime_channel
+    runtime_observability
 )

@@ -1,5 +1,6 @@
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "internal/gateway_world.pb.h"
 #include "internal/gateway_auth.pb.h"
@@ -81,6 +82,77 @@ mmo::runtime::protocol::AuthTokenOptions make_token_options(
     return options;
 }
 
+bool issue_reconnect_ticket(
+    const mmo::runtime::foundation::ServerConfig& config,
+    mmo::runtime::session::RedisSessionStore& redis_sessions,
+    const mmo::runtime::session::ConnectionBinding& binding,
+    std::uint64_t now_millis,
+    std::string* reconnect_ticket,
+    std::int64_t* reconnect_ticket_expires_at,
+    std::string* error_message) {
+    if (reconnect_ticket == nullptr || reconnect_ticket_expires_at == nullptr) {
+        if (error_message != nullptr) {
+            *error_message = "reconnect ticket output is null";
+        }
+        return false;
+    }
+    if (!mmo::runtime::protocol::issue_auth_token(
+            mmo::runtime::protocol::AuthTokenPurpose::kReconnect,
+            binding.account_id,
+            binding.player_id,
+            binding.session_token,
+            static_cast<std::int64_t>(now_millis),
+            config.security.gateway_session.reconnect_ticket_ttl_millis,
+            make_token_options(config.security.gateway_ticket),
+            reconnect_ticket,
+            reconnect_ticket_expires_at,
+            error_message)) {
+        return false;
+    }
+
+    mmo::runtime::protocol::AuthTokenClaims claims;
+    if (!mmo::runtime::protocol::validate_auth_token(
+            *reconnect_ticket,
+            mmo::runtime::protocol::AuthTokenPurpose::kReconnect,
+            config.security.gateway_ticket.gateway_audience,
+            make_token_options(config.security.gateway_ticket),
+            static_cast<std::int64_t>(now_millis),
+            &claims,
+            error_message)) {
+        return false;
+    }
+
+    mmo::runtime::session::ReconnectTicket redis_ticket;
+    redis_ticket.account_id = binding.account_id;
+    redis_ticket.connection_id = binding.connection_id;
+    redis_ticket.game_session_id = binding.game_session_id;
+    redis_ticket.player_id = binding.player_id;
+    redis_ticket.session_token = binding.session_token;
+    redis_ticket.gateway_id = binding.gateway_id;
+    redis_ticket.device_id = binding.device_id;
+    redis_ticket.expire_at_millis =
+        static_cast<std::uint64_t>(*reconnect_ticket_expires_at);
+    return redis_sessions.save_reconnect_ticket(
+        claims.jti, redis_ticket, now_millis, error_message);
+}
+
+mmo::runtime::channel::ChannelCallOptions make_forward_options(
+    const mmo::runtime::routing::RouteTarget& route,
+    const mmo::common::RequestContext& context,
+    const std::string& route_key = {}) {
+    mmo::runtime::channel::ChannelCallOptions options;
+    options.routing_policy = route.routing_policy;
+    options.target_instance_id = route.target_instance_id;
+    if (!route_key.empty()) {
+        options.route_key = route_key;
+    } else if (route.route_key_source == "player_id") {
+        options.route_key = std::to_string(context.player_id());
+    } else if (route.route_key_source == "game_session_id") {
+        options.route_key = context.game_session_id();
+    }
+    return options;
+}
+
 }  // namespace
 
 int main() {
@@ -109,37 +181,55 @@ int main() {
         mmo::runtime::routing::RouteTarget{
             "auth_server",
             mmo::runtime::protocol::kGatewayAuthLoginRequest,
-            false});
+            false,
+            mmo::runtime::channel::RoutingPolicy::kLeastPending,
+            "",
+            ""});
     route_table.add(
         mmo::runtime::protocol::kEnterWorldRequest,
         mmo::runtime::routing::RouteTarget{
             "world_server",
             mmo::runtime::protocol::kGatewayEnterWorldRequest,
-            true});
+            true,
+            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            "player_id",
+            ""});
     route_table.add(
         mmo::runtime::protocol::kEnterInstanceRequest,
         mmo::runtime::routing::RouteTarget{
             "instance_server",
             mmo::runtime::protocol::kGatewayEnterInstanceRequest,
-            true});
+            true,
+            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            "player_id",
+            ""});
     route_table.add(
         mmo::runtime::protocol::kSettleInstanceRequest,
         mmo::runtime::routing::RouteTarget{
             "instance_server",
             mmo::runtime::protocol::kGatewaySettleInstanceRequest,
-            true});
+            true,
+            mmo::runtime::channel::RoutingPolicy::kStickyInstance,
+            "",
+            ""});
     route_table.add(
         mmo::runtime::protocol::kApplyRewardRequest,
         mmo::runtime::routing::RouteTarget{
             "player_server",
             mmo::runtime::protocol::kGatewayApplyRewardRequest,
-            true});
+            true,
+            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            "player_id",
+            ""});
     route_table.add(
         mmo::runtime::protocol::kSocialBoundaryRequest,
         mmo::runtime::routing::RouteTarget{
             "social_server",
             mmo::runtime::protocol::kGatewaySocialBoundaryRequest,
-            true});
+            true,
+            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            "player_id",
+            ""});
 
     mmo::runtime::session::SessionRegistry sessions;
     mmo::runtime::session::RedisTicketReplayStore ticket_replay_guard(redis_pool);
@@ -172,7 +262,8 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(*route, request.context()));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }
@@ -245,7 +336,8 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(*route, request.context()));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }
@@ -311,7 +403,11 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(
+                    *route,
+                    request.context(),
+                    std::to_string(request.instance_id())));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }
@@ -381,7 +477,8 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(*route, request.context()));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }
@@ -446,7 +543,8 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(*route, request.context()));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }
@@ -558,6 +656,20 @@ int main() {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 503, "gateway session store is unavailable");
             }
+            std::string reconnect_ticket;
+            std::int64_t reconnect_ticket_expires_at = 0;
+            if (!issue_reconnect_ticket(
+                    app.config(),
+                    redis_sessions,
+                    binding,
+                    now_millis,
+                    &reconnect_ticket,
+                    &reconnect_ticket_expires_at,
+                    &session_store_error)) {
+                security_metrics.record_gate_login_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 503, "reconnect ticket issue failed");
+            }
             security_metrics.record_gate_login_success();
 
             mmo::public_api::GateLoginResponse response;
@@ -570,6 +682,9 @@ int main() {
             response.set_game_session_id(binding.game_session_id);
             response.set_expires_at_epoch_millis(
                 static_cast<std::int64_t>(binding.expire_at_millis));
+            response.set_reconnect_ticket(reconnect_ticket);
+            response.set_reconnect_ticket_expires_at_epoch_millis(
+                reconnect_ticket_expires_at);
 
             return mmo::runtime::protocol::pack_message(
                 mmo::runtime::protocol::kGateLoginResponse,
@@ -578,8 +693,131 @@ int main() {
         });
 
     gateway_router.on(
+        mmo::runtime::protocol::kReconnectRequest,
+        [&sessions, &redis_sessions, &security_metrics, &app](
+            const mmo::common::Envelope& envelope) {
+            mmo::public_api::ReconnectRequest request;
+            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 400, "invalid reconnect request");
+            }
+            if (envelope.player_id() != request.player_id() ||
+                envelope.session_token() != request.session_token() ||
+                envelope.game_session_id() != request.game_session_id() ||
+                request.context().player_id() != request.player_id() ||
+                request.context().session_token() != request.session_token() ||
+                request.context().game_session_id() != request.game_session_id()) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 400, "reconnect context does not match envelope");
+            }
+
+            const auto now_millis = static_cast<std::uint64_t>(
+                mmo::runtime::protocol::current_time_millis());
+            mmo::runtime::protocol::AuthTokenClaims claims;
+            std::string token_error;
+            if (!mmo::runtime::protocol::validate_auth_token(
+                    request.reconnect_ticket(),
+                    mmo::runtime::protocol::AuthTokenPurpose::kReconnect,
+                    app.config().security.gateway_ticket.gateway_audience,
+                    make_token_options(app.config().security.gateway_ticket),
+                    static_cast<std::int64_t>(now_millis),
+                    &claims,
+                    &token_error)) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 401, "reconnect ticket authentication failed");
+            }
+            if (claims.player_id != request.player_id() ||
+                claims.session_token != request.session_token()) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 400, "reconnect ticket does not match request");
+            }
+
+            mmo::runtime::session::ReconnectTicket consumed_ticket;
+            std::string session_store_error;
+            if (!redis_sessions.consume_reconnect_ticket(
+                    claims.jti,
+                    now_millis,
+                    &consumed_ticket,
+                    &session_store_error) ||
+                consumed_ticket.account_id != claims.account_id ||
+                consumed_ticket.player_id != request.player_id() ||
+                consumed_ticket.session_token != request.session_token() ||
+                consumed_ticket.game_session_id != request.game_session_id() ||
+                consumed_ticket.gateway_id !=
+                    app.config().security.gateway_session.gateway_id) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 401, "reconnect ticket authentication failed");
+            }
+
+            const auto expires_at =
+                now_millis +
+                static_cast<std::uint64_t>(
+                    app.config().security.gateway_session.game_session_ttl_millis);
+            const auto binding = sessions.reconnect(
+                consumed_ticket.account_id,
+                request.player_id(),
+                request.session_token(),
+                request.game_session_id(),
+                app.config().security.gateway_session.gateway_id,
+                request.device_id().empty()
+                    ? consumed_ticket.device_id
+                    : request.device_id(),
+                now_millis,
+                expires_at,
+                static_cast<std::uint64_t>(
+                    app.config()
+                        .security
+                        .gateway_session
+                        .heartbeat_timeout_millis));
+            if (!redis_sessions.save_binding(binding, &session_store_error)) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 503, "gateway session store is unavailable");
+            }
+
+            std::string next_reconnect_ticket;
+            std::int64_t next_reconnect_ticket_expires_at = 0;
+            if (!issue_reconnect_ticket(
+                    app.config(),
+                    redis_sessions,
+                    binding,
+                    now_millis,
+                    &next_reconnect_ticket,
+                    &next_reconnect_ticket_expires_at,
+                    &session_store_error)) {
+                security_metrics.record_reconnect_failed();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 503, "reconnect ticket issue failed");
+            }
+            security_metrics.record_reconnect_success();
+
+            mmo::public_api::ReconnectResponse response;
+            auto response_context = request.context();
+            response_context.set_game_session_id(binding.game_session_id);
+            *response.mutable_context() =
+                mmo::runtime::protocol::make_ok_context(response_context);
+            response.set_reconnected(true);
+            response.set_connection_id(binding.connection_id);
+            response.set_game_session_id(binding.game_session_id);
+            response.set_expires_at_epoch_millis(
+                static_cast<std::int64_t>(binding.expire_at_millis));
+            response.set_reconnect_ticket(next_reconnect_ticket);
+            response.set_reconnect_ticket_expires_at_epoch_millis(
+                next_reconnect_ticket_expires_at);
+            return mmo::runtime::protocol::pack_message(
+                mmo::runtime::protocol::kReconnectResponse,
+                response_context,
+                response);
+        });
+
+    gateway_router.on(
         mmo::runtime::protocol::kPingRequest,
-        [&sessions, &redis_sessions, &security_metrics](
+        [&sessions, &redis_sessions, &security_metrics, &app](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::PingRequest request;
             if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
@@ -614,11 +852,33 @@ int main() {
                 return mmo::runtime::protocol::make_error_envelope(
                     envelope, 401, "game session is not bound to gateway");
             }
+            const auto binding = sessions.find(envelope.player_id());
+            if (!binding.has_value()) {
+                security_metrics.record_game_session_expired();
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 401, "game session is not bound to gateway");
+            }
+            std::string reconnect_ticket;
+            std::int64_t reconnect_ticket_expires_at = 0;
+            if (!issue_reconnect_ticket(
+                    app.config(),
+                    redis_sessions,
+                    *binding,
+                    now_millis,
+                    &reconnect_ticket,
+                    &reconnect_ticket_expires_at,
+                    &session_store_error)) {
+                return mmo::runtime::protocol::make_error_envelope(
+                    envelope, 503, "reconnect ticket issue failed");
+            }
 
             mmo::public_api::PingResponse response;
             *response.mutable_context() =
                 mmo::runtime::protocol::make_ok_context(request.context());
             response.set_server_time_ms(static_cast<std::int64_t>(now_millis));
+            response.set_reconnect_ticket(reconnect_ticket);
+            response.set_reconnect_ticket_expires_at_epoch_millis(
+                reconnect_ticket_expires_at);
             return mmo::runtime::protocol::pack_message(
                 mmo::runtime::protocol::kPingResponse,
                 request.context(),
@@ -662,7 +922,8 @@ int main() {
                 route->target_service,
                 route->target_message_type,
                 request.context(),
-                internal_request);
+                internal_request,
+                make_forward_options(*route, request.context()));
             if (!forward_result.ok()) {
                 return forward_result.make_error_envelope(envelope);
             }

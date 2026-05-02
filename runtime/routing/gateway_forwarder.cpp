@@ -27,11 +27,23 @@ GatewayForwarder::GatewayForwarder(
 
 GatewayForwarder::GatewayForwarder(
     std::string source_service,
+    std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
+    mmo::runtime::transport::TransportOptions transport_options,
+    mmo::runtime::channel::ChannelConnectionPoolOptions pool_options)
+    : source_service_(std::move(source_service)),
+      owned_channel_client_(std::make_unique<mmo::runtime::channel::TcpChannelClient>(
+          std::move(service_registry),
+          transport_options,
+          pool_options)),
+      channel_client_(owned_channel_client_.get()) {}
+
+GatewayForwarder::GatewayForwarder(
+    std::string source_service,
     const mmo::runtime::foundation::ServerConfig& config,
     mmo::runtime::transport::TransportOptions transport_options)
     : GatewayForwarder(
           std::move(source_service),
-          std::make_shared<mmo::runtime::channel::StaticEndpointResolver>(config),
+          std::make_shared<mmo::runtime::channel::StaticServiceRegistry>(config),
           transport_options,
           mmo::runtime::channel::make_channel_connection_pool_options(
               config.channel)) {
@@ -40,8 +52,8 @@ GatewayForwarder::GatewayForwarder(
 
 ForwardResult GatewayForwarder::forward_envelope(
     const std::string& target_service,
-    const mmo::common::Envelope& envelope) {
-    mmo::runtime::channel::ChannelCallOptions options;
+    const mmo::common::Envelope& envelope,
+    mmo::runtime::channel::ChannelCallOptions options) {
     options.source_service = source_service_;
     options.target_service = target_service;
 

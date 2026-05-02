@@ -37,6 +37,9 @@ public:
         bool* stored,
         std::string* error_message);
     std::optional<std::string> get(const std::string& key, std::string* error_message);
+    std::optional<std::string> get_and_remove(
+        const std::string& key,
+        std::string* error_message);
     bool remove(const std::string& key, std::string* error_message);
     bool expire(const std::string& key, int seconds, std::string* error_message);
     bool is_connected() const;

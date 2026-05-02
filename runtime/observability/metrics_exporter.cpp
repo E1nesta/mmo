@@ -16,6 +16,26 @@ void append_metric(
            << name << ' ' << value << '\n';
 }
 
+void append_metric_type(
+    std::ostringstream& output,
+    const std::string& name,
+    const std::string& type) {
+    output << "# TYPE " << name << ' ' << type << '\n';
+}
+
+void append_labeled_sample(
+    std::ostringstream& output,
+    const std::string& name,
+    const std::string& labels,
+    std::uint64_t value) {
+    output << name << '{' << labels << "} " << value << '\n';
+}
+
+std::string upstream_labels(const UpstreamInstanceMetrics& metrics) {
+    return "service=\"" + metrics.service + "\",instance_id=\"" +
+           metrics.instance_id + "\"";
+}
+
 }  // namespace
 
 std::string render_prometheus_metrics(const MetricsSnapshot& snapshot) {
@@ -83,6 +103,77 @@ std::string render_prometheus_metrics(const MetricsSnapshot& snapshot) {
                   snapshot.reconnect_failed_total);
     append_metric(output, "mmo_internal_auth_failed_total", "counter",
                   snapshot.internal_auth_failed_total);
+    if (!snapshot.upstream_instances.empty()) {
+        append_metric_type(output, "mmo_upstream_instance_healthy", "gauge");
+        append_metric_type(output, "mmo_upstream_instance_pending", "gauge");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_unhealthy_total",
+            "counter");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_recovered_total",
+            "counter");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_failover_total",
+            "counter");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_circuit_open_total",
+            "counter");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_request_timeout_total",
+            "counter");
+        append_metric_type(
+            output,
+            "mmo_upstream_instance_remote_error_total",
+            "counter");
+    }
+    for (const auto& upstream : snapshot.upstream_instances) {
+        const auto labels = upstream_labels(upstream);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_healthy",
+            labels,
+            upstream.healthy);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_pending",
+            labels,
+            upstream.pending);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_unhealthy_total",
+            labels,
+            upstream.unhealthy_total);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_recovered_total",
+            labels,
+            upstream.recovered_total);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_failover_total",
+            labels,
+            upstream.failover_total);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_circuit_open_total",
+            labels,
+            upstream.circuit_open_total);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_request_timeout_total",
+            labels,
+            upstream.request_timeout_total);
+        append_labeled_sample(
+            output,
+            "mmo_upstream_instance_remote_error_total",
+            labels,
+            upstream.remote_error_total);
+    }
 
     return output.str();
 }

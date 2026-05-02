@@ -8,32 +8,97 @@ services:
   api_gateway_server:
     host_env: "MMO_API_GATEWAY_HOST"
     tcp_port_env: "MMO_API_GATEWAY_TCP_PORT"
+    instances:
+      - instance_id: "api-gateway-1"
+        host_env: "MMO_API_GATEWAY_HOST"
+        tcp_port_env: "MMO_API_GATEWAY_TCP_PORT"
+        zone_env: "MMO_API_GATEWAY_ZONE"
+        weight: 100
+        state: "healthy"
   auth_server:
     host_env: "MMO_AUTH_HOST"
     tcp_port_env: "MMO_AUTH_TCP_PORT"
+    instances:
+      - instance_id: "auth-1"
+        host_env: "MMO_AUTH_HOST"
+        tcp_port_env: "MMO_AUTH_TCP_PORT"
+        zone_env: "MMO_AUTH_ZONE"
+        weight: 100
+        state: "healthy"
   game_gateway_server:
     host_env: "MMO_GAME_GATEWAY_HOST"
     tcp_port_env: "MMO_GAME_GATEWAY_TCP_PORT"
     udp_kcp_port_env: "MMO_GAME_GATEWAY_UDP_KCP_PORT"
+    instances:
+      - instance_id: "game-gateway-1"
+        host_env: "MMO_GAME_GATEWAY_HOST"
+        tcp_port_env: "MMO_GAME_GATEWAY_TCP_PORT"
+        udp_kcp_port_env: "MMO_GAME_GATEWAY_UDP_KCP_PORT"
+        zone_env: "MMO_GAME_GATEWAY_ZONE"
+        weight: 100
+        state: "healthy"
   world_server:
     host_env: "MMO_WORLD_HOST"
     tcp_port_env: "MMO_WORLD_TCP_PORT"
+    instances:
+      - instance_id: "world-1"
+        host_env: "MMO_WORLD_HOST"
+        tcp_port_env: "MMO_WORLD_TCP_PORT"
+        zone_env: "MMO_WORLD_ZONE"
+        weight: 100
+        state: "healthy"
   scene_server:
     host_env: "MMO_SCENE_HOST"
     tcp_port_env: "MMO_SCENE_TCP_PORT"
+    instances:
+      - instance_id: "scene-1"
+        host_env: "MMO_SCENE_HOST"
+        tcp_port_env: "MMO_SCENE_TCP_PORT"
+        zone_env: "MMO_SCENE_ZONE"
+        weight: 100
+        state: "healthy"
   instance_server:
     host_env: "MMO_INSTANCE_HOST"
     tcp_port_env: "MMO_INSTANCE_TCP_PORT"
+    instances:
+      - instance_id: "instance-1"
+        host_env: "MMO_INSTANCE_HOST"
+        tcp_port_env: "MMO_INSTANCE_TCP_PORT"
+        zone_env: "MMO_INSTANCE_ZONE"
+        weight: 100
+        state: "healthy"
   player_server:
     host_env: "MMO_PLAYER_HOST"
     tcp_port_env: "MMO_PLAYER_TCP_PORT"
+    instances:
+      - instance_id: "player-1"
+        host_env: "MMO_PLAYER_HOST"
+        tcp_port_env: "MMO_PLAYER_TCP_PORT"
+        zone_env: "MMO_PLAYER_ZONE"
+        weight: 100
+        state: "healthy"
   social_server:
     host_env: "MMO_SOCIAL_HOST"
     tcp_port_env: "MMO_SOCIAL_TCP_PORT"
+    instances:
+      - instance_id: "social-1"
+        host_env: "MMO_SOCIAL_HOST"
+        tcp_port_env: "MMO_SOCIAL_TCP_PORT"
+        zone_env: "MMO_SOCIAL_ZONE"
+        weight: 100
+        state: "healthy"
   realtime_gateway_server:
     host_env: "MMO_REALTIME_GATEWAY_HOST"
     tcp_port_env: "MMO_REALTIME_GATEWAY_TCP_PORT"
     udp_kcp_port_env: "MMO_REALTIME_GATEWAY_UDP_KCP_PORT"
+    instances:
+      - instance_id: "realtime-gateway-1"
+        host_env: "MMO_REALTIME_GATEWAY_HOST"
+        tcp_port_env: "MMO_REALTIME_GATEWAY_TCP_PORT"
+        udp_kcp_port_env: "MMO_REALTIME_GATEWAY_UDP_KCP_PORT"
+        zone_env: "MMO_REALTIME_GATEWAY_ZONE"
+        weight: 100
+        state: "healthy"
 
 transport:
   tcp:

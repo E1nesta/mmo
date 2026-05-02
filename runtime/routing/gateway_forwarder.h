@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "common/context.pb.h"
 #include "common/envelope.pb.h"
 #include "runtime/channel/channel_client.h"
 #include "runtime/channel/endpoint_resolver.h"
+#include "runtime/channel/service_registry.h"
 #include "runtime/channel/static_endpoint_resolver.h"
 #include "runtime/foundation/server_config.h"
 #include "runtime/protocol/envelope_utils.h"
@@ -27,6 +29,11 @@ public:
         mmo::runtime::channel::ChannelConnectionPoolOptions pool_options);
     GatewayForwarder(
         std::string source_service,
+        std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
+        mmo::runtime::transport::TransportOptions transport_options,
+        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options);
+    GatewayForwarder(
+        std::string source_service,
         const mmo::runtime::foundation::ServerConfig& config,
         mmo::runtime::transport::TransportOptions transport_options);
     GatewayForwarder(const GatewayForwarder&) = delete;
@@ -40,14 +47,30 @@ public:
         const std::string& target_message_type,
         const mmo::common::RequestContext& context,
         const Request& request) {
+        return forward(
+            target_service,
+            target_message_type,
+            context,
+            request,
+            mmo::runtime::channel::ChannelCallOptions{});
+    }
+
+    template <typename Request>
+    ForwardResult forward(
+        const std::string& target_service,
+        const std::string& target_message_type,
+        const mmo::common::RequestContext& context,
+        const Request& request,
+        mmo::runtime::channel::ChannelCallOptions options) {
         auto envelope = mmo::runtime::protocol::pack_message(
             target_message_type, context, request);
-        return forward_envelope(target_service, envelope);
+        return forward_envelope(target_service, envelope, std::move(options));
     }
 
     ForwardResult forward_envelope(
         const std::string& target_service,
-        const mmo::common::Envelope& envelope);
+        const mmo::common::Envelope& envelope,
+        mmo::runtime::channel::ChannelCallOptions options = {});
 
 private:
     std::string source_service_;

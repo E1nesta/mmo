@@ -2,8 +2,25 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace mmo::runtime::observability {
+
+struct UpstreamInstanceMetrics {
+    std::string service;
+    std::string instance_id;
+    std::uint64_t healthy{};
+    std::uint64_t pending{};
+    std::uint64_t unhealthy_total{};
+    std::uint64_t recovered_total{};
+    std::uint64_t failover_total{};
+    std::uint64_t circuit_open_total{};
+    std::uint64_t request_timeout_total{};
+    std::uint64_t remote_error_total{};
+};
 
 struct MetricsSnapshot {
     std::uint64_t active_connections{};
@@ -37,6 +54,7 @@ struct MetricsSnapshot {
     std::uint64_t reconnect_success_total{};
     std::uint64_t reconnect_failed_total{};
     std::uint64_t internal_auth_failed_total{};
+    std::vector<UpstreamInstanceMetrics> upstream_instances;
 };
 
 class MetricsRegistry {
@@ -72,6 +90,32 @@ public:
     void record_reconnect_success();
     void record_reconnect_failed();
     void record_internal_auth_failed();
+    void set_upstream_instance_pending(
+        const std::string& service,
+        const std::string& instance_id,
+        std::uint64_t pending);
+    void set_upstream_instance_healthy(
+        const std::string& service,
+        const std::string& instance_id,
+        bool healthy);
+    void record_upstream_instance_unhealthy(
+        const std::string& service,
+        const std::string& instance_id);
+    void record_upstream_instance_recovered(
+        const std::string& service,
+        const std::string& instance_id);
+    void record_upstream_instance_failover(
+        const std::string& service,
+        const std::string& instance_id);
+    void record_upstream_instance_circuit_open(
+        const std::string& service,
+        const std::string& instance_id);
+    void record_upstream_instance_request_timeout(
+        const std::string& service,
+        const std::string& instance_id);
+    void record_upstream_instance_remote_error(
+        const std::string& service,
+        const std::string& instance_id);
 
     MetricsSnapshot snapshot() const;
 
@@ -107,6 +151,8 @@ private:
     std::atomic<std::uint64_t> reconnect_success_total_{};
     std::atomic<std::uint64_t> reconnect_failed_total_{};
     std::atomic<std::uint64_t> internal_auth_failed_total_{};
+    mutable std::mutex upstream_mutex_;
+    std::unordered_map<std::string, UpstreamInstanceMetrics> upstream_instances_;
 };
 
 }  // namespace mmo::runtime::observability

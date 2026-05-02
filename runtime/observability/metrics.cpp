@@ -1,6 +1,25 @@
 #include "runtime/observability/metrics.h"
 
 namespace mmo::runtime::observability {
+namespace {
+
+std::string upstream_key(
+    const std::string& service,
+    const std::string& instance_id) {
+    return service + "/" + instance_id;
+}
+
+UpstreamInstanceMetrics& upstream_metrics(
+    std::unordered_map<std::string, UpstreamInstanceMetrics>& instances,
+    const std::string& service,
+    const std::string& instance_id) {
+    auto& metrics = instances[upstream_key(service, instance_id)];
+    metrics.service = service;
+    metrics.instance_id = instance_id;
+    return metrics;
+}
+
+}  // namespace
 
 void MetricsRegistry::record_connection_open() {
     active_connections_.fetch_add(1, std::memory_order_relaxed);
@@ -127,6 +146,67 @@ void MetricsRegistry::record_internal_auth_failed() {
     internal_auth_failed_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
+void MetricsRegistry::set_upstream_instance_pending(
+    const std::string& service,
+    const std::string& instance_id,
+    std::uint64_t pending) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    upstream_metrics(upstream_instances_, service, instance_id).pending = pending;
+}
+
+void MetricsRegistry::set_upstream_instance_healthy(
+    const std::string& service,
+    const std::string& instance_id,
+    bool healthy) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    upstream_metrics(upstream_instances_, service, instance_id).healthy =
+        healthy ? 1U : 0U;
+}
+
+void MetricsRegistry::record_upstream_instance_unhealthy(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id).unhealthy_total;
+}
+
+void MetricsRegistry::record_upstream_instance_recovered(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id).recovered_total;
+}
+
+void MetricsRegistry::record_upstream_instance_failover(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id).failover_total;
+}
+
+void MetricsRegistry::record_upstream_instance_circuit_open(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id).circuit_open_total;
+}
+
+void MetricsRegistry::record_upstream_instance_request_timeout(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id)
+          .request_timeout_total;
+}
+
+void MetricsRegistry::record_upstream_instance_remote_error(
+    const std::string& service,
+    const std::string& instance_id) {
+    std::lock_guard<std::mutex> lock(upstream_mutex_);
+    ++upstream_metrics(upstream_instances_, service, instance_id)
+          .remote_error_total;
+}
+
 MetricsSnapshot MetricsRegistry::snapshot() const {
     MetricsSnapshot snapshot;
     snapshot.active_connections =
@@ -188,6 +268,14 @@ MetricsSnapshot MetricsRegistry::snapshot() const {
         reconnect_failed_total_.load(std::memory_order_relaxed);
     snapshot.internal_auth_failed_total =
         internal_auth_failed_total_.load(std::memory_order_relaxed);
+    {
+        std::lock_guard<std::mutex> lock(upstream_mutex_);
+        snapshot.upstream_instances.reserve(upstream_instances_.size());
+        for (const auto& [key, metrics] : upstream_instances_) {
+            (void)key;
+            snapshot.upstream_instances.push_back(metrics);
+        }
+    }
     return snapshot;
 }
 
