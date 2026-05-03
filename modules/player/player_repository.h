@@ -3,18 +3,11 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
-#include "modules/player/player_service.h"
+#include "modules/player/player_types.h"
 
 namespace mmo::modules::player {
-
-struct RewardLedgerRecord {
-    std::int64_t player_id{};
-    std::string idempotency_key;
-    std::string request_id;
-    std::int64_t gold{};
-    std::int64_t exp{};
-};
 
 class PlayerRepository {
 public:

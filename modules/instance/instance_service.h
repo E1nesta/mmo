@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "modules/player/player_service.h"
+#include "modules/player/player_types.h"
 
 namespace mmo::modules::instance {
 

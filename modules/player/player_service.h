@@ -6,29 +6,11 @@
 #include <string>
 #include <vector>
 
+#include "modules/player/player_types.h"
+
 namespace mmo::modules::player {
 
 class PlayerRepository;
-
-struct Reward {
-    std::string type;
-    std::int64_t amount{};
-};
-
-struct PlayerProfile {
-    std::int64_t player_id{};
-    std::int64_t gold{};
-    std::int64_t exp{};
-};
-
-struct ApplyRewardResult {
-    bool success{true};
-    bool applied{};
-    int error_code{};
-    std::string error_message;
-    std::int64_t gold{};
-    std::int64_t exp{};
-};
 
 class PlayerService {
 public:

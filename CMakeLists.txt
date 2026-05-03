@@ -211,6 +211,7 @@ add_library(runtime_rpc STATIC
     runtime/rpc/rpc_client.cpp
     runtime/rpc/rpc_error.cpp
     runtime/rpc/rpc_result.cpp
+    runtime/rpc/rpc_server_app.cpp
     runtime/rpc/rpc_server.cpp
 )
 mmo_defaults(runtime_rpc)
@@ -287,28 +288,63 @@ function(add_mmo_server target)
     )
 endfunction()
 
-add_mmo_server(auth_server apps/auth_server/main.cpp)
+add_mmo_server(
+    auth_server
+    apps/auth_server/main.cpp
+    apps/auth_server/auth_handlers.cpp
+)
 target_link_libraries(auth_server PRIVATE modules_auth runtime_rpc)
 
-add_mmo_server(api_gateway_server apps/api_gateway_server/main.cpp)
+add_mmo_server(
+    api_gateway_server
+    apps/api_gateway_server/main.cpp
+    apps/api_gateway_server/api_handler.cpp
+    apps/api_gateway_server/api_http_server.cpp
+)
 target_link_libraries(api_gateway_server PRIVATE runtime_routing)
 
-add_mmo_server(game_gateway_server apps/game_gateway_server/main.cpp)
+add_mmo_server(
+    game_gateway_server
+    apps/game_gateway_server/main.cpp
+    apps/game_gateway_server/gateway_proxy_handlers.cpp
+    apps/game_gateway_server/gateway_route_table.cpp
+    apps/game_gateway_server/gateway_session_handlers.cpp
+)
 target_link_libraries(game_gateway_server PRIVATE runtime_routing)
 
-add_mmo_server(world_server apps/world_server/main.cpp)
+add_mmo_server(
+    world_server
+    apps/world_server/main.cpp
+    apps/world_server/world_handlers.cpp
+)
 target_link_libraries(world_server PRIVATE modules_world runtime_rpc)
 
-add_mmo_server(scene_server apps/scene_server/main.cpp)
+add_mmo_server(
+    scene_server
+    apps/scene_server/main.cpp
+    apps/scene_server/scene_handlers.cpp
+)
 target_link_libraries(scene_server PRIVATE modules_scene runtime_rpc)
 
-add_mmo_server(instance_server apps/instance_server/main.cpp)
+add_mmo_server(
+    instance_server
+    apps/instance_server/main.cpp
+    apps/instance_server/instance_handlers.cpp
+)
 target_link_libraries(instance_server PRIVATE modules_instance modules_player runtime_rpc)
 
-add_mmo_server(player_server apps/player_server/main.cpp)
+add_mmo_server(
+    player_server
+    apps/player_server/main.cpp
+    apps/player_server/player_handlers.cpp
+)
 target_link_libraries(player_server PRIVATE modules_player runtime_rpc)
 
-add_mmo_server(social_server apps/social_server/main.cpp)
+add_mmo_server(
+    social_server
+    apps/social_server/main.cpp
+    apps/social_server/social_handlers.cpp
+)
 target_link_libraries(social_server PRIVATE modules_social runtime_rpc)
 
 add_executable(mmo_flow_client tools/mmo_flow_client/main.cpp)
