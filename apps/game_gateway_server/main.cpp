@@ -1,5 +1,4 @@
 #include <memory>
-#include <string>
 
 #include "apps/game_gateway_server/gateway_proxy_handlers.h"
 #include "apps/game_gateway_server/gateway_route_table.h"
@@ -9,26 +8,18 @@
 #include "runtime/observability/metrics.h"
 #include "runtime/gateway/gateway_forwarder.h"
 #include "runtime/gateway/gateway_router.h"
+#include "runtime/server/server_bootstrap.h"
 #include "runtime/session/redis_session_store.h"
 #include "runtime/session/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
-#include "runtime/storage/storage_bootstrap.h"
-#include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
     mmo::runtime::server::ServerApp app("game_gateway_server");
-    const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(
-            app.config().transport.tcp, app.config().execution);
+    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
 
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> redis_pool;
-    std::string storage_error;
-    if (!mmo::runtime::storage::initialize_redis_pool(
-            app.config(), &redis_pool, &storage_error)) {
-        mmo::runtime::observability::log_error(
-            mmo::runtime::observability::LogContext{app.service_name()},
-            "redis_pool_init_failed error=" + storage_error);
+    auto redis_pool = mmo::runtime::server::require_redis_pool(app);
+    if (!redis_pool) {
         return 1;
     }
 

@@ -7,14 +7,13 @@
 #include "runtime/observability/logging.h"
 #include "runtime/observability/metrics.h"
 #include "runtime/gateway/gateway_forwarder.h"
-#include "runtime/transport/envelope_transport.h"
+#include "runtime/server/server_bootstrap.h"
 
 int main() {
     try {
         mmo::runtime::server::ServerApp app("api_gateway_server");
         const auto tcp_options =
-            mmo::runtime::transport::make_transport_options(
-                app.config().transport.tcp, app.config().execution);
+            mmo::runtime::server::make_server_transport_options(app);
         mmo::runtime::gateway::GatewayForwarder forwarder(
             app.service_name(), app.config(), tcp_options);
         mmo::runtime::observability::MetricsRegistry metrics;

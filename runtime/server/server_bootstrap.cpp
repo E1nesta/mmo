@@ -1,10 +1,12 @@
 #include "runtime/server/server_bootstrap.h"
 
 #include <memory>
+#include <string>
 
 #include "runtime/channel/channel_connection_pool.h"
 #include "runtime/channel/service_registry.h"
 #include "runtime/observability/logging.h"
+#include "runtime/storage/storage_bootstrap.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
 namespace mmo::runtime::server {
@@ -28,6 +30,34 @@ std::unique_ptr<mmo::runtime::rpc::RpcClient> make_static_rpc_client(
             app.config().channel),
         mmo::runtime::rpc::make_rpc_client_options(
             app.service_name(), app.config()));
+}
+
+std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> require_mysql_pool(
+    const ServerApp& app) {
+    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> pool;
+    std::string error_message;
+    if (!mmo::runtime::storage::initialize_mysql_pool(
+            app.config(), &pool, &error_message)) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{app.service_name()},
+            "mysql_pool_init_failed error=" + error_message);
+        return nullptr;
+    }
+    return pool;
+}
+
+std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> require_redis_pool(
+    const ServerApp& app) {
+    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool;
+    std::string error_message;
+    if (!mmo::runtime::storage::initialize_redis_pool(
+            app.config(), &pool, &error_message)) {
+        mmo::runtime::observability::log_error(
+            mmo::runtime::observability::LogContext{app.service_name()},
+            "redis_pool_init_failed error=" + error_message);
+        return nullptr;
+    }
+    return pool;
 }
 
 int run_tcp_rpc_server(

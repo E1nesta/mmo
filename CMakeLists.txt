@@ -231,6 +231,7 @@ target_link_libraries(runtime_server PUBLIC
     runtime_transport
     runtime_channel
     runtime_observability
+    runtime_storage
 )
 
 add_library(runtime_gateway STATIC
