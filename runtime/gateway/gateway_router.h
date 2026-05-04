@@ -5,7 +5,7 @@
 #include "runtime/protocol/message_router.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::routing {
+namespace mmo::runtime::gateway {
 
 class GatewayRouter {
 public:
@@ -19,4 +19,4 @@ private:
     mmo::runtime::protocol::MessageRouter router_;
 };
 
-}  // namespace mmo::runtime::routing
+}  // namespace mmo::runtime::gateway

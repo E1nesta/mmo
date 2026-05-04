@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "internal/gateway_auth.pb.h"
 #include "runtime/observability/logging.h"
@@ -9,6 +10,8 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/server/handler_result.h"
+#include "runtime/server/typed_handler.h"
 
 namespace mmo::apps::auth_server {
 namespace {
@@ -34,27 +37,33 @@ void register_auth_handlers(
     mmo::modules::auth::AuthService& service,
     const mmo::runtime::foundation::ServerConfig& config,
     const std::string& service_name) {
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GatewayAuthLoginRequest,
+        mmo::internal_api::GatewayAuthLoginResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGatewayAuthLoginRequest,
-        [&service, &config, service_name](const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GatewayAuthLoginRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid login request");
-            }
-
+        mmo::runtime::protocol::kGatewayAuthLoginResponse,
+        service_name,
+        [&service, &config](
+            const mmo::internal_api::GatewayAuthLoginRequest& request,
+            const mmo::runtime::server::ServiceContext& context) {
             const auto login =
                 service.login(
                     request.account_name(), request.password(), request.device_id());
             if (!login.success) {
-                auto log_context =
-                    mmo::runtime::observability::context_from_envelope(
-                        service_name, envelope);
+                mmo::runtime::observability::LogContext log_context{
+                    context.service_name};
+                log_context.request_id = context.request.request_id();
+                log_context.player_id = context.request.player_id();
+                log_context.message_type = context.message_type;
+                log_context.trace_id = context.request.trace_id();
+                log_context.error_code = login.error_code;
                 mmo::runtime::observability::log_warn(
                     log_context,
                     "login_rejected reason=" + login.internal_reason);
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, login.error_code, login.error_message);
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewayAuthLoginResponse>::failure(
+                        login.error_code, login.error_message);
             }
             const auto now_millis = mmo::runtime::protocol::current_time_millis();
             const auto& ticket_config = config.security.gateway_ticket;
@@ -86,8 +95,9 @@ void register_auth_handlers(
                     &gateway_ticket,
                     &gateway_ticket_expires_at,
                     &token_error)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 500, token_error);
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewayAuthLoginResponse>::failure(
+                        500, token_error);
             }
 
             mmo::internal_api::GatewayAuthLoginResponse response;
@@ -103,10 +113,9 @@ void register_auth_handlers(
             response.set_gateway_ticket_expires_at_epoch_millis(
                 gateway_ticket_expires_at);
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGatewayAuthLoginResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GatewayAuthLoginResponse>::success(
+                    std::move(response));
         });
 }
 

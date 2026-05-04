@@ -4,15 +4,15 @@
 #include "apps/player_server/player_handlers.h"
 #include "modules/player/mysql_player_repository.h"
 #include "modules/player/player_service.h"
-#include "runtime/foundation/server_app.h"
+#include "runtime/server/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/rpc/rpc_server.h"
-#include "runtime/rpc/rpc_server_app.h"
+#include "runtime/server/server_bootstrap.h"
 #include "runtime/storage/storage_bootstrap.h"
 
 int main() {
-    mmo::runtime::foundation::ServerApp app("player_server");
-    const auto tcp_options = mmo::runtime::rpc::make_server_transport_options(app);
+    mmo::runtime::server::ServerApp app("player_server");
+    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
 
     std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
     std::string storage_error;
@@ -30,5 +30,5 @@ int main() {
         mmo::runtime::rpc::make_rpc_server_options(app.config()));
     mmo::apps::player_server::register_player_handlers(rpc_server, service);
 
-    return mmo::runtime::rpc::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return mmo::runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
 }

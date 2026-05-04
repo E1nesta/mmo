@@ -1,11 +1,11 @@
-#include "runtime/routing/gateway_forwarder.h"
+#include "runtime/gateway/gateway_forwarder.h"
 
 #include <utility>
 
 #include "runtime/channel/channel_error.h"
 #include "runtime/protocol/internal_auth.h"
 
-namespace mmo::runtime::routing {
+namespace mmo::runtime::gateway {
 
 GatewayForwarder::GatewayForwarder(
     std::string source_service,
@@ -50,7 +50,7 @@ GatewayForwarder::GatewayForwarder(
     internal_auth_shared_secret_ = config.security.internal_auth.shared_secret;
 }
 
-ForwardResult GatewayForwarder::forward_envelope(
+ProxyResult GatewayForwarder::forward_envelope(
     const std::string& target_service,
     const mmo::common::Envelope& envelope,
     mmo::runtime::channel::ChannelCallOptions options) {
@@ -65,7 +65,7 @@ ForwardResult GatewayForwarder::forward_envelope(
                 source_service_,
                 internal_auth_shared_secret_,
                 &error_message)) {
-            return ForwardResult::failure(mmo::runtime::channel::make_channel_error(
+            return ProxyResult::failure(mmo::runtime::channel::make_channel_error(
                 mmo::runtime::channel::ChannelErrorCode::kEncodeFailed,
                 "failed to sign internal gateway request: " + error_message));
         }
@@ -75,11 +75,11 @@ ForwardResult GatewayForwarder::forward_envelope(
         channel_client_->call_envelope(target_service, signed_envelope, options);
     if (!channel_result.ok()) {
         if (channel_result.has_response()) {
-            return ForwardResult::remote_error(channel_result.response());
+            return ProxyResult::remote_error(channel_result.response());
         }
-        return ForwardResult::failure(channel_result.error());
+        return ProxyResult::failure(channel_result.error());
     }
-    return ForwardResult::success(channel_result.response());
+    return ProxyResult::success(channel_result.response());
 }
 
-}  // namespace mmo::runtime::routing
+}  // namespace mmo::runtime::gateway

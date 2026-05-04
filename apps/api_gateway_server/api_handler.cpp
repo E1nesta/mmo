@@ -160,7 +160,7 @@ std::string find_field(
 
 ApiHandler::ApiHandler(
     const mmo::runtime::foundation::ServerConfig& config,
-    mmo::runtime::routing::GatewayForwarder& forwarder,
+    mmo::runtime::gateway::GatewayForwarder& forwarder,
     mmo::runtime::observability::MetricsRegistry& metrics)
     : config_(config), forwarder_(forwarder), metrics_(metrics) {}
 

@@ -1,12 +1,17 @@
 #include "apps/instance_server/instance_handlers.h"
 
+#include <utility>
+
 #include "internal/gateway_instance.pb.h"
 #include "internal/instance_player.pb.h"
 #include "runtime/channel/routing_policy.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
 #include "runtime/rpc/rpc_controller.h"
+#include "runtime/rpc/rpc_error.h"
 #include "runtime/rpc/rpc_result.h"
+#include "runtime/server/handler_result.h"
+#include "runtime/server/typed_handler.h"
 
 namespace mmo::apps::instance_server {
 
@@ -15,15 +20,16 @@ void register_instance_handlers(
     mmo::modules::instance::InstanceService& service,
     mmo::runtime::rpc::RpcClient& rpc_client,
     const std::string& service_name) {
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GatewayEnterInstanceRequest,
+        mmo::internal_api::GatewayEnterInstanceResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGatewayEnterInstanceRequest,
-        [&service](const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GatewayEnterInstanceRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid enter instance request");
-            }
-
+        mmo::runtime::protocol::kGatewayEnterInstanceResponse,
+        service_name,
+        [&service](
+            const mmo::internal_api::GatewayEnterInstanceRequest& request,
+            const mmo::runtime::server::ServiceContext&) {
             const auto instance = service.enter_instance(
                 request.context().player_id(),
                 request.dungeon_id());
@@ -34,22 +40,21 @@ void register_instance_handlers(
             response.set_instance_id(instance.instance_id);
             response.set_boss_entity_id(instance.boss_entity_id);
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGatewayEnterInstanceResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GatewayEnterInstanceResponse>::success(
+                    std::move(response));
         });
 
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GatewaySettleInstanceRequest,
+        mmo::internal_api::GatewaySettleInstanceResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGatewaySettleInstanceRequest,
-        [&service, &rpc_client, service_name](
-            const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GatewaySettleInstanceRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid settle instance request");
-            }
-
+        mmo::runtime::protocol::kGatewaySettleInstanceResponse,
+        service_name,
+        [&service, &rpc_client](
+            const mmo::internal_api::GatewaySettleInstanceRequest& request,
+            const mmo::runtime::server::ServiceContext& context) {
             const auto settled = service.settle_instance(
                 request.context().player_id(),
                 request.instance_id(),
@@ -66,7 +71,7 @@ void register_instance_handlers(
             }
 
             mmo::runtime::rpc::RpcController controller;
-            controller.source_service = service_name;
+            controller.source_service = context.service_name;
             controller.routing_policy =
                 mmo::runtime::channel::RoutingPolicy::kStickyPlayer;
             const auto rpc_result = rpc_client.call(
@@ -76,20 +81,27 @@ void register_instance_handlers(
                 reward_request,
                 controller);
             if (!rpc_result.ok()) {
-                return rpc_result.make_error_envelope(envelope);
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewaySettleInstanceResponse>::failure(
+                        mmo::runtime::rpc::rpc_error_to_status_code(
+                            rpc_result.error().code),
+                        rpc_result.error().message.empty()
+                            ? "player rpc failed"
+                            : rpc_result.error().message);
             }
 
             mmo::internal_api::GrantInstanceRewardResponse reward_response;
             if (!mmo::runtime::protocol::unpack_message(
                     rpc_result.response(), reward_response)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 502, "invalid player reward response");
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewaySettleInstanceResponse>::failure(
+                        502, "invalid player reward response");
             }
             if (!reward_response.context().success()) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope,
-                    reward_response.context().error_code(),
-                    reward_response.context().error_message());
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewaySettleInstanceResponse>::failure(
+                        reward_response.context().error_code(),
+                        reward_response.context().error_message());
             }
 
             mmo::internal_api::GatewaySettleInstanceResponse response;
@@ -103,10 +115,9 @@ void register_instance_handlers(
                 proto_reward->set_amount(reward.amount);
             }
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGatewaySettleInstanceResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GatewaySettleInstanceResponse>::success(
+                    std::move(response));
         });
 }
 

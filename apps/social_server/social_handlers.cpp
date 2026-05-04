@@ -1,23 +1,28 @@
 #include "apps/social_server/social_handlers.h"
 
+#include <utility>
+
 #include "internal/gateway_social.pb.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/server/handler_result.h"
+#include "runtime/server/typed_handler.h"
 
 namespace mmo::apps::social_server {
 
 void register_social_handlers(
     mmo::runtime::rpc::RpcServer& rpc_server,
     mmo::modules::social::SocialBoundaryService& service) {
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GatewaySocialBoundaryRequest,
+        mmo::internal_api::GatewaySocialBoundaryResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGatewaySocialBoundaryRequest,
-        [&service](const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GatewaySocialBoundaryRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid social boundary request");
-            }
-
+        mmo::runtime::protocol::kGatewaySocialBoundaryResponse,
+        "social_server",
+        [&service](
+            const mmo::internal_api::GatewaySocialBoundaryRequest& request,
+            const mmo::runtime::server::ServiceContext&) {
             const auto boundary = service.boundary_for(request.context().player_id());
 
             mmo::internal_api::GatewaySocialBoundaryResponse response;
@@ -28,10 +33,9 @@ void register_social_handlers(
             response.set_chat_boundary_available(boundary.chat_boundary_available);
             response.set_team_boundary_available(boundary.team_boundary_available);
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGatewaySocialBoundaryResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GatewaySocialBoundaryResponse>::success(
+                    std::move(response));
         });
 }
 

@@ -5,15 +5,15 @@
 #include "modules/auth/auth_service.h"
 #include "modules/auth/mysql_account_repository.h"
 #include "modules/auth/mysql_player_identity_repository.h"
-#include "runtime/foundation/server_app.h"
+#include "runtime/server/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/rpc/rpc_server.h"
-#include "runtime/rpc/rpc_server_app.h"
+#include "runtime/server/server_bootstrap.h"
 #include "runtime/storage/storage_bootstrap.h"
 
 int main() {
-    mmo::runtime::foundation::ServerApp app("auth_server");
-    const auto tcp_options = mmo::runtime::rpc::make_server_transport_options(app);
+    mmo::runtime::server::ServerApp app("auth_server");
+    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
 
     std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
     std::string storage_error;
@@ -37,5 +37,5 @@ int main() {
     mmo::apps::auth_server::register_auth_handlers(
         rpc_server, service, app.config(), app.service_name());
 
-    return mmo::runtime::rpc::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return mmo::runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
 }

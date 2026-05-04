@@ -1,14 +1,14 @@
-#include "runtime/routing/route_table.h"
+#include "runtime/gateway/proxy_route.h"
 
 #include <utility>
 
-namespace mmo::runtime::routing {
+namespace mmo::runtime::gateway {
 
-void RouteTable::add(std::string client_message_type, RouteTarget target) {
+void ProxyRouteTable::add(std::string client_message_type, ProxyRoute target) {
     routes_[std::move(client_message_type)] = std::move(target);
 }
 
-std::optional<RouteTarget> RouteTable::find(
+std::optional<ProxyRoute> ProxyRouteTable::find(
     const std::string& client_message_type) const {
     const auto it = routes_.find(client_message_type);
     if (it == routes_.end()) {
@@ -17,12 +17,12 @@ std::optional<RouteTarget> RouteTable::find(
     return it->second;
 }
 
-bool RouteTable::contains(const std::string& client_message_type) const {
+bool ProxyRouteTable::contains(const std::string& client_message_type) const {
     return routes_.find(client_message_type) != routes_.end();
 }
 
-std::size_t RouteTable::size() const {
+std::size_t ProxyRouteTable::size() const {
     return routes_.size();
 }
 
-}  // namespace mmo::runtime::routing
+}  // namespace mmo::runtime::gateway

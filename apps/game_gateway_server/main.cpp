@@ -4,11 +4,11 @@
 #include "apps/game_gateway_server/gateway_proxy_handlers.h"
 #include "apps/game_gateway_server/gateway_route_table.h"
 #include "apps/game_gateway_server/gateway_session_handlers.h"
-#include "runtime/foundation/server_app.h"
+#include "runtime/server/server_app.h"
 #include "runtime/observability/logging.h"
 #include "runtime/observability/metrics.h"
-#include "runtime/routing/gateway_forwarder.h"
-#include "runtime/routing/gateway_router.h"
+#include "runtime/gateway/gateway_forwarder.h"
+#include "runtime/gateway/gateway_router.h"
 #include "runtime/session/redis_session_store.h"
 #include "runtime/session/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
@@ -17,7 +17,7 @@
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
-    mmo::runtime::foundation::ServerApp app("game_gateway_server");
+    mmo::runtime::server::ServerApp app("game_gateway_server");
     const auto tcp_options =
         mmo::runtime::transport::make_transport_options(
             app.config().transport.tcp, app.config().execution);
@@ -32,7 +32,7 @@ int main() {
         return 1;
     }
 
-    mmo::runtime::routing::GatewayForwarder forwarder(
+    mmo::runtime::gateway::GatewayForwarder forwarder(
         app.service_name(),
         app.config(),
         tcp_options);
@@ -42,7 +42,7 @@ int main() {
     mmo::runtime::session::RedisTicketReplayStore ticket_replay_guard(redis_pool);
     mmo::runtime::session::RedisSessionStore redis_sessions(redis_pool);
     mmo::runtime::observability::MetricsRegistry security_metrics;
-    mmo::runtime::routing::GatewayRouter gateway_router;
+    mmo::runtime::gateway::GatewayRouter gateway_router;
 
     mmo::apps::game_gateway_server::register_gateway_proxy_handlers(
         gateway_router,

@@ -12,10 +12,10 @@
 #include "runtime/channel/static_endpoint_resolver.h"
 #include "runtime/foundation/server_config.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/routing/forward_result.h"
+#include "runtime/gateway/proxy_result.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::routing {
+namespace mmo::runtime::gateway {
 
 class GatewayForwarder {
 public:
@@ -42,7 +42,7 @@ public:
     GatewayForwarder& operator=(GatewayForwarder&&) = delete;
 
     template <typename Request>
-    ForwardResult forward(
+    ProxyResult forward(
         const std::string& target_service,
         const std::string& target_message_type,
         const mmo::common::RequestContext& context,
@@ -56,7 +56,7 @@ public:
     }
 
     template <typename Request>
-    ForwardResult forward(
+    ProxyResult forward(
         const std::string& target_service,
         const std::string& target_message_type,
         const mmo::common::RequestContext& context,
@@ -67,7 +67,7 @@ public:
         return forward_envelope(target_service, envelope, std::move(options));
     }
 
-    ForwardResult forward_envelope(
+    ProxyResult forward_envelope(
         const std::string& target_service,
         const mmo::common::Envelope& envelope,
         mmo::runtime::channel::ChannelCallOptions options = {});
@@ -79,4 +79,4 @@ private:
     mmo::runtime::channel::ChannelClient* channel_client_{};
 };
 
-}  // namespace mmo::runtime::routing
+}  // namespace mmo::runtime::gateway

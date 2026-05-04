@@ -99,7 +99,6 @@ endfunction()
 
 add_library(runtime_foundation STATIC
     runtime/foundation/readiness.cpp
-    runtime/foundation/server_app.cpp
     runtime/foundation/server_config.cpp
 )
 mmo_defaults(runtime_foundation)
@@ -211,7 +210,6 @@ add_library(runtime_rpc STATIC
     runtime/rpc/rpc_client.cpp
     runtime/rpc/rpc_error.cpp
     runtime/rpc/rpc_result.cpp
-    runtime/rpc/rpc_server_app.cpp
     runtime/rpc/rpc_server.cpp
 )
 mmo_defaults(runtime_rpc)
@@ -222,17 +220,36 @@ target_link_libraries(runtime_rpc PUBLIC
     runtime_protocol
 )
 
-add_library(runtime_routing STATIC
-    runtime/routing/forward_result.cpp
-    runtime/routing/gateway_forwarder.cpp
-    runtime/routing/gateway_router.cpp
-    runtime/routing/pending_response_table.cpp
-    runtime/routing/route_table.cpp
+add_library(runtime_server STATIC
+    runtime/server/server_app.cpp
+    runtime/server/server_bootstrap.cpp
 )
-mmo_defaults(runtime_routing)
-target_link_libraries(runtime_routing PUBLIC
+mmo_defaults(runtime_server)
+target_link_libraries(runtime_server PUBLIC
+    runtime_foundation
+    runtime_rpc
+    runtime_transport
     runtime_channel
+    runtime_observability
+)
+
+add_library(runtime_gateway STATIC
+    runtime/gateway/proxy_result.cpp
+    runtime/gateway/gateway_forwarder.cpp
+    runtime/gateway/gateway_middleware.cpp
+    runtime/gateway/gateway_router.cpp
+    runtime/gateway/gateway_session.cpp
+    runtime/gateway/pending_response_table.cpp
+    runtime/gateway/proxy_context.cpp
+    runtime/gateway/proxy_route.cpp
+)
+mmo_defaults(runtime_gateway)
+target_link_libraries(runtime_gateway PUBLIC
+    runtime_channel
+    runtime_foundation
+    runtime_observability
     runtime_protocol
+    runtime_session
 )
 
 add_library(modules_auth STATIC
@@ -283,6 +300,7 @@ function(add_mmo_server target)
         runtime_channel
         runtime_execution
         runtime_session
+        runtime_server
         runtime_observability
         mmo_protocol
     )
@@ -301,16 +319,24 @@ add_mmo_server(
     apps/api_gateway_server/api_handler.cpp
     apps/api_gateway_server/api_http_server.cpp
 )
-target_link_libraries(api_gateway_server PRIVATE runtime_routing)
+target_link_libraries(api_gateway_server PRIVATE runtime_gateway)
 
 add_mmo_server(
     game_gateway_server
     apps/game_gateway_server/main.cpp
+    apps/game_gateway_server/gateway_gate_login_handler.cpp
+    apps/game_gateway_server/gateway_auth_proxy_handlers.cpp
+    apps/game_gateway_server/gateway_instance_proxy_handlers.cpp
+    apps/game_gateway_server/gateway_ping_handler.cpp
+    apps/game_gateway_server/gateway_player_proxy_handlers.cpp
     apps/game_gateway_server/gateway_proxy_handlers.cpp
+    apps/game_gateway_server/gateway_reconnect_handler.cpp
     apps/game_gateway_server/gateway_route_table.cpp
     apps/game_gateway_server/gateway_session_handlers.cpp
+    apps/game_gateway_server/gateway_social_proxy_handlers.cpp
+    apps/game_gateway_server/gateway_world_proxy_handlers.cpp
 )
-target_link_libraries(game_gateway_server PRIVATE runtime_routing)
+target_link_libraries(game_gateway_server PRIVATE runtime_gateway)
 
 add_mmo_server(
     world_server

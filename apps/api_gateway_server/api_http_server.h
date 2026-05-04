@@ -4,6 +4,6 @@
 
 namespace mmo::apps::api_gateway_server {
 
-int run_http_server(int port, ApiHandler& handler);
+int run_http_server(int port, ApiHandler& handler, int thread_count);
 
 }  // namespace mmo::apps::api_gateway_server

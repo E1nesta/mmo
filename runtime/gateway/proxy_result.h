@@ -3,13 +3,13 @@
 #include "common/envelope.pb.h"
 #include "runtime/channel/channel_error.h"
 
-namespace mmo::runtime::routing {
+namespace mmo::runtime::gateway {
 
-class ForwardResult {
+class ProxyResult {
 public:
-    static ForwardResult success(mmo::common::Envelope response);
-    static ForwardResult failure(mmo::runtime::channel::ChannelError error);
-    static ForwardResult remote_error(mmo::common::Envelope response);
+    static ProxyResult success(mmo::common::Envelope response);
+    static ProxyResult failure(mmo::runtime::channel::ChannelError error);
+    static ProxyResult remote_error(mmo::common::Envelope response);
 
     bool ok() const;
     bool has_response() const;
@@ -25,4 +25,4 @@ private:
     bool has_response_{};
 };
 
-}  // namespace mmo::runtime::routing
+}  // namespace mmo::runtime::gateway

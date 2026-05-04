@@ -5,11 +5,11 @@
 
 namespace mmo::apps::game_gateway_server {
 
-mmo::runtime::routing::RouteTable make_gateway_route_table() {
-    mmo::runtime::routing::RouteTable route_table;
+mmo::runtime::gateway::ProxyRouteTable make_gateway_route_table() {
+    mmo::runtime::gateway::ProxyRouteTable route_table;
     route_table.add(
         mmo::runtime::protocol::kLoginRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "auth_server",
             mmo::runtime::protocol::kGatewayAuthLoginRequest,
             false,
@@ -18,7 +18,7 @@ mmo::runtime::routing::RouteTable make_gateway_route_table() {
             ""});
     route_table.add(
         mmo::runtime::protocol::kEnterWorldRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "world_server",
             mmo::runtime::protocol::kGatewayEnterWorldRequest,
             true,
@@ -27,7 +27,7 @@ mmo::runtime::routing::RouteTable make_gateway_route_table() {
             ""});
     route_table.add(
         mmo::runtime::protocol::kEnterInstanceRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "instance_server",
             mmo::runtime::protocol::kGatewayEnterInstanceRequest,
             true,
@@ -36,7 +36,7 @@ mmo::runtime::routing::RouteTable make_gateway_route_table() {
             ""});
     route_table.add(
         mmo::runtime::protocol::kSettleInstanceRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "instance_server",
             mmo::runtime::protocol::kGatewaySettleInstanceRequest,
             true,
@@ -45,7 +45,7 @@ mmo::runtime::routing::RouteTable make_gateway_route_table() {
             ""});
     route_table.add(
         mmo::runtime::protocol::kApplyRewardRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "player_server",
             mmo::runtime::protocol::kGatewayApplyRewardRequest,
             true,
@@ -54,7 +54,7 @@ mmo::runtime::routing::RouteTable make_gateway_route_table() {
             ""});
     route_table.add(
         mmo::runtime::protocol::kSocialBoundaryRequest,
-        mmo::runtime::routing::RouteTarget{
+        mmo::runtime::gateway::ProxyRoute{
             "social_server",
             mmo::runtime::protocol::kGatewaySocialBoundaryRequest,
             true,

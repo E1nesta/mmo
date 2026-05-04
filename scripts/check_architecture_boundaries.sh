@@ -14,6 +14,15 @@ if rg -n '#include "modules/' runtime >/tmp/mmo_runtime_module_includes.txt; the
     fail "runtime must not include modules"
 fi
 
+legacy_framework_refs="$(
+    rg -n 'runtime/routing|mmo::runtime::routing|runtime/rpc/rpc_server_app|runtime/foundation/server_app|runtime_routing|\bForwardResult\b|\bRouteTarget\b|\bRouteTable\b' \
+        apps runtime modules tools CMakeLists.txt || true
+)"
+if [[ -n "${legacy_framework_refs}" ]]; then
+    printf '%s\n' "${legacy_framework_refs}" >&2
+    fail "legacy routing/server framework names must not remain"
+fi
+
 if rg -n '#include "modules/.+service\.h"' modules --glob '*repository*.h' \
     >/tmp/mmo_repository_service_includes.txt; then
     cat /tmp/mmo_repository_service_includes.txt >&2

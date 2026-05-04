@@ -1,6 +1,7 @@
 #include "apps/player_server/player_handlers.h"
 
 #include <vector>
+#include <utility>
 
 #include <google/protobuf/repeated_ptr_field.h>
 
@@ -9,6 +10,8 @@
 #include "internal/instance_player.pb.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/message_types.h"
+#include "runtime/server/handler_result.h"
+#include "runtime/server/typed_handler.h"
 
 namespace mmo::apps::player_server {
 namespace {
@@ -28,22 +31,23 @@ std::vector<mmo::modules::player::Reward> to_rewards(
 void register_player_handlers(
     mmo::runtime::rpc::RpcServer& rpc_server,
     mmo::modules::player::PlayerService& service) {
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GrantInstanceRewardRequest,
+        mmo::internal_api::GrantInstanceRewardResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGrantInstanceRewardRequest,
-        [&service](const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GrantInstanceRewardRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid grant instance reward request");
-            }
-
+        mmo::runtime::protocol::kGrantInstanceRewardResponse,
+        "player_server",
+        [&service](
+            const mmo::internal_api::GrantInstanceRewardRequest& request,
+            const mmo::runtime::server::ServiceContext&) {
             const auto applied = service.apply_reward(
                 request.context().player_id(),
                 request.reward_grant_id(),
                 to_rewards(request.rewards()));
             if (!applied.success) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope,
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GrantInstanceRewardResponse>::failure(
                     applied.error_code == 0 ? 500 : applied.error_code,
                     applied.error_message.empty()
                         ? "failed to apply reward"
@@ -57,28 +61,28 @@ void register_player_handlers(
             response.set_gold(applied.gold);
             response.set_exp(applied.exp);
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGrantInstanceRewardResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GrantInstanceRewardResponse>::success(
+                    std::move(response));
         });
 
-    rpc_server.on(
+    mmo::runtime::server::bind_typed_handler<
+        mmo::internal_api::GatewayApplyRewardRequest,
+        mmo::internal_api::GatewayApplyRewardResponse>(
+        rpc_server,
         mmo::runtime::protocol::kGatewayApplyRewardRequest,
-        [&service](const mmo::common::Envelope& envelope) {
-            mmo::internal_api::GatewayApplyRewardRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid apply reward request");
-            }
-
+        mmo::runtime::protocol::kGatewayApplyRewardResponse,
+        "player_server",
+        [&service](
+            const mmo::internal_api::GatewayApplyRewardRequest& request,
+            const mmo::runtime::server::ServiceContext&) {
             const auto applied = service.apply_reward(
                 request.context().player_id(),
                 request.idempotency_key(),
                 to_rewards(request.rewards()));
             if (!applied.success) {
-                return mmo::runtime::protocol::make_error_envelope(
-                    envelope,
+                return mmo::runtime::server::HandlerResult<
+                    mmo::internal_api::GatewayApplyRewardResponse>::failure(
                     applied.error_code == 0 ? 500 : applied.error_code,
                     applied.error_message.empty()
                         ? "failed to apply reward"
@@ -92,10 +96,9 @@ void register_player_handlers(
             response.set_gold(applied.gold);
             response.set_exp(applied.exp);
 
-            return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGatewayApplyRewardResponse,
-                request.context(),
-                response);
+            return mmo::runtime::server::HandlerResult<
+                mmo::internal_api::GatewayApplyRewardResponse>::success(
+                    std::move(response));
         });
 }
 
