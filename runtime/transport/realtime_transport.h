@@ -17,7 +17,10 @@ struct RealtimeMessage {
 
 class RealtimeTransport {
 public:
-    explicit RealtimeTransport(std::uint16_t port, KcpOptions options = {});
+    explicit RealtimeTransport(
+        std::uint16_t port,
+        KcpOptions options = {},
+        std::vector<std::string> accepted_message_types = {});
 
     std::uint16_t port() const;
     const KcpOptions& options() const;
@@ -26,6 +29,7 @@ public:
 private:
     std::uint16_t port_{};
     KcpOptions options_;
+    std::vector<std::string> accepted_message_types_;
 };
 
 }  // namespace mmo::runtime::transport

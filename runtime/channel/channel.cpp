@@ -7,7 +7,7 @@
 #include <thread>
 #include <utility>
 
-#include "runtime/protocol/message_types.h"
+#include "runtime/protocol/envelope_utils.h"
 #include "runtime/transport/envelope_codec.h"
 
 namespace mmo::runtime::channel {

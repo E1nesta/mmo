@@ -6,7 +6,7 @@
 #include "public/player.pb.h"
 #include "runtime/gateway/proxy_handler.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -20,7 +20,7 @@ void register_gateway_player_proxy_handlers(
         mmo::public_api::ApplyRewardResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::runtime::protocol::kApplyRewardResponse;
+        mmo::apps::protocol::kApplyRewardResponse;
     mapper.invalid_public_request_message = "invalid apply reward request";
     mapper.invalid_internal_response_message = "invalid player response";
     mapper.map_request = [](const mmo::public_api::ApplyRewardRequest& request) {
@@ -50,7 +50,7 @@ void register_gateway_player_proxy_handlers(
         mmo::internal_api::GatewayApplyRewardResponse,
         mmo::public_api::ApplyRewardResponse>(
         gateway_router,
-        mmo::runtime::protocol::kApplyRewardRequest,
+        mmo::apps::protocol::kApplyRewardRequest,
         context,
         std::move(mapper));
 }

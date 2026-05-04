@@ -9,8 +9,8 @@
 #include "runtime/gateway/gateway_forwarder.h"
 #include "runtime/gateway/gateway_router.h"
 #include "runtime/server/server_bootstrap.h"
-#include "runtime/session/redis_session_store.h"
-#include "runtime/session/redis_ticket_replay_store.h"
+#include "adapters/session_redis/redis_session_store.h"
+#include "adapters/session_redis/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
 #include "runtime/transport/tcp_envelope_server.h"
 
@@ -30,8 +30,8 @@ int main() {
     auto route_table = mmo::apps::game_gateway_server::make_gateway_route_table();
 
     mmo::runtime::session::SessionRegistry sessions;
-    mmo::runtime::session::RedisTicketReplayStore ticket_replay_guard(redis_pool);
-    mmo::runtime::session::RedisSessionStore redis_sessions(redis_pool);
+    mmo::adapters::session_redis::RedisTicketReplayStore ticket_replay_guard(redis_pool);
+    mmo::adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
     mmo::runtime::observability::MetricsRegistry security_metrics;
     mmo::runtime::gateway::GatewayRouter gateway_router;
 

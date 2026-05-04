@@ -14,7 +14,7 @@
 #include "runtime/foundation/server_config.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/transport/tcp_envelope_client.h"
 
 namespace {
@@ -235,7 +235,7 @@ int main() {
         login_response.gateway_ticket() + "-tampered");
 
     const auto invalid_gate_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kGateLoginRequest,
+        mmo::apps::protocol::kGateLoginRequest,
         invalid_gate_request.context(),
         invalid_gate_request);
     const auto invalid_gate_response =
@@ -257,7 +257,7 @@ int main() {
     gate_request.set_gateway_ticket(login_response.gateway_ticket());
 
     const auto gate_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kGateLoginRequest,
+        mmo::apps::protocol::kGateLoginRequest,
         gate_request.context(),
         gate_request);
     const auto gate_response_envelope = client.send(gateway_endpoint, gate_envelope);
@@ -265,7 +265,7 @@ int main() {
     mmo::public_api::GateLoginResponse gate_response;
     if (!parse_response(
             gate_response_envelope,
-            mmo::runtime::protocol::kGateLoginResponse,
+            mmo::apps::protocol::kGateLoginResponse,
             gate_response)) {
         return 1;
     }
@@ -301,7 +301,7 @@ int main() {
         gate_response.reconnect_ticket() + "-tampered");
     const auto invalid_reconnect_envelope =
         mmo::runtime::protocol::pack_message(
-            mmo::runtime::protocol::kReconnectRequest,
+            mmo::apps::protocol::kReconnectRequest,
             invalid_reconnect_request.context(),
             invalid_reconnect_request);
     const auto invalid_reconnect_response =
@@ -324,7 +324,7 @@ int main() {
     reconnect_request.set_device_id("local-flow-reconnect");
     reconnect_request.set_reconnect_ticket(gate_response.reconnect_ticket());
     const auto reconnect_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kReconnectRequest,
+        mmo::apps::protocol::kReconnectRequest,
         reconnect_request.context(),
         reconnect_request);
     const auto reconnect_response_envelope =
@@ -333,7 +333,7 @@ int main() {
     mmo::public_api::ReconnectResponse reconnect_response;
     if (!parse_response(
             reconnect_response_envelope,
-            mmo::runtime::protocol::kReconnectResponse,
+            mmo::apps::protocol::kReconnectResponse,
             reconnect_response)) {
         return 1;
     }
@@ -367,7 +367,7 @@ int main() {
     unbound_world_request.set_preferred_line_id(1);
 
     const auto unbound_world_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kEnterWorldRequest,
+        mmo::apps::protocol::kEnterWorldRequest,
         unbound_world_request.context(),
         unbound_world_request);
     const auto unbound_world_response =
@@ -388,7 +388,7 @@ int main() {
     world_request.set_preferred_line_id(1);
 
     const auto world_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kEnterWorldRequest,
+        mmo::apps::protocol::kEnterWorldRequest,
         world_request.context(),
         world_request);
     const auto world_response_envelope = client.send(
@@ -397,7 +397,7 @@ int main() {
     mmo::public_api::EnterWorldResponse world_response;
     if (!parse_response(
             world_response_envelope,
-            mmo::runtime::protocol::kEnterWorldResponse,
+            mmo::apps::protocol::kEnterWorldResponse,
             world_response)) {
         return 1;
     }
@@ -422,7 +422,7 @@ int main() {
     enter_instance_request.set_dungeon_id(101);
 
     const auto enter_instance_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kEnterInstanceRequest,
+        mmo::apps::protocol::kEnterInstanceRequest,
         enter_instance_request.context(),
         enter_instance_request);
     const auto enter_instance_response_envelope =
@@ -431,7 +431,7 @@ int main() {
     mmo::public_api::EnterInstanceResponse enter_instance_response;
     if (!parse_response(
             enter_instance_response_envelope,
-            mmo::runtime::protocol::kEnterInstanceResponse,
+            mmo::apps::protocol::kEnterInstanceResponse,
             enter_instance_response)) {
         return 1;
     }
@@ -456,7 +456,7 @@ int main() {
     settle_instance_request.set_win(true);
 
     const auto settle_instance_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kSettleInstanceRequest,
+        mmo::apps::protocol::kSettleInstanceRequest,
         settle_instance_request.context(),
         settle_instance_request);
     const auto settle_instance_response_envelope =
@@ -465,7 +465,7 @@ int main() {
     mmo::public_api::SettleInstanceResponse settle_instance_response;
     if (!parse_response(
             settle_instance_response_envelope,
-            mmo::runtime::protocol::kSettleInstanceResponse,
+            mmo::apps::protocol::kSettleInstanceResponse,
             settle_instance_response)) {
         return 1;
     }
@@ -485,7 +485,7 @@ int main() {
     social_request.set_target_player_id(login_response.player_id());
 
     const auto social_envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kSocialBoundaryRequest,
+        mmo::apps::protocol::kSocialBoundaryRequest,
         social_request.context(),
         social_request);
     const auto social_response_envelope =
@@ -494,7 +494,7 @@ int main() {
     mmo::public_api::SocialBoundaryResponse social_response;
     if (!parse_response(
             social_response_envelope,
-            mmo::runtime::protocol::kSocialBoundaryResponse,
+            mmo::apps::protocol::kSocialBoundaryResponse,
             social_response)) {
         return 1;
     }

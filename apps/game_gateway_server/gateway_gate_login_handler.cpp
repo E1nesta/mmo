@@ -6,7 +6,7 @@
 #include "public/gateway.pb.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -19,7 +19,7 @@ void register_gateway_gate_login_handler(
     auto& security_metrics = context.security_metrics;
     const auto& config = context.config;
     gateway_router.on(
-        mmo::runtime::protocol::kGateLoginRequest,
+        mmo::apps::protocol::kGateLoginRequest,
         [&sessions,
          &session_store,
          &ticket_replay_guard,
@@ -127,7 +127,7 @@ void register_gateway_gate_login_handler(
                 reconnect_ticket_expires_at);
 
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kGateLoginResponse,
+                mmo::apps::protocol::kGateLoginResponse,
                 response_context,
                 response);
         });

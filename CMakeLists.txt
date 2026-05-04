@@ -129,8 +129,6 @@ mmo_defaults(runtime_execution)
 target_link_libraries(runtime_execution PUBLIC Boost::system Threads::Threads)
 
 add_library(runtime_session STATIC
-    runtime/session/redis_session_store.cpp
-    runtime/session/redis_ticket_replay_store.cpp
     runtime/session/session_context.cpp
     runtime/session/ticket_replay_guard.cpp
 )
@@ -165,7 +163,16 @@ target_link_libraries(runtime_storage PUBLIC
     ${MYSQL_LIBRARY}
     ${HIREDIS_LIBRARY}
 )
-target_link_libraries(runtime_session PUBLIC runtime_storage)
+
+add_library(adapters_session_redis STATIC
+    adapters/session_redis/redis_session_store.cpp
+    adapters/session_redis/redis_ticket_replay_store.cpp
+)
+mmo_defaults(adapters_session_redis)
+target_link_libraries(adapters_session_redis PUBLIC
+    runtime_session
+    runtime_storage
+)
 
 add_library(runtime_transport STATIC
     runtime/transport/connection_session.cpp
@@ -337,7 +344,10 @@ add_mmo_server(
     apps/game_gateway_server/gateway_social_proxy_handlers.cpp
     apps/game_gateway_server/gateway_world_proxy_handlers.cpp
 )
-target_link_libraries(game_gateway_server PRIVATE runtime_gateway)
+target_link_libraries(game_gateway_server PRIVATE
+    runtime_gateway
+    adapters_session_redis
+)
 
 add_mmo_server(
     world_server
@@ -392,7 +402,11 @@ target_link_libraries(auth_data_probe PRIVATE modules_auth)
 
 add_executable(storage_governance_probe tools/storage_governance_probe/main.cpp)
 mmo_defaults(storage_governance_probe)
-target_link_libraries(storage_governance_probe PRIVATE modules_player runtime_session)
+target_link_libraries(storage_governance_probe PRIVATE
+    modules_player
+    runtime_session
+    adapters_session_redis
+)
 
 add_executable(production_runtime_governance_probe
     tools/production_runtime_governance_probe/main.cpp
@@ -411,6 +425,7 @@ mmo_defaults(gateway_session_governance_probe)
 target_link_libraries(gateway_session_governance_probe PRIVATE
     runtime_foundation
     runtime_session
+    adapters_session_redis
 )
 
 add_executable(cluster_routing_governance_probe

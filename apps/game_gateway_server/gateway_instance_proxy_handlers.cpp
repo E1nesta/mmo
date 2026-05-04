@@ -7,7 +7,7 @@
 #include "public/instance.pb.h"
 #include "runtime/gateway/proxy_handler.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -21,7 +21,7 @@ void register_gateway_instance_proxy_handlers(
         mmo::public_api::EnterInstanceResponse>
         enter_mapper;
     enter_mapper.public_response_message_type =
-        mmo::runtime::protocol::kEnterInstanceResponse;
+        mmo::apps::protocol::kEnterInstanceResponse;
     enter_mapper.invalid_public_request_message =
         "invalid enter instance request";
     enter_mapper.invalid_internal_response_message =
@@ -51,7 +51,7 @@ void register_gateway_instance_proxy_handlers(
         mmo::internal_api::GatewayEnterInstanceResponse,
         mmo::public_api::EnterInstanceResponse>(
         gateway_router,
-        mmo::runtime::protocol::kEnterInstanceRequest,
+        mmo::apps::protocol::kEnterInstanceRequest,
         context,
         std::move(enter_mapper));
 
@@ -62,7 +62,7 @@ void register_gateway_instance_proxy_handlers(
         mmo::public_api::SettleInstanceResponse>
         settle_mapper;
     settle_mapper.public_response_message_type =
-        mmo::runtime::protocol::kSettleInstanceResponse;
+        mmo::apps::protocol::kSettleInstanceResponse;
     settle_mapper.invalid_public_request_message =
         "invalid settle instance request";
     settle_mapper.invalid_internal_response_message =
@@ -101,7 +101,7 @@ void register_gateway_instance_proxy_handlers(
         mmo::internal_api::GatewaySettleInstanceResponse,
         mmo::public_api::SettleInstanceResponse>(
         gateway_router,
-        mmo::runtime::protocol::kSettleInstanceRequest,
+        mmo::apps::protocol::kSettleInstanceRequest,
         context,
         std::move(settle_mapper));
 }

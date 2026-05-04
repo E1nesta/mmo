@@ -4,7 +4,7 @@
 
 #include "internal/gateway_social.pb.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/server/handler_result.h"
 #include "runtime/server/typed_handler.h"
 
@@ -17,8 +17,8 @@ void register_social_handlers(
         mmo::internal_api::GatewaySocialBoundaryRequest,
         mmo::internal_api::GatewaySocialBoundaryResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewaySocialBoundaryRequest,
-        mmo::runtime::protocol::kGatewaySocialBoundaryResponse,
+        mmo::apps::protocol::kGatewaySocialBoundaryRequest,
+        mmo::apps::protocol::kGatewaySocialBoundaryResponse,
         "social_server",
         [&service](
             const mmo::internal_api::GatewaySocialBoundaryRequest& request,

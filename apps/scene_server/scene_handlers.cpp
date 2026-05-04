@@ -4,7 +4,7 @@
 
 #include "internal/world_scene.pb.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/server/handler_result.h"
 #include "runtime/server/typed_handler.h"
 
@@ -17,8 +17,8 @@ void register_scene_handlers(
         mmo::internal_api::AllocateSceneEntityRequest,
         mmo::internal_api::AllocateSceneEntityResponse>(
         rpc_server,
-        mmo::runtime::protocol::kAllocateSceneEntityRequest,
-        mmo::runtime::protocol::kAllocateSceneEntityResponse,
+        mmo::apps::protocol::kAllocateSceneEntityRequest,
+        mmo::apps::protocol::kAllocateSceneEntityResponse,
         "scene_server",
         [&service](
             const mmo::internal_api::AllocateSceneEntityRequest& request,

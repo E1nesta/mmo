@@ -6,7 +6,7 @@
 #include "public/gateway.pb.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -18,7 +18,7 @@ void register_gateway_reconnect_handler(
     auto& security_metrics = context.security_metrics;
     const auto& config = context.config;
     gateway_router.on(
-        mmo::runtime::protocol::kReconnectRequest,
+        mmo::apps::protocol::kReconnectRequest,
         [&sessions, &session_store, &security_metrics, &config](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::ReconnectRequest request;
@@ -132,7 +132,7 @@ void register_gateway_reconnect_handler(
             response.set_reconnect_ticket_expires_at_epoch_millis(
                 next_reconnect_ticket_expires_at);
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kReconnectResponse,
+                mmo::apps::protocol::kReconnectResponse,
                 response_context,
                 response);
         });

@@ -7,7 +7,7 @@
 #include "internal/world_scene.pb.h"
 #include "runtime/channel/routing_policy.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/rpc/rpc_controller.h"
 #include "runtime/rpc/rpc_error.h"
 #include "runtime/rpc/rpc_result.h"
@@ -36,8 +36,8 @@ void register_world_handlers(
         mmo::internal_api::GatewayEnterWorldRequest,
         mmo::internal_api::GatewayEnterWorldResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewayEnterWorldRequest,
-        mmo::runtime::protocol::kGatewayEnterWorldResponse,
+        mmo::apps::protocol::kGatewayEnterWorldRequest,
+        mmo::apps::protocol::kGatewayEnterWorldResponse,
         service_name,
         [&service, &rpc_client](
             const mmo::internal_api::GatewayEnterWorldRequest& request,
@@ -57,7 +57,7 @@ void register_world_handlers(
                 mmo::runtime::channel::RoutingPolicy::kLeastPending;
             const auto rpc_result = rpc_client.call(
                 "scene_server",
-                mmo::runtime::protocol::kAllocateSceneEntityRequest,
+                mmo::apps::protocol::kAllocateSceneEntityRequest,
                 request.context(),
                 scene_request,
                 controller);

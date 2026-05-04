@@ -7,7 +7,6 @@
 
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
 
 namespace mmo::runtime::transport {
 

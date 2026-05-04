@@ -9,7 +9,7 @@
 #include "runtime/protocol/auth_tokens.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/server/handler_result.h"
 #include "runtime/server/typed_handler.h"
 
@@ -41,8 +41,8 @@ void register_auth_handlers(
         mmo::internal_api::GatewayAuthLoginRequest,
         mmo::internal_api::GatewayAuthLoginResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewayAuthLoginRequest,
-        mmo::runtime::protocol::kGatewayAuthLoginResponse,
+        mmo::apps::protocol::kGatewayAuthLoginRequest,
+        mmo::apps::protocol::kGatewayAuthLoginResponse,
         service_name,
         [&service, &config](
             const mmo::internal_api::GatewayAuthLoginRequest& request,

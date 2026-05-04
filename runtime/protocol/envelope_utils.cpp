@@ -1,7 +1,5 @@
 #include "runtime/protocol/envelope_utils.h"
 
-#include "runtime/protocol/message_types.h"
-
 namespace mmo::runtime::protocol {
 
 mmo::common::ResponseContext make_ok_context(

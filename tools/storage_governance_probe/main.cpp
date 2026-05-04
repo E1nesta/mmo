@@ -8,8 +8,8 @@
 #include "modules/player/mysql_player_repository.h"
 #include "modules/player/player_service.h"
 #include "runtime/foundation/server_config.h"
-#include "runtime/session/redis_session_store.h"
-#include "runtime/session/redis_ticket_replay_store.h"
+#include "adapters/session_redis/redis_session_store.h"
+#include "adapters/session_redis/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
 #include "runtime/storage/storage_bootstrap.h"
 
@@ -67,7 +67,7 @@ int main() {
     assert(mmo::runtime::storage::initialize_redis_pool(
         config, &redis_pool, &error));
 
-    mmo::runtime::session::RedisTicketReplayStore replay_store(redis_pool);
+    mmo::adapters::session_redis::RedisTicketReplayStore replay_store(redis_pool);
     const auto ticket_now = static_cast<std::uint64_t>(now_millis());
     const auto ticket_expire = ticket_now + 60000;
     const std::string ticket_id =
@@ -75,7 +75,7 @@ int main() {
     assert(replay_store.consume(ticket_id, ticket_now, ticket_expire));
     assert(!replay_store.consume(ticket_id, ticket_now + 1, ticket_expire));
 
-    mmo::runtime::session::RedisSessionStore session_store(redis_pool);
+    mmo::adapters::session_redis::RedisSessionStore session_store(redis_pool);
     mmo::runtime::session::ConnectionBinding binding;
     binding.connection_id = 42;
     binding.game_session_id =

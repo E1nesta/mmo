@@ -6,7 +6,7 @@
 #include "public/auth.pb.h"
 #include "runtime/gateway/proxy_handler.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -20,7 +20,7 @@ void register_gateway_auth_proxy_handlers(
         mmo::public_api::LoginResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::runtime::protocol::kLoginResponse;
+        mmo::apps::protocol::kLoginResponse;
     mapper.invalid_public_request_message = "invalid login request";
     mapper.invalid_internal_response_message = "invalid auth response";
     mapper.map_request = [](const mmo::public_api::LoginRequest& request) {
@@ -58,7 +58,7 @@ void register_gateway_auth_proxy_handlers(
         mmo::internal_api::GatewayAuthLoginResponse,
         mmo::public_api::LoginResponse>(
         gateway_router,
-        mmo::runtime::protocol::kLoginRequest,
+        mmo::apps::protocol::kLoginRequest,
         context,
         std::move(mapper));
 }

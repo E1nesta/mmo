@@ -1,10 +1,10 @@
-#include "runtime/session/redis_ticket_replay_store.h"
+#include "adapters/session_redis/redis_ticket_replay_store.h"
 
 #include <utility>
 
 #include "runtime/storage/redis_keys.h"
 
-namespace mmo::runtime::session {
+namespace mmo::adapters::session_redis {
 
 RedisTicketReplayStore::RedisTicketReplayStore(
     std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool)
@@ -31,4 +31,4 @@ bool RedisTicketReplayStore::consume(
     return stored;
 }
 
-}  // namespace mmo::runtime::session
+}  // namespace mmo::adapters::session_redis

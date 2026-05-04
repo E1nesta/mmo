@@ -11,7 +11,7 @@
 #include "runtime/foundation/readiness.h"
 #include "runtime/observability/metrics_exporter.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::api_gateway_server {
 
@@ -266,7 +266,7 @@ http::response<http::string_body> ApiHandler::handle_login(
 
     const auto forward_result = forwarder_.forward(
         "auth_server",
-        mmo::runtime::protocol::kGatewayAuthLoginRequest,
+        mmo::apps::protocol::kGatewayAuthLoginRequest,
         context,
         internal_request);
     if (!forward_result.ok()) {

@@ -6,7 +6,7 @@
 #include "public/world.pb.h"
 #include "runtime/gateway/proxy_handler.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -20,7 +20,7 @@ void register_gateway_world_proxy_handlers(
         mmo::public_api::EnterWorldResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::runtime::protocol::kEnterWorldResponse;
+        mmo::apps::protocol::kEnterWorldResponse;
     mapper.invalid_public_request_message = "invalid enter world request";
     mapper.invalid_internal_response_message = "invalid world response";
     mapper.map_request = [](const mmo::public_api::EnterWorldRequest& request) {
@@ -49,7 +49,7 @@ void register_gateway_world_proxy_handlers(
         mmo::internal_api::GatewayEnterWorldResponse,
         mmo::public_api::EnterWorldResponse>(
         gateway_router,
-        mmo::runtime::protocol::kEnterWorldRequest,
+        mmo::apps::protocol::kEnterWorldRequest,
         context,
         std::move(mapper));
 }

@@ -7,7 +7,7 @@
 #include "public/gateway.pb.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -19,7 +19,7 @@ void register_gateway_ping_handler(
     auto& security_metrics = context.security_metrics;
     const auto& config = context.config;
     gateway_router.on(
-        mmo::runtime::protocol::kPingRequest,
+        mmo::apps::protocol::kPingRequest,
         [&sessions, &session_store, &security_metrics, &config](
             const mmo::common::Envelope& envelope) {
             mmo::public_api::PingRequest request;
@@ -83,7 +83,7 @@ void register_gateway_ping_handler(
             response.set_reconnect_ticket_expires_at_epoch_millis(
                 reconnect_ticket_expires_at);
             return mmo::runtime::protocol::pack_message(
-                mmo::runtime::protocol::kPingResponse,
+                mmo::apps::protocol::kPingResponse,
                 request.context(),
                 response);
         });

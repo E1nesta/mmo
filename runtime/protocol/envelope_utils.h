@@ -9,6 +9,8 @@
 
 namespace mmo::runtime::protocol {
 
+inline constexpr const char* kErrorResponse = "common.ResponseContext";
+
 mmo::common::ResponseContext make_ok_context(
     const mmo::common::RequestContext& request);
 

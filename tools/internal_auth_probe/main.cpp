@@ -7,7 +7,7 @@
 #include "runtime/foundation/server_config.h"
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/transport/envelope_transport.h"
 #include "runtime/transport/tcp_envelope_client.h"
 
@@ -41,7 +41,7 @@ bool verify_signature_helpers() {
     request.set_device_id("probe-device");
 
     auto envelope = mmo::runtime::protocol::pack_message(
-        mmo::runtime::protocol::kLoginRequest,
+        mmo::apps::protocol::kLoginRequest,
         request.context(),
         request);
 
@@ -139,7 +139,7 @@ bool verify_direct_requests_are_rejected() {
             client,
             mmo::runtime::transport::make_transport_endpoint(
                 config.service("auth_server")),
-            mmo::runtime::protocol::kLoginRequest,
+            mmo::apps::protocol::kLoginRequest,
             login_request.context(),
             login_request,
             "auth_server")) {
@@ -154,7 +154,7 @@ bool verify_direct_requests_are_rejected() {
         client,
         mmo::runtime::transport::make_transport_endpoint(
             config.service("instance_server")),
-        mmo::runtime::protocol::kEnterInstanceRequest,
+        mmo::apps::protocol::kEnterInstanceRequest,
         instance_request.context(),
         instance_request,
         "instance_server");

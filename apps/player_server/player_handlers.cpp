@@ -9,7 +9,7 @@
 #include "internal/gateway_player.pb.h"
 #include "internal/instance_player.pb.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/server/handler_result.h"
 #include "runtime/server/typed_handler.h"
 
@@ -35,8 +35,8 @@ void register_player_handlers(
         mmo::internal_api::GrantInstanceRewardRequest,
         mmo::internal_api::GrantInstanceRewardResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGrantInstanceRewardRequest,
-        mmo::runtime::protocol::kGrantInstanceRewardResponse,
+        mmo::apps::protocol::kGrantInstanceRewardRequest,
+        mmo::apps::protocol::kGrantInstanceRewardResponse,
         "player_server",
         [&service](
             const mmo::internal_api::GrantInstanceRewardRequest& request,
@@ -70,8 +70,8 @@ void register_player_handlers(
         mmo::internal_api::GatewayApplyRewardRequest,
         mmo::internal_api::GatewayApplyRewardResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewayApplyRewardRequest,
-        mmo::runtime::protocol::kGatewayApplyRewardResponse,
+        mmo::apps::protocol::kGatewayApplyRewardRequest,
+        mmo::apps::protocol::kGatewayApplyRewardResponse,
         "player_server",
         [&service](
             const mmo::internal_api::GatewayApplyRewardRequest& request,

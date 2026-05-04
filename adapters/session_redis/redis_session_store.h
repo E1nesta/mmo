@@ -8,9 +8,13 @@
 #include "runtime/session/session_store.h"
 #include "runtime/storage/redis_connection_pool.h"
 
-namespace mmo::runtime::session {
+namespace mmo::adapters::session_redis {
 
-class RedisSessionStore final : public SessionStore {
+using ConnectionBinding = mmo::runtime::session::ConnectionBinding;
+using OnlineBinding = mmo::runtime::session::OnlineBinding;
+using ReconnectTicket = mmo::runtime::session::ReconnectTicket;
+
+class RedisSessionStore final : public mmo::runtime::session::SessionStore {
 public:
     explicit RedisSessionStore(
         std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool);
@@ -51,4 +55,4 @@ private:
     std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool_;
 };
 
-}  // namespace mmo::runtime::session
+}  // namespace mmo::adapters::session_redis

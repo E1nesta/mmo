@@ -5,9 +5,10 @@
 #include "runtime/session/ticket_replay_guard.h"
 #include "runtime/storage/redis_connection_pool.h"
 
-namespace mmo::runtime::session {
+namespace mmo::adapters::session_redis {
 
-class RedisTicketReplayStore final : public TicketReplayStore {
+class RedisTicketReplayStore final
+    : public mmo::runtime::session::TicketReplayStore {
 public:
     explicit RedisTicketReplayStore(
         std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool);
@@ -21,4 +22,4 @@ private:
     std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool_;
 };
 
-}  // namespace mmo::runtime::session
+}  // namespace mmo::adapters::session_redis

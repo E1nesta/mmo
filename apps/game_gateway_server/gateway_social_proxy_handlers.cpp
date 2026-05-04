@@ -6,7 +6,7 @@
 #include "public/social.pb.h"
 #include "runtime/gateway/proxy_handler.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 
 namespace mmo::apps::game_gateway_server {
 
@@ -20,7 +20,7 @@ void register_gateway_social_proxy_handlers(
         mmo::public_api::SocialBoundaryResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::runtime::protocol::kSocialBoundaryResponse;
+        mmo::apps::protocol::kSocialBoundaryResponse;
     mapper.invalid_public_request_message = "invalid social boundary request";
     mapper.invalid_internal_response_message = "invalid social response";
     mapper.map_request =
@@ -52,7 +52,7 @@ void register_gateway_social_proxy_handlers(
         mmo::internal_api::GatewaySocialBoundaryResponse,
         mmo::public_api::SocialBoundaryResponse>(
         gateway_router,
-        mmo::runtime::protocol::kSocialBoundaryRequest,
+        mmo::apps::protocol::kSocialBoundaryRequest,
         context,
         std::move(mapper));
 }

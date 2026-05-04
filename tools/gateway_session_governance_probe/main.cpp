@@ -5,7 +5,7 @@
 #include <string>
 
 #include "runtime/foundation/server_config.h"
-#include "runtime/session/redis_session_store.h"
+#include "adapters/session_redis/redis_session_store.h"
 #include "runtime/session/session_context.h"
 #include "runtime/storage/storage_bootstrap.h"
 
@@ -49,7 +49,7 @@ int main() {
     assert(mmo::runtime::storage::initialize_redis_pool(
         config, &redis_pool, &error));
 
-    mmo::runtime::session::RedisSessionStore redis_sessions(redis_pool);
+    mmo::adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
     const auto now = now_millis();
     const auto player_id =
         static_cast<std::int64_t>(880000000LL + (now % 1000000ULL));

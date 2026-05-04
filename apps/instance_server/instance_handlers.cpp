@@ -6,7 +6,7 @@
 #include "internal/instance_player.pb.h"
 #include "runtime/channel/routing_policy.h"
 #include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/message_types.h"
+#include "apps/protocol/message_types.h"
 #include "runtime/rpc/rpc_controller.h"
 #include "runtime/rpc/rpc_error.h"
 #include "runtime/rpc/rpc_result.h"
@@ -24,8 +24,8 @@ void register_instance_handlers(
         mmo::internal_api::GatewayEnterInstanceRequest,
         mmo::internal_api::GatewayEnterInstanceResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewayEnterInstanceRequest,
-        mmo::runtime::protocol::kGatewayEnterInstanceResponse,
+        mmo::apps::protocol::kGatewayEnterInstanceRequest,
+        mmo::apps::protocol::kGatewayEnterInstanceResponse,
         service_name,
         [&service](
             const mmo::internal_api::GatewayEnterInstanceRequest& request,
@@ -49,8 +49,8 @@ void register_instance_handlers(
         mmo::internal_api::GatewaySettleInstanceRequest,
         mmo::internal_api::GatewaySettleInstanceResponse>(
         rpc_server,
-        mmo::runtime::protocol::kGatewaySettleInstanceRequest,
-        mmo::runtime::protocol::kGatewaySettleInstanceResponse,
+        mmo::apps::protocol::kGatewaySettleInstanceRequest,
+        mmo::apps::protocol::kGatewaySettleInstanceResponse,
         service_name,
         [&service, &rpc_client](
             const mmo::internal_api::GatewaySettleInstanceRequest& request,
@@ -76,7 +76,7 @@ void register_instance_handlers(
                 mmo::runtime::channel::RoutingPolicy::kStickyPlayer;
             const auto rpc_result = rpc_client.call(
                 "player_server",
-                mmo::runtime::protocol::kGrantInstanceRewardRequest,
+                mmo::apps::protocol::kGrantInstanceRewardRequest,
                 request.context(),
                 reward_request,
                 controller);

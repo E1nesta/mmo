@@ -1,4 +1,4 @@
-#include "runtime/session/redis_session_store.h"
+#include "adapters/session_redis/redis_session_store.h"
 
 #include <algorithm>
 #include <chrono>
@@ -9,7 +9,7 @@
 
 #include "runtime/storage/redis_keys.h"
 
-namespace mmo::runtime::session {
+namespace mmo::adapters::session_redis {
 namespace {
 
 std::uint64_t current_time_millis() {
@@ -367,4 +367,4 @@ std::optional<ConnectionBinding> RedisSessionStore::load_binding(
     return binding;
 }
 
-}  // namespace mmo::runtime::session
+}  // namespace mmo::adapters::session_redis
