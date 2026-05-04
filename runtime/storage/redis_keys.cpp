@@ -1,6 +1,6 @@
 #include "runtime/storage/redis_keys.h"
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 std::string session_key(const std::string& session_token) {
     return "session:" + session_token;
@@ -34,4 +34,4 @@ std::string instance_context_key(std::int64_t instance_id) {
     return "instance_context:" + std::to_string(instance_id);
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 RealtimeTransport::RealtimeTransport(
     std::uint16_t port,
@@ -28,4 +28,4 @@ bool RealtimeTransport::accepts_message_type(const std::string& message_type) co
                message_type) != accepted_message_types_.end();
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

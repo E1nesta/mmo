@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 void GatewayRouter::on(std::string message_type, Handler handler) {
     router_.on(std::move(message_type), std::move(handler));
@@ -19,4 +19,4 @@ GatewayRouter::Handler GatewayRouter::handler() const {
     };
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

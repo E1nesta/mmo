@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mmo::modules::aoi {
+namespace modules::aoi {
 
 struct AoiCell {
     int x{};
@@ -36,4 +36,4 @@ private:
     std::unordered_map<std::int64_t, AoiCell> entity_cells_;
 };
 
-}  // namespace mmo::modules::aoi
+}  // namespace modules::aoi

@@ -7,14 +7,14 @@
 #include "runtime/session/session_store.h"
 #include "runtime/session/ticket_replay_guard.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
 
 void register_gateway_session_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    const mmo::runtime::foundation::ServerConfig& config,
-    mmo::runtime::session::SessionRegistry& sessions,
-    mmo::runtime::session::TicketReplayStore& ticket_replay_guard,
-    mmo::runtime::session::SessionStore& session_store,
-    mmo::runtime::observability::MetricsRegistry& security_metrics);
+    runtime::gateway::GatewayRouter& gateway_router,
+    const runtime::foundation::ServerConfig& config,
+    runtime::session::SessionRegistry& sessions,
+    runtime::session::TicketReplayStore& ticket_replay_guard,
+    runtime::session::SessionStore& session_store,
+    runtime::observability::MetricsRegistry& security_metrics);
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

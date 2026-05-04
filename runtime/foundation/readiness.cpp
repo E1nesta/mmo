@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <utility>
 
-namespace mmo::runtime::foundation {
+namespace runtime::foundation {
 namespace {
 
 class SocketGuard {
@@ -174,4 +174,4 @@ ReadinessResult check_tcp_dependency(
     return last_not_ready;
 }
 
-}  // namespace mmo::runtime::foundation
+}  // namespace runtime::foundation

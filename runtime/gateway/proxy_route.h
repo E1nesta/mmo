@@ -7,14 +7,14 @@
 
 #include "runtime/channel/routing_policy.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 struct ProxyRoute {
     std::string target_service;
     std::string target_message_type;
     bool require_session{true};
-    mmo::runtime::channel::RoutingPolicy routing_policy{
-        mmo::runtime::channel::RoutingPolicy::kUnspecified};
+    runtime::channel::RoutingPolicy routing_policy{
+        runtime::channel::RoutingPolicy::kUnspecified};
     std::string route_key_source;
     std::string target_instance_id;
 };
@@ -30,4 +30,4 @@ private:
     std::unordered_map<std::string, ProxyRoute> routes_;
 };
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

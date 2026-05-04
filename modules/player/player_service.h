@@ -8,7 +8,7 @@
 
 #include "modules/player/player_types.h"
 
-namespace mmo::modules::player {
+namespace modules::player {
 
 class PlayerRepository;
 
@@ -30,4 +30,4 @@ private:
     std::set<std::string> reward_ledger_;
 };
 
-}  // namespace mmo::modules::player
+}  // namespace modules::player

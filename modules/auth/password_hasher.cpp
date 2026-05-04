@@ -7,7 +7,7 @@
 #include <cctype>
 #include <string>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 namespace {
 
 constexpr int kPasswordHashBytes = 32;
@@ -134,4 +134,4 @@ bool PasswordHasher::verify_password(
     return timing_safe_equal(actual.hash_hex, lowercase_hex(expected.hash_hex));
 }
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

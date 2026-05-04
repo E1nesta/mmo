@@ -2,7 +2,7 @@
 
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 class TcpEnvelopeClient : public EnvelopeClient {
 public:
@@ -16,4 +16,4 @@ private:
     TransportOptions options_;
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

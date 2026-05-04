@@ -5,10 +5,10 @@
 #include <optional>
 #include <utility>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 ChannelConnectionPoolOptions make_channel_connection_pool_options(
-    const mmo::runtime::foundation::ChannelConfig& config) {
+    const runtime::foundation::ChannelConfig& config) {
     ChannelConnectionPoolOptions options;
     options.connect_timeout_millis = config.connect_timeout_millis;
     options.request_timeout_millis = config.request_timeout_millis;
@@ -25,7 +25,7 @@ ChannelConnectionPoolOptions make_channel_connection_pool_options(
 
 ChannelConnectionPool::ChannelConnectionPool(
     std::shared_ptr<EndpointResolver> resolver,
-    mmo::runtime::transport::TransportOptions transport_options,
+    runtime::transport::TransportOptions transport_options,
     ChannelConnectionPoolOptions options)
     : resolver_(std::move(resolver)),
       transport_options_(transport_options),
@@ -40,7 +40,7 @@ ChannelConnectionPool::ChannelConnectionPool(
 
 ChannelConnectionPool::ChannelConnectionPool(
     std::shared_ptr<ServiceRegistry> service_registry,
-    mmo::runtime::transport::TransportOptions transport_options,
+    runtime::transport::TransportOptions transport_options,
     ChannelConnectionPoolOptions options)
     : service_registry_(std::move(service_registry)),
       transport_options_(transport_options),
@@ -322,4 +322,4 @@ bool ChannelConnectionPool::should_mark_unhealthy(ChannelErrorCode code) {
     return false;
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mmo::modules::combat {
+namespace modules::combat {
 
 CombatResult CombatService::cast_single_skill(
     const AttributeSet& attacker,
@@ -15,4 +15,4 @@ CombatResult CombatService::cast_single_skill(
     return result;
 }
 
-}  // namespace mmo::modules::combat
+}  // namespace modules::combat

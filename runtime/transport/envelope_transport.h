@@ -8,7 +8,7 @@
 #include "common/envelope.pb.h"
 #include "runtime/foundation/server_config.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 inline constexpr std::uint32_t kDefaultMaxEnvelopePayloadBytes = 1024 * 1024;
 inline constexpr int kDefaultTransportTimeoutMillis = 3000;
@@ -28,14 +28,14 @@ struct TransportEndpoint {
 };
 
 TransportOptions make_transport_options(
-    const mmo::runtime::foundation::TcpTransportConfig& config);
+    const runtime::foundation::TcpTransportConfig& config);
 
 TransportOptions make_transport_options(
-    const mmo::runtime::foundation::TcpTransportConfig& config,
-    const mmo::runtime::foundation::ExecutionConfig& execution_config);
+    const runtime::foundation::TcpTransportConfig& config,
+    const runtime::foundation::ExecutionConfig& execution_config);
 
 TransportEndpoint make_transport_endpoint(
-    const mmo::runtime::foundation::ServiceConfig& config);
+    const runtime::foundation::ServiceConfig& config);
 
 using EnvelopeHandler =
     std::function<mmo::common::Envelope(const mmo::common::Envelope&)>;
@@ -56,4 +56,4 @@ public:
         const mmo::common::Envelope& request) = 0;
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

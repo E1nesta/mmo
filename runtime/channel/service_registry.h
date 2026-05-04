@@ -11,7 +11,7 @@
 #include "runtime/foundation/server_config.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 enum class ServiceInstanceState {
     kHealthy = 0,
@@ -25,7 +25,7 @@ std::string service_instance_state_name(ServiceInstanceState state);
 struct ServiceInstance {
     std::string service_name;
     std::string instance_id;
-    mmo::runtime::transport::TransportEndpoint endpoint;
+    runtime::transport::TransportEndpoint endpoint;
     std::uint16_t udp_kcp_port{};
     std::string zone;
     int weight{100};
@@ -56,7 +56,7 @@ public:
 class StaticServiceRegistry final : public ServiceRegistry {
 public:
     explicit StaticServiceRegistry(
-        const mmo::runtime::foundation::ServerConfig& config);
+        const runtime::foundation::ServerConfig& config);
     explicit StaticServiceRegistry(std::vector<ServiceInstance> instances);
 
     std::vector<ServiceInstance> list_instances(
@@ -90,4 +90,4 @@ private:
     std::unordered_map<std::string, HealthOverride> health_overrides_;
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

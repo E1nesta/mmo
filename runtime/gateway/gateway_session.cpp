@@ -1,10 +1,10 @@
 #include "runtime/gateway/gateway_session.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
-mmo::runtime::protocol::AuthTokenOptions make_gateway_token_options(
-    const mmo::runtime::foundation::GatewayTicketConfig& config) {
-    mmo::runtime::protocol::AuthTokenOptions options;
+runtime::protocol::AuthTokenOptions make_gateway_token_options(
+    const runtime::foundation::GatewayTicketConfig& config) {
+    runtime::protocol::AuthTokenOptions options;
     options.issuer = config.issuer;
     options.access_audience = config.access_audience;
     options.gateway_audience = config.gateway_audience;
@@ -17,9 +17,9 @@ mmo::runtime::protocol::AuthTokenOptions make_gateway_token_options(
 }
 
 bool issue_reconnect_ticket(
-    const mmo::runtime::foundation::ServerConfig& config,
-    mmo::runtime::session::SessionStore& session_store,
-    const mmo::runtime::session::ConnectionBinding& binding,
+    const runtime::foundation::ServerConfig& config,
+    runtime::session::SessionStore& session_store,
+    const runtime::session::ConnectionBinding& binding,
     std::uint64_t now_millis,
     std::string* reconnect_ticket,
     std::int64_t* reconnect_ticket_expires_at,
@@ -30,8 +30,8 @@ bool issue_reconnect_ticket(
         }
         return false;
     }
-    if (!mmo::runtime::protocol::issue_auth_token(
-            mmo::runtime::protocol::AuthTokenPurpose::kReconnect,
+    if (!runtime::protocol::issue_auth_token(
+            runtime::protocol::AuthTokenPurpose::kReconnect,
             binding.account_id,
             binding.player_id,
             binding.session_token,
@@ -44,10 +44,10 @@ bool issue_reconnect_ticket(
         return false;
     }
 
-    mmo::runtime::protocol::AuthTokenClaims claims;
-    if (!mmo::runtime::protocol::validate_auth_token(
+    runtime::protocol::AuthTokenClaims claims;
+    if (!runtime::protocol::validate_auth_token(
             *reconnect_ticket,
-            mmo::runtime::protocol::AuthTokenPurpose::kReconnect,
+            runtime::protocol::AuthTokenPurpose::kReconnect,
             config.security.gateway_ticket.gateway_audience,
             make_gateway_token_options(config.security.gateway_ticket),
             static_cast<std::int64_t>(now_millis),
@@ -56,7 +56,7 @@ bool issue_reconnect_ticket(
         return false;
     }
 
-    mmo::runtime::session::ReconnectTicket redis_ticket;
+    runtime::session::ReconnectTicket redis_ticket;
     redis_ticket.account_id = binding.account_id;
     redis_ticket.connection_id = binding.connection_id;
     redis_ticket.game_session_id = binding.game_session_id;
@@ -70,4 +70,4 @@ bool issue_reconnect_ticket(
         claims.jti, redis_ticket, now_millis, error_message);
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

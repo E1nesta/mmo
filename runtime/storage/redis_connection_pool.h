@@ -9,7 +9,7 @@
 
 #include "runtime/storage/redis_client.h"
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 class RedisConnectionPool {
 public:
@@ -39,4 +39,4 @@ private:
     bool closing_{};
 };
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

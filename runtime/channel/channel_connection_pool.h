@@ -12,7 +12,7 @@
 #include "runtime/channel/service_registry.h"
 #include "runtime/foundation/server_config.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 struct ChannelConnectionPoolOptions {
     int connect_timeout_millis{};
@@ -23,17 +23,17 @@ struct ChannelConnectionPoolOptions {
 };
 
 ChannelConnectionPoolOptions make_channel_connection_pool_options(
-    const mmo::runtime::foundation::ChannelConfig& config);
+    const runtime::foundation::ChannelConfig& config);
 
 class ChannelConnectionPool {
 public:
     ChannelConnectionPool(
         std::shared_ptr<EndpointResolver> resolver,
-        mmo::runtime::transport::TransportOptions transport_options,
+        runtime::transport::TransportOptions transport_options,
         ChannelConnectionPoolOptions options);
     ChannelConnectionPool(
         std::shared_ptr<ServiceRegistry> service_registry,
-        mmo::runtime::transport::TransportOptions transport_options,
+        runtime::transport::TransportOptions transport_options,
         ChannelConnectionPoolOptions options);
 
     ChannelResult call(
@@ -73,7 +73,7 @@ private:
 
     std::shared_ptr<EndpointResolver> resolver_;
     std::shared_ptr<ServiceRegistry> service_registry_;
-    mmo::runtime::transport::TransportOptions transport_options_;
+    runtime::transport::TransportOptions transport_options_;
     ChannelConnectionPoolOptions options_;
     mutable std::mutex mutex_;
     std::unordered_map<std::string, ChannelList> channels_;
@@ -81,4 +81,4 @@ private:
     ServiceInstanceSelector selector_;
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

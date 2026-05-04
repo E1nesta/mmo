@@ -8,19 +8,23 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "apps/protocol/message_types.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
+
+namespace app_proto = apps::protocol;
+namespace gateway = runtime::gateway;
+namespace protocol = runtime::protocol;
 
 void register_gateway_auth_proxy_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    mmo::runtime::gateway::ProxyContext& context) {
-    mmo::runtime::gateway::ProxyMapper<
+    gateway::GatewayRouter& gateway_router,
+    gateway::ProxyContext& context) {
+    gateway::ProxyMapper<
         mmo::public_api::LoginRequest,
         mmo::internal_api::GatewayAuthLoginRequest,
         mmo::internal_api::GatewayAuthLoginResponse,
         mmo::public_api::LoginResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::apps::protocol::kLoginResponse;
+        app_proto::kLoginResponse;
     mapper.invalid_public_request_message = "invalid login request";
     mapper.invalid_internal_response_message = "invalid auth response";
     mapper.map_request = [](const mmo::public_api::LoginRequest& request) {
@@ -37,7 +41,7 @@ void register_gateway_auth_proxy_handlers(
                                   internal_response) {
         mmo::public_api::LoginResponse response;
         *response.mutable_context() =
-            mmo::runtime::protocol::make_ok_context(request.context());
+            protocol::make_ok_context(request.context());
         response.set_account_id(internal_response.account_id());
         response.set_player_id(internal_response.player_id());
         response.set_session_token(internal_response.session_token());
@@ -52,15 +56,15 @@ void register_gateway_auth_proxy_handlers(
         return response;
     };
 
-    mmo::runtime::gateway::bind_proxy_handler<
+    gateway::bind_proxy_handler<
         mmo::public_api::LoginRequest,
         mmo::internal_api::GatewayAuthLoginRequest,
         mmo::internal_api::GatewayAuthLoginResponse,
         mmo::public_api::LoginResponse>(
         gateway_router,
-        mmo::apps::protocol::kLoginRequest,
+        app_proto::kLoginRequest,
         context,
         std::move(mapper));
 }
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

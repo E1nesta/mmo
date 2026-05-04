@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 namespace {
 
 std::string optional_env_value(const std::string& name) {
@@ -33,7 +33,7 @@ std::string required_env_value(
 }  // namespace
 
 MysqlConfig make_mysql_config_with_environment(
-    const mmo::runtime::foundation::MysqlConfig& config,
+    const runtime::foundation::MysqlConfig& config,
     const std::string& environment) {
     MysqlConfig output;
     output.host = config.host;
@@ -48,12 +48,12 @@ MysqlConfig make_mysql_config_with_environment(
 }
 
 MysqlConfig make_mysql_config(
-    const mmo::runtime::foundation::MysqlConfig& config) {
+    const runtime::foundation::MysqlConfig& config) {
     return make_mysql_config_with_environment(config, {});
 }
 
 RedisConfig make_redis_config(
-    const mmo::runtime::foundation::RedisConfig& config) {
+    const runtime::foundation::RedisConfig& config) {
     RedisConfig output;
     output.host = config.host;
     output.port = config.port;
@@ -63,7 +63,7 @@ RedisConfig make_redis_config(
 }
 
 bool initialize_mysql_pool(
-    const mmo::runtime::foundation::ServerConfig& config,
+    const runtime::foundation::ServerConfig& config,
     std::shared_ptr<MysqlConnectionPool>* pool,
     std::string* error_message) {
     if (pool == nullptr) {
@@ -91,7 +91,7 @@ bool initialize_mysql_pool(
 }
 
 bool initialize_redis_pool(
-    const mmo::runtime::foundation::ServerConfig& config,
+    const runtime::foundation::ServerConfig& config,
     std::shared_ptr<RedisConnectionPool>* pool,
     std::string* error_message) {
     if (pool == nullptr) {
@@ -117,4 +117,4 @@ bool initialize_redis_pool(
     }
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

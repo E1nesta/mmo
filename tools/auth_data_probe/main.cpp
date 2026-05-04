@@ -12,7 +12,7 @@
 
 namespace {
 
-void expect_login_failure(const mmo::modules::auth::LoginResult& result) {
+void expect_login_failure(const modules::auth::LoginResult& result) {
     assert(!result.success);
     assert(result.error_code == 401);
     assert(result.error_message == "login authentication failed");
@@ -24,9 +24,9 @@ void expect_login_failure(const mmo::modules::auth::LoginResult& result) {
 }  // namespace
 
 int main() {
-    mmo::modules::auth::PasswordHash password_hash;
+    modules::auth::PasswordHash password_hash;
     std::string error;
-    assert(mmo::modules::auth::PasswordHasher::hash_password(
+    assert(modules::auth::PasswordHasher::hash_password(
         "demo_password",
         "00112233445566778899aabbccddeeff",
         10000,
@@ -34,22 +34,22 @@ int main() {
         &error));
     assert(password_hash.hash_hex ==
            "d8209a2c86e5d177389cbd88d1e7d836a98301af8e320d197249a4bb8012861b");
-    assert(mmo::modules::auth::PasswordHasher::verify_password(
+    assert(modules::auth::PasswordHasher::verify_password(
         "demo_password", password_hash));
-    assert(!mmo::modules::auth::PasswordHasher::verify_password(
+    assert(!modules::auth::PasswordHasher::verify_password(
         "wrong_password", password_hash));
 
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
-    assert(mmo::runtime::storage::initialize_mysql_pool(
+    const auto config = runtime::foundation::load_server_config_from_env();
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> mysql_pool;
+    assert(runtime::storage::initialize_mysql_pool(
         config, &mysql_pool, &error));
 
     auto accounts =
-        std::make_shared<mmo::modules::auth::MysqlAccountRepository>(mysql_pool);
+        std::make_shared<modules::auth::MysqlAccountRepository>(mysql_pool);
     auto identities =
-        std::make_shared<mmo::modules::auth::MysqlPlayerIdentityRepository>(
+        std::make_shared<modules::auth::MysqlPlayerIdentityRepository>(
             mysql_pool);
-    mmo::modules::auth::AuthService service(accounts, identities);
+    modules::auth::AuthService service(accounts, identities);
 
     const auto ok =
         service.login("demo_player", "demo_password", "auth-data-probe");

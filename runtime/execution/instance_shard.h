@@ -5,7 +5,7 @@
 
 #include "runtime/execution/sharded_executor.h"
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 class InstanceShard {
 public:
@@ -19,4 +19,4 @@ private:
     std::shared_ptr<ShardedExecutor> executor_;
 };
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

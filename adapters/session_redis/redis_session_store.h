@@ -8,16 +8,16 @@
 #include "runtime/session/session_store.h"
 #include "runtime/storage/redis_connection_pool.h"
 
-namespace mmo::adapters::session_redis {
+namespace adapters::session_redis {
 
-using ConnectionBinding = mmo::runtime::session::ConnectionBinding;
-using OnlineBinding = mmo::runtime::session::OnlineBinding;
-using ReconnectTicket = mmo::runtime::session::ReconnectTicket;
+using ConnectionBinding = runtime::session::ConnectionBinding;
+using OnlineBinding = runtime::session::OnlineBinding;
+using ReconnectTicket = runtime::session::ReconnectTicket;
 
-class RedisSessionStore final : public mmo::runtime::session::SessionStore {
+class RedisSessionStore final : public runtime::session::SessionStore {
 public:
     explicit RedisSessionStore(
-        std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool);
+        std::shared_ptr<runtime::storage::RedisConnectionPool> pool);
 
     bool save_binding(
         const ConnectionBinding& binding,
@@ -52,7 +52,7 @@ private:
         const std::string& game_session_id,
         std::string* error_message) const;
 
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool_;
+    std::shared_ptr<runtime::storage::RedisConnectionPool> pool_;
 };
 
-}  // namespace mmo::adapters::session_redis
+}  // namespace adapters::session_redis

@@ -6,16 +6,20 @@
 #include "apps/game_gateway_server/gateway_social_proxy_handlers.h"
 #include "apps/game_gateway_server/gateway_world_proxy_handlers.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
+
+namespace gateway = runtime::gateway;
+namespace observability = runtime::observability;
+namespace session = runtime::session;
 
 void register_gateway_proxy_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    mmo::runtime::gateway::GatewayForwarder& forwarder,
-    const mmo::runtime::gateway::ProxyRouteTable& route_table,
-    mmo::runtime::session::SessionRegistry& sessions,
-    mmo::runtime::session::SessionStore& session_store,
-    mmo::runtime::observability::MetricsRegistry& security_metrics) {
-    mmo::runtime::gateway::ProxyContext context{
+    gateway::GatewayRouter& gateway_router,
+    gateway::GatewayForwarder& forwarder,
+    const gateway::ProxyRouteTable& route_table,
+    session::SessionRegistry& sessions,
+    session::SessionStore& session_store,
+    observability::MetricsRegistry& security_metrics) {
+    gateway::ProxyContext context{
         forwarder,
         route_table,
         sessions,
@@ -28,4 +32,4 @@ void register_gateway_proxy_handlers(
     register_gateway_social_proxy_handlers(gateway_router, context);
 }
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

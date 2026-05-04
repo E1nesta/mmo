@@ -5,7 +5,7 @@
 
 #include "common/envelope.pb.h"
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 
 std::int64_t current_time_millis();
 
@@ -35,4 +35,4 @@ bool validate_internal_envelope_now(
     std::int64_t max_clock_skew_millis,
     std::string* error_message);
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

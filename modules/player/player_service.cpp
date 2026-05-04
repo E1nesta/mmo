@@ -4,7 +4,7 @@
 
 #include <utility>
 
-namespace mmo::modules::player {
+namespace modules::player {
 
 PlayerService::PlayerService(std::shared_ptr<PlayerRepository> repository)
     : repository_(std::move(repository)) {}
@@ -63,4 +63,4 @@ PlayerProfile& PlayerService::profile_for(std::int64_t player_id) {
     return profiles_.back();
 }
 
-}  // namespace mmo::modules::player
+}  // namespace modules::player

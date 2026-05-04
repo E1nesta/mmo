@@ -1,12 +1,12 @@
 #include "runtime/gateway/proxy_context.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
-mmo::runtime::channel::ChannelCallOptions make_proxy_call_options(
+runtime::channel::ChannelCallOptions make_proxy_call_options(
     const ProxyRoute& route,
     const mmo::common::RequestContext& context,
     const std::string& route_key) {
-    mmo::runtime::channel::ChannelCallOptions options;
+    runtime::channel::ChannelCallOptions options;
     options.routing_policy = route.routing_policy;
     options.target_instance_id = route.target_instance_id;
     if (!route_key.empty()) {
@@ -19,4 +19,4 @@ mmo::runtime::channel::ChannelCallOptions make_proxy_call_options(
     return options;
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

@@ -11,7 +11,7 @@
 #include <thread>
 #include <vector>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 inline constexpr std::size_t kDefaultMaxQueueDepthPerShard = 1024;
 
@@ -59,4 +59,4 @@ private:
     std::atomic<bool> stopped_{};
 };
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

@@ -15,27 +15,27 @@
 #include "runtime/gateway/proxy_result.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 class GatewayForwarder {
 public:
     GatewayForwarder(
         std::string source_service,
-        mmo::runtime::channel::ChannelClient& channel_client);
+        runtime::channel::ChannelClient& channel_client);
     GatewayForwarder(
         std::string source_service,
-        std::shared_ptr<mmo::runtime::channel::EndpointResolver> resolver,
-        mmo::runtime::transport::TransportOptions transport_options,
-        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options);
+        std::shared_ptr<runtime::channel::EndpointResolver> resolver,
+        runtime::transport::TransportOptions transport_options,
+        runtime::channel::ChannelConnectionPoolOptions pool_options);
     GatewayForwarder(
         std::string source_service,
-        std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
-        mmo::runtime::transport::TransportOptions transport_options,
-        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options);
+        std::shared_ptr<runtime::channel::ServiceRegistry> service_registry,
+        runtime::transport::TransportOptions transport_options,
+        runtime::channel::ChannelConnectionPoolOptions pool_options);
     GatewayForwarder(
         std::string source_service,
-        const mmo::runtime::foundation::ServerConfig& config,
-        mmo::runtime::transport::TransportOptions transport_options);
+        const runtime::foundation::ServerConfig& config,
+        runtime::transport::TransportOptions transport_options);
     GatewayForwarder(const GatewayForwarder&) = delete;
     GatewayForwarder& operator=(const GatewayForwarder&) = delete;
     GatewayForwarder(GatewayForwarder&&) = delete;
@@ -52,7 +52,7 @@ public:
             target_message_type,
             context,
             request,
-            mmo::runtime::channel::ChannelCallOptions{});
+            runtime::channel::ChannelCallOptions{});
     }
 
     template <typename Request>
@@ -61,8 +61,8 @@ public:
         const std::string& target_message_type,
         const mmo::common::RequestContext& context,
         const Request& request,
-        mmo::runtime::channel::ChannelCallOptions options) {
-        auto envelope = mmo::runtime::protocol::pack_message(
+        runtime::channel::ChannelCallOptions options) {
+        auto envelope = runtime::protocol::pack_message(
             target_message_type, context, request);
         return forward_envelope(target_service, envelope, std::move(options));
     }
@@ -70,13 +70,13 @@ public:
     ProxyResult forward_envelope(
         const std::string& target_service,
         const mmo::common::Envelope& envelope,
-        mmo::runtime::channel::ChannelCallOptions options = {});
+        runtime::channel::ChannelCallOptions options = {});
 
 private:
     std::string source_service_;
     std::string internal_auth_shared_secret_;
-    std::unique_ptr<mmo::runtime::channel::ChannelClient> owned_channel_client_;
-    mmo::runtime::channel::ChannelClient* channel_client_{};
+    std::unique_ptr<runtime::channel::ChannelClient> owned_channel_client_;
+    runtime::channel::ChannelClient* channel_client_{};
 };
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

@@ -14,8 +14,17 @@ if rg -n '#include "modules/' runtime >/tmp/mmo_runtime_module_includes.txt; the
     fail "runtime must not include modules"
 fi
 
+root_namespace_refs="$(
+    rg -n 'mmo::(runtime|apps|modules|adapters)' \
+        apps runtime modules adapters tools CMakeLists.txt || true
+)"
+if [[ -n "${root_namespace_refs}" ]]; then
+    printf '%s\n' "${root_namespace_refs}" >&2
+    fail "hand-written namespaces must not use the old mmo root prefix"
+fi
+
 runtime_app_protocol_refs="$(
-    rg -n '#include "apps/protocol/message_types\.h"|mmo::apps::protocol::k' \
+    rg -n '#include "apps/protocol/message_types\.h"|apps::protocol::k' \
         runtime || true
 )"
 if [[ -n "${runtime_app_protocol_refs}" ]]; then
@@ -32,7 +41,7 @@ if [[ -n "${runtime_protocol_business_catalog}" ]]; then
 fi
 
 legacy_framework_refs="$(
-    rg -n 'runtime/routing|mmo::runtime::routing|runtime/rpc/rpc_server_app|runtime/foundation/server_app|runtime_routing|\bForwardResult\b|\bRouteTarget\b|\bRouteTable\b' \
+    rg -n 'runtime/routing|runtime::routing|runtime/rpc/rpc_server_app|runtime/foundation/server_app|runtime_routing|\bForwardResult\b|\bRouteTarget\b|\bRouteTable\b' \
         apps runtime modules tools CMakeLists.txt || true
 )"
 if [[ -n "${legacy_framework_refs}" ]]; then

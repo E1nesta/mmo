@@ -3,65 +3,65 @@
 #include "runtime/channel/routing_policy.h"
 #include "apps/protocol/message_types.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
 
-mmo::runtime::gateway::ProxyRouteTable make_gateway_route_table() {
-    mmo::runtime::gateway::ProxyRouteTable route_table;
+runtime::gateway::ProxyRouteTable make_gateway_route_table() {
+    runtime::gateway::ProxyRouteTable route_table;
     route_table.add(
-        mmo::apps::protocol::kLoginRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kLoginRequest,
+        runtime::gateway::ProxyRoute{
             "auth_server",
-            mmo::apps::protocol::kGatewayAuthLoginRequest,
+            apps::protocol::kGatewayAuthLoginRequest,
             false,
-            mmo::runtime::channel::RoutingPolicy::kLeastPending,
+            runtime::channel::RoutingPolicy::kLeastPending,
             "",
             ""});
     route_table.add(
-        mmo::apps::protocol::kEnterWorldRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kEnterWorldRequest,
+        runtime::gateway::ProxyRoute{
             "world_server",
-            mmo::apps::protocol::kGatewayEnterWorldRequest,
+            apps::protocol::kGatewayEnterWorldRequest,
             true,
-            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            runtime::channel::RoutingPolicy::kStickyPlayer,
             "player_id",
             ""});
     route_table.add(
-        mmo::apps::protocol::kEnterInstanceRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kEnterInstanceRequest,
+        runtime::gateway::ProxyRoute{
             "instance_server",
-            mmo::apps::protocol::kGatewayEnterInstanceRequest,
+            apps::protocol::kGatewayEnterInstanceRequest,
             true,
-            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            runtime::channel::RoutingPolicy::kStickyPlayer,
             "player_id",
             ""});
     route_table.add(
-        mmo::apps::protocol::kSettleInstanceRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kSettleInstanceRequest,
+        runtime::gateway::ProxyRoute{
             "instance_server",
-            mmo::apps::protocol::kGatewaySettleInstanceRequest,
+            apps::protocol::kGatewaySettleInstanceRequest,
             true,
-            mmo::runtime::channel::RoutingPolicy::kStickyInstance,
+            runtime::channel::RoutingPolicy::kStickyInstance,
             "",
             ""});
     route_table.add(
-        mmo::apps::protocol::kApplyRewardRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kApplyRewardRequest,
+        runtime::gateway::ProxyRoute{
             "player_server",
-            mmo::apps::protocol::kGatewayApplyRewardRequest,
+            apps::protocol::kGatewayApplyRewardRequest,
             true,
-            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            runtime::channel::RoutingPolicy::kStickyPlayer,
             "player_id",
             ""});
     route_table.add(
-        mmo::apps::protocol::kSocialBoundaryRequest,
-        mmo::runtime::gateway::ProxyRoute{
+        apps::protocol::kSocialBoundaryRequest,
+        runtime::gateway::ProxyRoute{
             "social_server",
-            mmo::apps::protocol::kGatewaySocialBoundaryRequest,
+            apps::protocol::kGatewaySocialBoundaryRequest,
             true,
-            mmo::runtime::channel::RoutingPolicy::kStickyPlayer,
+            runtime::channel::RoutingPolicy::kStickyPlayer,
             "player_id",
             ""});
     return route_table;
 }
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

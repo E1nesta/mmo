@@ -7,7 +7,7 @@
 #include "common/context.pb.h"
 #include "common/envelope.pb.h"
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 
 inline constexpr const char* kErrorResponse = "common.ResponseContext";
 
@@ -45,4 +45,4 @@ bool unpack_message(const mmo::common::Envelope& envelope, Message& message) {
     return message.ParseFromString(envelope.payload());
 }
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

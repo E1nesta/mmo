@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 namespace {
 
 constexpr const char* kTokenVersion = "v1";
@@ -386,4 +386,4 @@ bool validate_auth_token(
     return true;
 }
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

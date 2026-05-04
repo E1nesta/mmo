@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace mmo::modules::player {
+namespace modules::player {
 
 struct Reward {
     std::string type;
@@ -33,4 +33,4 @@ struct RewardLedgerRecord {
     std::int64_t exp{};
 };
 
-}  // namespace mmo::modules::player
+}  // namespace modules::player

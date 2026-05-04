@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mmo::modules::combat {
+namespace modules::combat {
 
 struct AttributeSet {
     std::int64_t hp{};
@@ -23,4 +23,4 @@ public:
         int skill_power) const;
 };
 
-}  // namespace mmo::modules::combat
+}  // namespace modules::combat

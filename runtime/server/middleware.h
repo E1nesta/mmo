@@ -6,7 +6,7 @@
 
 #include "runtime/server/service_context.h"
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 struct MiddlewareResult {
     static MiddlewareResult allow() {
@@ -30,4 +30,4 @@ struct MiddlewareResult {
 
 using Middleware = std::function<MiddlewareResult(const ServiceContext&)>;
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

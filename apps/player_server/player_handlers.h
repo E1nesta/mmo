@@ -3,10 +3,10 @@
 #include "modules/player/player_service.h"
 #include "runtime/rpc/rpc_server.h"
 
-namespace mmo::apps::player_server {
+namespace apps::player_server {
 
 void register_player_handlers(
-    mmo::runtime::rpc::RpcServer& rpc_server,
-    mmo::modules::player::PlayerService& service);
+    runtime::rpc::RpcServer& rpc_server,
+    modules::player::PlayerService& service);
 
-}  // namespace mmo::apps::player_server
+}  // namespace apps::player_server

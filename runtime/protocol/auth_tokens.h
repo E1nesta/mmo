@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 
 enum class AuthTokenPurpose {
     kAccess,
@@ -57,4 +57,4 @@ bool validate_auth_token(
     AuthTokenClaims* claims,
     std::string* error_message);
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

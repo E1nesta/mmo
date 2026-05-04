@@ -8,7 +8,7 @@
 
 #include <boost/asio.hpp>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 class IOContextPool {
 public:
@@ -36,4 +36,4 @@ private:
     std::atomic<bool> started_{};
 };
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

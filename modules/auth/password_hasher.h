@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 
 struct PasswordHash {
     std::string hash_hex;
@@ -24,4 +24,4 @@ public:
         const PasswordHash& expected);
 };
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

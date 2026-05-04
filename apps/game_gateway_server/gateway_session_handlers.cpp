@@ -4,16 +4,20 @@
 #include "apps/game_gateway_server/gateway_ping_handler.h"
 #include "apps/game_gateway_server/gateway_reconnect_handler.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
+
+namespace gateway = runtime::gateway;
+namespace observability = runtime::observability;
+namespace session = runtime::session;
 
 void register_gateway_session_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    const mmo::runtime::foundation::ServerConfig& config,
-    mmo::runtime::session::SessionRegistry& sessions,
-    mmo::runtime::session::TicketReplayStore& ticket_replay_guard,
-    mmo::runtime::session::SessionStore& session_store,
-    mmo::runtime::observability::MetricsRegistry& security_metrics) {
-    mmo::runtime::gateway::GatewaySessionContext context{
+    gateway::GatewayRouter& gateway_router,
+    const runtime::foundation::ServerConfig& config,
+    session::SessionRegistry& sessions,
+    session::TicketReplayStore& ticket_replay_guard,
+    session::SessionStore& session_store,
+    observability::MetricsRegistry& security_metrics) {
+    gateway::GatewaySessionContext context{
         config,
         sessions,
         ticket_replay_guard,
@@ -24,4 +28,4 @@ void register_gateway_session_handlers(
     register_gateway_ping_handler(gateway_router, context);
 }
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

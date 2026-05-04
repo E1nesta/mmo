@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 
 struct PlayerIdentity {
     std::int64_t account_id{};
@@ -20,4 +20,4 @@ public:
         std::string* error_message) = 0;
 };
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

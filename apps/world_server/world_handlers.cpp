@@ -14,10 +14,17 @@
 #include "runtime/server/handler_result.h"
 #include "runtime/server/typed_handler.h"
 
-namespace mmo::apps::world_server {
+namespace apps::world_server {
+
+namespace app_proto = apps::protocol;
+namespace channel = runtime::channel;
+namespace protocol = runtime::protocol;
+namespace rpc = runtime::rpc;
+namespace server = runtime::server;
+namespace world = modules::world;
 namespace {
 
-mmo::common::SceneRoute to_proto(const mmo::modules::world::SceneRoute& route) {
+mmo::common::SceneRoute to_proto(const world::SceneRoute& route) {
     mmo::common::SceneRoute proto;
     proto.set_map_id(route.map_id);
     proto.set_line_id(route.line_id);
@@ -28,20 +35,20 @@ mmo::common::SceneRoute to_proto(const mmo::modules::world::SceneRoute& route) {
 }  // namespace
 
 void register_world_handlers(
-    mmo::runtime::rpc::RpcServer& rpc_server,
-    mmo::modules::world::WorldService& service,
-    mmo::runtime::rpc::RpcClient& rpc_client,
+    rpc::RpcServer& rpc_server,
+    world::WorldService& service,
+    rpc::RpcClient& rpc_client,
     const std::string& service_name) {
-    mmo::runtime::server::bind_typed_handler<
+    server::bind_typed_handler<
         mmo::internal_api::GatewayEnterWorldRequest,
         mmo::internal_api::GatewayEnterWorldResponse>(
         rpc_server,
-        mmo::apps::protocol::kGatewayEnterWorldRequest,
-        mmo::apps::protocol::kGatewayEnterWorldResponse,
+        app_proto::kGatewayEnterWorldRequest,
+        app_proto::kGatewayEnterWorldResponse,
         service_name,
         [&service, &rpc_client](
             const mmo::internal_api::GatewayEnterWorldRequest& request,
-            const mmo::runtime::server::ServiceContext& context) {
+            const server::ServiceContext& context) {
             const auto route = service.enter_world(
                 request.context().player_id(),
                 request.preferred_map_id(),
@@ -51,20 +58,20 @@ void register_world_handlers(
             *scene_request.mutable_context() = request.context();
             *scene_request.mutable_route() = to_proto(route);
 
-            mmo::runtime::rpc::RpcController controller;
+            rpc::RpcController controller;
             controller.source_service = context.service_name;
             controller.routing_policy =
-                mmo::runtime::channel::RoutingPolicy::kLeastPending;
+                channel::RoutingPolicy::kLeastPending;
             const auto rpc_result = rpc_client.call(
                 "scene_server",
-                mmo::apps::protocol::kAllocateSceneEntityRequest,
+                app_proto::kAllocateSceneEntityRequest,
                 request.context(),
                 scene_request,
                 controller);
             if (!rpc_result.ok()) {
-                return mmo::runtime::server::HandlerResult<
+                return server::HandlerResult<
                     mmo::internal_api::GatewayEnterWorldResponse>::failure(
-                        mmo::runtime::rpc::rpc_error_to_status_code(
+                        rpc::rpc_error_to_status_code(
                             rpc_result.error().code),
                         rpc_result.error().message.empty()
                             ? "scene rpc failed"
@@ -72,14 +79,14 @@ void register_world_handlers(
             }
 
             mmo::internal_api::AllocateSceneEntityResponse scene_response;
-            if (!mmo::runtime::protocol::unpack_message(
+            if (!protocol::unpack_message(
                     rpc_result.response(), scene_response)) {
-                return mmo::runtime::server::HandlerResult<
+                return server::HandlerResult<
                     mmo::internal_api::GatewayEnterWorldResponse>::failure(
                         502, "invalid scene response");
             }
             if (!scene_response.context().success()) {
-                return mmo::runtime::server::HandlerResult<
+                return server::HandlerResult<
                     mmo::internal_api::GatewayEnterWorldResponse>::failure(
                         scene_response.context().error_code(),
                         scene_response.context().error_message());
@@ -87,15 +94,15 @@ void register_world_handlers(
 
             mmo::internal_api::GatewayEnterWorldResponse response;
             *response.mutable_context() =
-                mmo::runtime::protocol::make_ok_context(request.context());
+                protocol::make_ok_context(request.context());
             *response.mutable_route() = to_proto(route);
             response.set_scene_entity_id(scene_response.entity_id());
             *response.mutable_spawn_position() = scene_response.position();
 
-            return mmo::runtime::server::HandlerResult<
+            return server::HandlerResult<
                 mmo::internal_api::GatewayEnterWorldResponse>::success(
                     std::move(response));
         });
 }
 
-}  // namespace mmo::apps::world_server
+}  // namespace apps::world_server

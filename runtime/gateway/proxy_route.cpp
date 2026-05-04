@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 void ProxyRouteTable::add(std::string client_message_type, ProxyRoute target) {
     routes_[std::move(client_message_type)] = std::move(target);
@@ -25,4 +25,4 @@ std::size_t ProxyRouteTable::size() const {
     return routes_.size();
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

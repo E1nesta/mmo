@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace mmo::runtime::session {
+namespace runtime::session {
 
 struct RequestContext {
     std::uint64_t request_id{};
@@ -108,4 +108,4 @@ private:
     std::unordered_map<std::int64_t, ReconnectTicket> reconnect_tickets_;
 };
 
-}  // namespace mmo::runtime::session
+}  // namespace runtime::session

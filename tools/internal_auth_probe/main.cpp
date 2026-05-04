@@ -40,14 +40,14 @@ bool verify_signature_helpers() {
     request.set_account_name("probe");
     request.set_device_id("probe-device");
 
-    auto envelope = mmo::runtime::protocol::pack_message(
-        mmo::apps::protocol::kLoginRequest,
+    auto envelope = runtime::protocol::pack_message(
+        apps::protocol::kLoginRequest,
         request.context(),
         request);
 
     std::string error_message;
     if (!expect(
-            mmo::runtime::protocol::sign_internal_envelope(
+            runtime::protocol::sign_internal_envelope(
                 &envelope,
                 "game_gateway_server",
                 kNow,
@@ -58,7 +58,7 @@ bool verify_signature_helpers() {
     }
 
     if (!expect(
-            mmo::runtime::protocol::validate_internal_envelope(
+            runtime::protocol::validate_internal_envelope(
                 envelope,
                 kSecret,
                 10000,
@@ -71,7 +71,7 @@ bool verify_signature_helpers() {
     auto tampered = envelope;
     tampered.set_payload(tampered.payload() + "x");
     if (!expect(
-            !mmo::runtime::protocol::validate_internal_envelope(
+            !runtime::protocol::validate_internal_envelope(
                 tampered,
                 kSecret,
                 10000,
@@ -82,7 +82,7 @@ bool verify_signature_helpers() {
     }
 
     if (!expect(
-            !mmo::runtime::protocol::validate_internal_envelope(
+            !runtime::protocol::validate_internal_envelope(
                 envelope,
                 kSecret,
                 10,
@@ -97,25 +97,25 @@ bool verify_signature_helpers() {
 
 template <typename Request>
 bool expect_direct_rejected(
-    mmo::runtime::transport::TcpEnvelopeClient& client,
-    const mmo::runtime::transport::TransportEndpoint& endpoint,
+    runtime::transport::TcpEnvelopeClient& client,
+    const runtime::transport::TransportEndpoint& endpoint,
     const std::string& message_type,
     const mmo::common::RequestContext& context,
     const Request& request,
     const std::string& service_name) {
     const auto request_envelope =
-        mmo::runtime::protocol::pack_message(message_type, context, request);
+        runtime::protocol::pack_message(message_type, context, request);
     const auto response_envelope = client.send(endpoint, request_envelope);
     if (!expect(
             response_envelope.message_type() ==
-                mmo::runtime::protocol::kErrorResponse,
+                runtime::protocol::kErrorResponse,
             "expected direct " + service_name + " request to return error envelope")) {
         return false;
     }
 
     mmo::common::ResponseContext response;
     if (!expect(
-            mmo::runtime::protocol::unpack_message(response_envelope, response),
+            runtime::protocol::unpack_message(response_envelope, response),
             "expected direct " + service_name + " error payload to parse")) {
         return false;
     }
@@ -125,10 +125,10 @@ bool expect_direct_rejected(
 }
 
 bool verify_direct_requests_are_rejected() {
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto config = runtime::foundation::load_server_config_from_env();
     const auto tcp_options =
-        mmo::runtime::transport::make_transport_options(config.transport.tcp);
-    mmo::runtime::transport::TcpEnvelopeClient client(tcp_options);
+        runtime::transport::make_transport_options(config.transport.tcp);
+    runtime::transport::TcpEnvelopeClient client(tcp_options);
 
     mmo::public_api::LoginRequest login_request;
     *login_request.mutable_context() = make_context(100);
@@ -137,9 +137,9 @@ bool verify_direct_requests_are_rejected() {
 
     if (!expect_direct_rejected(
             client,
-            mmo::runtime::transport::make_transport_endpoint(
+            runtime::transport::make_transport_endpoint(
                 config.service("auth_server")),
-            mmo::apps::protocol::kLoginRequest,
+            apps::protocol::kLoginRequest,
             login_request.context(),
             login_request,
             "auth_server")) {
@@ -152,9 +152,9 @@ bool verify_direct_requests_are_rejected() {
 
     return expect_direct_rejected(
         client,
-        mmo::runtime::transport::make_transport_endpoint(
+        runtime::transport::make_transport_endpoint(
             config.service("instance_server")),
-        mmo::apps::protocol::kEnterInstanceRequest,
+        apps::protocol::kEnterInstanceRequest,
         instance_request.context(),
         instance_request,
         "instance_server");

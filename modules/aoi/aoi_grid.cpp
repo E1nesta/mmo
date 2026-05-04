@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace mmo::modules::aoi {
+namespace modules::aoi {
 
 AoiGrid::AoiGrid(float cell_size) : cell_size_(cell_size) {}
 
@@ -54,4 +54,4 @@ std::set<AoiCell> AoiGrid::nearby_cells(const AoiCell& center) const {
     return cells;
 }
 
-}  // namespace mmo::modules::aoi
+}  // namespace modules::aoi

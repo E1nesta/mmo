@@ -2,7 +2,7 @@
 
 #include <limits>
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 std::array<char, EnvelopeCodec::kHeaderBytes> EnvelopeCodec::encode_payload_size(
     std::uint32_t size) {
@@ -96,4 +96,4 @@ bool EnvelopeCodec::parse_payload(
     return true;
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

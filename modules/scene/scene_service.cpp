@@ -1,6 +1,6 @@
 #include "modules/scene/scene_service.h"
 
-namespace mmo::modules::scene {
+namespace modules::scene {
 
 SceneEntity SceneService::enter_scene(std::int64_t player_id, std::int64_t scene_id) {
     SceneEntity entity;
@@ -12,4 +12,4 @@ SceneEntity SceneService::enter_scene(std::int64_t player_id, std::int64_t scene
     return entity;
 }
 
-}  // namespace mmo::modules::scene
+}  // namespace modules::scene

@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 namespace {
 
 constexpr const char* kSchemaMigrationsTableSql =
@@ -209,4 +209,4 @@ SchemaMigrationResult run_schema_migrations(
     return result;
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

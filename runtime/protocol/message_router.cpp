@@ -4,7 +4,7 @@
 
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 
 void MessageRouter::on(std::string message_type, Handler handler) {
     handlers_[std::move(message_type)] = std::move(handler);
@@ -25,4 +25,4 @@ MessageRouter::Handler MessageRouter::handler() const {
     };
 }
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace mmo::modules::movement {
+namespace modules::movement {
 
 bool MovementService::validate(const MoveCommand& command) const {
     const float dx = command.to.x - command.from.x;
@@ -12,4 +12,4 @@ bool MovementService::validate(const MoveCommand& command) const {
     return distance <= command.max_distance;
 }
 
-}  // namespace mmo::modules::movement
+}  // namespace modules::movement

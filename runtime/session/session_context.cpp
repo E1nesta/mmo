@@ -3,7 +3,7 @@
 #include <random>
 #include <sstream>
 
-namespace mmo::runtime::session {
+namespace runtime::session {
 namespace {
 
 std::string make_game_session_id(
@@ -200,4 +200,4 @@ void SessionRegistry::unbind(std::int64_t player_id) {
     bindings_.erase(player_id);
 }
 
-}  // namespace mmo::runtime::session
+}  // namespace runtime::session

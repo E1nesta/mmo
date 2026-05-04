@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 KcpSession::KcpSession(std::uint32_t conversation_id, KcpOutput output, KcpOptions options)
     : conversation_id_(conversation_id), output_(std::move(output)) {
@@ -84,4 +84,4 @@ int KcpSession::output_callback(const char* data, int size, ikcpcb* /*kcp*/, voi
     return session->output_(data, size);
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

@@ -15,34 +15,34 @@
 #include "runtime/transport/tcp_envelope_server.h"
 
 int main() {
-    mmo::runtime::server::ServerApp app("game_gateway_server");
-    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
+    runtime::server::ServerApp app("game_gateway_server");
+    const auto tcp_options = runtime::server::make_server_transport_options(app);
 
-    auto redis_pool = mmo::runtime::server::require_redis_pool(app);
+    auto redis_pool = runtime::server::require_redis_pool(app);
     if (!redis_pool) {
         return 1;
     }
 
-    mmo::runtime::gateway::GatewayForwarder forwarder(
+    runtime::gateway::GatewayForwarder forwarder(
         app.service_name(),
         app.config(),
         tcp_options);
-    auto route_table = mmo::apps::game_gateway_server::make_gateway_route_table();
+    auto route_table = apps::game_gateway_server::make_gateway_route_table();
 
-    mmo::runtime::session::SessionRegistry sessions;
-    mmo::adapters::session_redis::RedisTicketReplayStore ticket_replay_guard(redis_pool);
-    mmo::adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
-    mmo::runtime::observability::MetricsRegistry security_metrics;
-    mmo::runtime::gateway::GatewayRouter gateway_router;
+    runtime::session::SessionRegistry sessions;
+    adapters::session_redis::RedisTicketReplayStore ticket_replay_guard(redis_pool);
+    adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
+    runtime::observability::MetricsRegistry security_metrics;
+    runtime::gateway::GatewayRouter gateway_router;
 
-    mmo::apps::game_gateway_server::register_gateway_proxy_handlers(
+    apps::game_gateway_server::register_gateway_proxy_handlers(
         gateway_router,
         forwarder,
         route_table,
         sessions,
         redis_sessions,
         security_metrics);
-    mmo::apps::game_gateway_server::register_gateway_session_handlers(
+    apps::game_gateway_server::register_gateway_session_handlers(
         gateway_router,
         app.config(),
         sessions,
@@ -50,14 +50,14 @@ int main() {
         redis_sessions,
         security_metrics);
 
-    mmo::runtime::transport::TcpEnvelopeServer server(
+    runtime::transport::TcpEnvelopeServer server(
         app.service_config().tcp_port,
         gateway_router.handler(),
         app.service_name(),
         tcp_options);
 
-    mmo::runtime::observability::log_info(
-        mmo::runtime::observability::LogContext{app.service_name()},
+    runtime::observability::log_info(
+        runtime::observability::LogContext{app.service_name()},
         "service_starting");
     return server.run();
 }

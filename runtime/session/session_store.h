@@ -6,7 +6,7 @@
 
 #include "runtime/session/session_context.h"
 
-namespace mmo::runtime::session {
+namespace runtime::session {
 
 struct OnlineBinding {
     std::int64_t player_id{};
@@ -47,4 +47,4 @@ public:
         std::string* error_message) = 0;
 };
 
-}  // namespace mmo::runtime::session
+}  // namespace runtime::session

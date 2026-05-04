@@ -6,7 +6,7 @@
 
 #include "runtime/transport/kcp_session.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 struct RealtimeMessage {
     std::uint64_t request_id{};
@@ -32,4 +32,4 @@ private:
     std::vector<std::string> accepted_message_types_;
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

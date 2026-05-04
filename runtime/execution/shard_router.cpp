@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 ShardRouter::ShardRouter(ShardTopology topology) : topology_(topology) {
     if (topology_.player_shards == 0 || topology_.scene_shards == 0 ||
@@ -29,4 +29,4 @@ std::size_t ShardRouter::route(std::int64_t key, std::size_t shard_count) {
     return static_cast<std::size_t>(value % shard_count);
 }
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

@@ -4,7 +4,7 @@
 
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 ChannelResult ChannelResult::success(mmo::common::Envelope response) {
     ChannelResult result;
@@ -49,8 +49,8 @@ mmo::common::Envelope ChannelResult::make_error_envelope(
     const auto status_code = channel_error_to_status_code(error_.code);
     const auto message =
         error_.message.empty() ? "channel failed" : error_.message;
-    return mmo::runtime::protocol::make_error_envelope(
+    return runtime::protocol::make_error_envelope(
         request, status_code, message);
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

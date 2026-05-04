@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 namespace {
 
 std::uint64_t stable_hash(const std::string& value) {
@@ -144,4 +144,4 @@ std::string routing_policy_name(RoutingPolicy policy) {
     return "unknown";
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

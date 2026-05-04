@@ -9,7 +9,7 @@
 
 #include "runtime/storage/redis_keys.h"
 
-namespace mmo::adapters::session_redis {
+namespace adapters::session_redis {
 namespace {
 
 std::uint64_t current_time_millis() {
@@ -185,7 +185,7 @@ std::uint64_t ttl_millis_for(
 }  // namespace
 
 RedisSessionStore::RedisSessionStore(
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool)
+    std::shared_ptr<runtime::storage::RedisConnectionPool> pool)
     : pool_(std::move(pool)) {}
 
 bool RedisSessionStore::save_binding(
@@ -212,11 +212,11 @@ bool RedisSessionStore::save_binding(
         old_online->game_session_id != binding.game_session_id) {
         std::string remove_error;
         client->remove(
-            mmo::runtime::storage::game_session_key(old_online->game_session_id),
+            runtime::storage::game_session_key(old_online->game_session_id),
             &remove_error);
     }
     if (!client->set_with_ttl_millis(
-            mmo::runtime::storage::game_session_key(binding.game_session_id),
+            runtime::storage::game_session_key(binding.game_session_id),
             serialize_binding(binding),
             ttl,
             error_message)) {
@@ -227,7 +227,7 @@ bool RedisSessionStore::save_binding(
     online.game_session_id = binding.game_session_id;
     online.gateway_id = binding.gateway_id;
     return client->set_with_ttl_millis(
-        mmo::runtime::storage::online_key(binding.player_id),
+        runtime::storage::online_key(binding.player_id),
         serialize_online(online),
         ttl,
         error_message);
@@ -280,7 +280,7 @@ std::optional<OnlineBinding> RedisSessionStore::find_online(
     }
     const auto client = pool_->acquire();
     const auto value =
-        client->get(mmo::runtime::storage::online_key(player_id), error_message);
+        client->get(runtime::storage::online_key(player_id), error_message);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -307,7 +307,7 @@ bool RedisSessionStore::save_reconnect_ticket(
     }
     const auto client = pool_->acquire();
     return client->set_with_ttl_millis(
-        mmo::runtime::storage::reconnect_ticket_key(ticket_id),
+        runtime::storage::reconnect_ticket_key(ticket_id),
         serialize_reconnect_ticket(ticket),
         ticket.expire_at_millis - now_millis,
         error_message);
@@ -326,7 +326,7 @@ bool RedisSessionStore::consume_reconnect_ticket(
     }
     const auto client = pool_->acquire();
     const auto value = client->get_and_remove(
-        mmo::runtime::storage::reconnect_ticket_key(ticket_id),
+        runtime::storage::reconnect_ticket_key(ticket_id),
         error_message);
     if (!value.has_value()) {
         return false;
@@ -353,7 +353,7 @@ std::optional<ConnectionBinding> RedisSessionStore::load_binding(
     }
     const auto client = pool_->acquire();
     const auto value = client->get(
-        mmo::runtime::storage::game_session_key(game_session_id), error_message);
+        runtime::storage::game_session_key(game_session_id), error_message);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -367,4 +367,4 @@ std::optional<ConnectionBinding> RedisSessionStore::load_binding(
     return binding;
 }
 
-}  // namespace mmo::adapters::session_redis
+}  // namespace adapters::session_redis

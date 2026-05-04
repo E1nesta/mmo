@@ -4,7 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace mmo::runtime::observability {
+namespace runtime::observability {
 
 std::string format_log_line(
     const LogContext& context,
@@ -69,4 +69,4 @@ void log_error(const LogContext& context, const std::string& event) {
     spdlog::error("{}", format_log_line(context, event));
 }
 
-}  // namespace mmo::runtime::observability
+}  // namespace runtime::observability

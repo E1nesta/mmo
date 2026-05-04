@@ -5,7 +5,7 @@
 #include "runtime/server/middleware.h"
 #include "runtime/server/service_context.h"
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 template <typename Request>
 using RequestValidator =
@@ -22,4 +22,4 @@ MiddlewareResult run_request_validator(
     return validator(request, context);
 }
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

@@ -4,10 +4,10 @@
 #include <sstream>
 #include <utility>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 
 MysqlPlayerIdentityRepository::MysqlPlayerIdentityRepository(
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> pool)
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> pool)
     : pool_(std::move(pool)) {}
 
 std::optional<PlayerIdentity>
@@ -46,4 +46,4 @@ MysqlPlayerIdentityRepository::find_primary_by_account_id(
     return identity;
 }
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

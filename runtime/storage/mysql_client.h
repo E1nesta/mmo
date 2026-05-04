@@ -6,7 +6,7 @@
 
 #include <mysql/mysql.h>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 struct MysqlConfig {
     std::string host{"127.0.0.1"};
@@ -42,4 +42,4 @@ private:
     bool connected_{};
 };
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

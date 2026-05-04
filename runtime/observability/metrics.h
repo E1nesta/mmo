@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mmo::runtime::observability {
+namespace runtime::observability {
 
 struct UpstreamInstanceMetrics {
     std::string service;
@@ -155,4 +155,4 @@ private:
     std::unordered_map<std::string, UpstreamInstanceMetrics> upstream_instances_;
 };
 
-}  // namespace mmo::runtime::observability
+}  // namespace runtime::observability

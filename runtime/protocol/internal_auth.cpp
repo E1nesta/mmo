@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <string>
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 namespace {
 
 std::string to_hex(const unsigned char* data, std::size_t size) {
@@ -211,4 +211,4 @@ bool validate_internal_envelope_now(
         error_message);
 }
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

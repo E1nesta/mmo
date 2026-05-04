@@ -2,11 +2,11 @@
 
 #include <utility>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 TcpChannelClient::TcpChannelClient(
     std::shared_ptr<EndpointResolver> resolver,
-    mmo::runtime::transport::TransportOptions transport_options,
+    runtime::transport::TransportOptions transport_options,
     ChannelConnectionPoolOptions pool_options)
     : connection_pool_(
           std::move(resolver),
@@ -15,7 +15,7 @@ TcpChannelClient::TcpChannelClient(
 
 TcpChannelClient::TcpChannelClient(
     std::shared_ptr<ServiceRegistry> service_registry,
-    mmo::runtime::transport::TransportOptions transport_options,
+    runtime::transport::TransportOptions transport_options,
     ChannelConnectionPoolOptions pool_options)
     : connection_pool_(
           std::move(service_registry),
@@ -39,4 +39,4 @@ std::size_t TcpChannelClient::pending_count_total() const {
     return connection_pool_.pending_count_total();
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

@@ -11,19 +11,19 @@
 #include "runtime/session/session_context.h"
 #include "runtime/session/session_store.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 struct ProxyContext {
     GatewayForwarder& forwarder;
     const ProxyRouteTable& route_table;
-    mmo::runtime::session::SessionRegistry& sessions;
-    mmo::runtime::session::SessionStore& session_store;
-    mmo::runtime::observability::MetricsRegistry& security_metrics;
+    runtime::session::SessionRegistry& sessions;
+    runtime::session::SessionStore& session_store;
+    runtime::observability::MetricsRegistry& security_metrics;
 };
 
-mmo::runtime::channel::ChannelCallOptions make_proxy_call_options(
+runtime::channel::ChannelCallOptions make_proxy_call_options(
     const ProxyRoute& route,
     const mmo::common::RequestContext& context,
     const std::string& route_key = {});
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

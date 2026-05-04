@@ -1,6 +1,6 @@
 #pragma once
 
-namespace mmo::modules::movement {
+namespace modules::movement {
 
 struct Position {
     float x{};
@@ -19,4 +19,4 @@ public:
     bool validate(const MoveCommand& command) const;
 };
 
-}  // namespace mmo::modules::movement
+}  // namespace modules::movement

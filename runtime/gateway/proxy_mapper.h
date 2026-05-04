@@ -3,7 +3,7 @@
 #include <functional>
 #include <string>
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 template <
     typename PublicRequest,
@@ -24,4 +24,4 @@ struct ProxyMapper {
     RouteKeyMapper route_key;
 };
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

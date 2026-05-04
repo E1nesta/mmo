@@ -4,13 +4,13 @@
 #include <sstream>
 #include <utility>
 
-namespace mmo::modules::player {
+namespace modules::player {
 namespace {
 
 constexpr unsigned int kMysqlDuplicateKey = 1062;
 
 std::string quote(
-    const mmo::runtime::storage::MysqlClient& client,
+    const runtime::storage::MysqlClient& client,
     const std::string& value) {
     return "'" + client.escape_string(value) + "'";
 }
@@ -33,7 +33,7 @@ RewardDelta sum_rewards(const std::vector<Reward>& rewards) {
 }
 
 std::optional<PlayerProfile> load_profile_with_client(
-    mmo::runtime::storage::MysqlClient& client,
+    runtime::storage::MysqlClient& client,
     std::int64_t player_id,
     std::string* error_message) {
     std::ostringstream sql;
@@ -63,11 +63,11 @@ std::optional<PlayerProfile> load_profile_with_client(
 }  // namespace
 
 MysqlPlayerRepository::MysqlPlayerRepository(
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> pool)
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> pool)
     : pool_(std::move(pool)) {}
 
 MysqlPlayerRepository::MysqlPlayerRepository(
-    std::shared_ptr<mmo::runtime::storage::MysqlClient> client)
+    std::shared_ptr<runtime::storage::MysqlClient> client)
     : client_(std::move(client)) {}
 
 std::optional<PlayerProfile> MysqlPlayerRepository::load_profile(std::int64_t player_id) {
@@ -211,7 +211,7 @@ bool MysqlPlayerRepository::apply_reward_once(
     return true;
 }
 
-std::shared_ptr<mmo::runtime::storage::MysqlClient>
+std::shared_ptr<runtime::storage::MysqlClient>
 MysqlPlayerRepository::acquire_client() {
     if (pool_ != nullptr) {
         return pool_->acquire();
@@ -219,4 +219,4 @@ MysqlPlayerRepository::acquire_client() {
     return client_;
 }
 
-}  // namespace mmo::modules::player
+}  // namespace modules::player

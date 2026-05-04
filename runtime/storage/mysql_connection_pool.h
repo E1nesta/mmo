@@ -9,7 +9,7 @@
 
 #include "runtime/storage/mysql_client.h"
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 class MysqlConnectionPool {
 public:
@@ -39,4 +39,4 @@ private:
     bool closing_{};
 };
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

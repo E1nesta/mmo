@@ -6,7 +6,7 @@
 
 #include "common/envelope.pb.h"
 
-namespace mmo::runtime::observability {
+namespace runtime::observability {
 
 struct LogContext {
     LogContext() = default;
@@ -37,4 +37,4 @@ void log_info(const LogContext& context, const std::string& event);
 void log_warn(const LogContext& context, const std::string& event);
 void log_error(const LogContext& context, const std::string& event);
 
-}  // namespace mmo::runtime::observability
+}  // namespace runtime::observability

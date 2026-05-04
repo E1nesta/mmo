@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mmo::runtime::foundation {
+namespace runtime::foundation {
 
 inline constexpr const char* kConfigPathEnv = "MMO_CONFIG_PATH";
 inline constexpr const char* kDefaultConfigPath = "configs/local/server.yaml";
@@ -147,4 +147,4 @@ public:
 ServerConfig load_server_config(const std::string& path);
 ServerConfig load_server_config_from_env();
 
-}  // namespace mmo::runtime::foundation
+}  // namespace runtime::foundation

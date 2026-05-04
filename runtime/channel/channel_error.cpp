@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 bool ChannelError::ok() const {
     return code == ChannelErrorCode::kOk;
@@ -40,4 +40,4 @@ int channel_error_to_status_code(ChannelErrorCode code) {
     return 500;
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

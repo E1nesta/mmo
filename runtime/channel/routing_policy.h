@@ -9,7 +9,7 @@
 #include "runtime/channel/channel_error.h"
 #include "runtime/channel/service_registry.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 enum class RoutingPolicy {
     kUnspecified = 0,
@@ -53,4 +53,4 @@ private:
 
 std::string routing_policy_name(RoutingPolicy policy);
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

@@ -7,7 +7,7 @@
 #include "runtime/session/ticket_replay_guard.h"
 
 int main() {
-    mmo::runtime::protocol::AuthTokenOptions options;
+    runtime::protocol::AuthTokenOptions options;
     options.issuer = "mmo-auth";
     options.access_audience = "api_gateway_server";
     options.gateway_audience = "game_gateway_server";
@@ -20,8 +20,8 @@ int main() {
     std::string token;
     std::int64_t expires_at = 0;
     std::string error;
-    assert(mmo::runtime::protocol::issue_auth_token(
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+    assert(runtime::protocol::issue_auth_token(
+        runtime::protocol::AuthTokenPurpose::kGateway,
         1001,
         2002,
         "session-2002",
@@ -32,10 +32,10 @@ int main() {
         &expires_at,
         &error));
 
-    mmo::runtime::protocol::AuthTokenClaims claims;
-    assert(mmo::runtime::protocol::validate_auth_token(
+    runtime::protocol::AuthTokenClaims claims;
+    assert(runtime::protocol::validate_auth_token(
         token,
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+        runtime::protocol::AuthTokenPurpose::kGateway,
         "game_gateway_server",
         options,
         100001,
@@ -49,17 +49,17 @@ int main() {
     assert(claims.expires_at_epoch_millis == expires_at);
     assert(!claims.jti.empty());
 
-    assert(!mmo::runtime::protocol::validate_auth_token(
+    assert(!runtime::protocol::validate_auth_token(
         token,
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+        runtime::protocol::AuthTokenPurpose::kGateway,
         "api_gateway_server",
         options,
         100001,
         &claims,
         &error));
-    assert(!mmo::runtime::protocol::validate_auth_token(
+    assert(!runtime::protocol::validate_auth_token(
         token,
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+        runtime::protocol::AuthTokenPurpose::kGateway,
         "game_gateway_server",
         options,
         170001,
@@ -70,8 +70,8 @@ int main() {
     previous_options.active_key_id = options.previous_key_id;
     previous_options.active_shared_secret = options.previous_shared_secret;
     std::string previous_token;
-    assert(mmo::runtime::protocol::issue_auth_token(
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+    assert(runtime::protocol::issue_auth_token(
+        runtime::protocol::AuthTokenPurpose::kGateway,
         1001,
         2002,
         "session-2002",
@@ -81,9 +81,9 @@ int main() {
         &previous_token,
         &expires_at,
         &error));
-    assert(mmo::runtime::protocol::validate_auth_token(
+    assert(runtime::protocol::validate_auth_token(
         previous_token,
-        mmo::runtime::protocol::AuthTokenPurpose::kGateway,
+        runtime::protocol::AuthTokenPurpose::kGateway,
         "game_gateway_server",
         options,
         100001,
@@ -91,11 +91,11 @@ int main() {
         &error));
     assert(claims.key_id == "kid-previous");
 
-    mmo::runtime::session::TicketReplayGuard replay_guard;
+    runtime::session::TicketReplayGuard replay_guard;
     assert(replay_guard.consume(claims.jti, 100001, claims.expires_at_epoch_millis));
     assert(!replay_guard.consume(claims.jti, 100002, claims.expires_at_epoch_millis));
 
-    mmo::runtime::session::SessionRegistry sessions;
+    runtime::session::SessionRegistry sessions;
     const auto binding = sessions.bind(
         1001,
         2002,
@@ -116,7 +116,7 @@ int main() {
         binding.game_session_id,
         170001));
 
-    mmo::runtime::session::SessionRegistry heartbeat_sessions;
+    runtime::session::SessionRegistry heartbeat_sessions;
     const auto heartbeat_binding = heartbeat_sessions.bind(
         1001,
         2002,

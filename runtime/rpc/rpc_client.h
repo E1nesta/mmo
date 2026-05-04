@@ -15,7 +15,7 @@
 #include "runtime/rpc/rpc_controller.h"
 #include "runtime/rpc/rpc_result.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 struct RpcClientOptions {
     std::string source_service;
@@ -24,22 +24,22 @@ struct RpcClientOptions {
 
 RpcClientOptions make_rpc_client_options(
     const std::string& source_service,
-    const mmo::runtime::foundation::ServerConfig& config);
+    const runtime::foundation::ServerConfig& config);
 
 class RpcClient {
 public:
     RpcClient(
-        std::shared_ptr<mmo::runtime::channel::EndpointResolver> resolver,
-        mmo::runtime::transport::TransportOptions transport_options,
-        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options,
+        std::shared_ptr<runtime::channel::EndpointResolver> resolver,
+        runtime::transport::TransportOptions transport_options,
+        runtime::channel::ChannelConnectionPoolOptions pool_options,
         RpcClientOptions options = {});
     RpcClient(
-        std::shared_ptr<mmo::runtime::channel::ServiceRegistry> service_registry,
-        mmo::runtime::transport::TransportOptions transport_options,
-        mmo::runtime::channel::ChannelConnectionPoolOptions pool_options,
+        std::shared_ptr<runtime::channel::ServiceRegistry> service_registry,
+        runtime::transport::TransportOptions transport_options,
+        runtime::channel::ChannelConnectionPoolOptions pool_options,
         RpcClientOptions options = {});
     explicit RpcClient(
-        std::unique_ptr<mmo::runtime::channel::ChannelClient> channel_client,
+        std::unique_ptr<runtime::channel::ChannelClient> channel_client,
         RpcClientOptions options = {});
     RpcClient(const RpcClient&) = delete;
     RpcClient& operator=(const RpcClient&) = delete;
@@ -60,13 +60,13 @@ public:
         RpcController controller = {}) {
         controller.target_service = target_service;
         auto envelope =
-            mmo::runtime::protocol::pack_message(message_type, context, request);
+            runtime::protocol::pack_message(message_type, context, request);
         return call_envelope(target_service, envelope, std::move(controller));
     }
 
 private:
-    std::unique_ptr<mmo::runtime::channel::ChannelClient> channel_client_;
+    std::unique_ptr<runtime::channel::ChannelClient> channel_client_;
     RpcClientOptions options_;
 };
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

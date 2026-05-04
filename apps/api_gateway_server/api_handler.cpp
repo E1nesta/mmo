@@ -13,7 +13,7 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "apps/protocol/message_types.h"
 
-namespace mmo::apps::api_gateway_server {
+namespace apps::api_gateway_server {
 
 namespace http = boost::beast::http;
 
@@ -159,9 +159,9 @@ std::string find_field(
 }  // namespace
 
 ApiHandler::ApiHandler(
-    const mmo::runtime::foundation::ServerConfig& config,
-    mmo::runtime::gateway::GatewayForwarder& forwarder,
-    mmo::runtime::observability::MetricsRegistry& metrics)
+    const runtime::foundation::ServerConfig& config,
+    runtime::gateway::GatewayForwarder& forwarder,
+    runtime::observability::MetricsRegistry& metrics)
     : config_(config), forwarder_(forwarder), metrics_(metrics) {}
 
 http::response<http::string_body> ApiHandler::handle(
@@ -196,7 +196,7 @@ http::response<http::string_body> ApiHandler::handle(
 http::response<http::string_body> ApiHandler::handle_ready(
     const http::request<http::string_body>& request) const {
     const auto readiness =
-        mmo::runtime::foundation::check_tcp_dependency(
+        runtime::foundation::check_tcp_dependency(
             "auth_server",
             config_.service("auth_server"),
             std::chrono::milliseconds(300));
@@ -218,7 +218,7 @@ http::response<http::string_body> ApiHandler::handle_metrics(
     const http::request<http::string_body>& request) const {
     return text_response(
         http::status::ok,
-        mmo::runtime::observability::render_prometheus_metrics(
+        runtime::observability::render_prometheus_metrics(
             metrics_.snapshot()),
         "text/plain; version=0.0.4",
         request.version(),
@@ -266,15 +266,15 @@ http::response<http::string_body> ApiHandler::handle_login(
 
     const auto forward_result = forwarder_.forward(
         "auth_server",
-        mmo::apps::protocol::kGatewayAuthLoginRequest,
+        apps::protocol::kGatewayAuthLoginRequest,
         context,
         internal_request);
     if (!forward_result.ok()) {
         if (forward_result.has_response() &&
             forward_result.response().message_type() ==
-                mmo::runtime::protocol::kErrorResponse) {
+                runtime::protocol::kErrorResponse) {
             mmo::common::ResponseContext error_context;
-            if (mmo::runtime::protocol::unpack_message(
+            if (runtime::protocol::unpack_message(
                     forward_result.response(), error_context)) {
                 metrics_.record_login_failed();
                 const auto status =
@@ -299,7 +299,7 @@ http::response<http::string_body> ApiHandler::handle_login(
     }
 
     mmo::internal_api::GatewayAuthLoginResponse response;
-    if (!mmo::runtime::protocol::unpack_message(
+    if (!runtime::protocol::unpack_message(
             forward_result.response(), response)) {
         metrics_.record_login_failed();
         return json_response(
@@ -338,4 +338,4 @@ http::response<http::string_body> ApiHandler::handle_login(
         http::status::ok, body.str(), request.version(), request.keep_alive());
 }
 
-}  // namespace mmo::apps::api_gateway_server
+}  // namespace apps::api_gateway_server

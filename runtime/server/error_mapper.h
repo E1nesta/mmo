@@ -4,16 +4,16 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/server/handler_result.h"
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 template <typename Response>
 mmo::common::Envelope make_error_envelope_from_result(
     const mmo::common::Envelope& request,
     const HandlerResult<Response>& result) {
-    return mmo::runtime::protocol::make_error_envelope(
+    return runtime::protocol::make_error_envelope(
         request,
         result.error_code(),
         result.error_message().empty() ? "handler failed" : result.error_message());
 }
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

@@ -13,7 +13,7 @@
 #include "runtime/channel/channel_result.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 struct ChannelOptions {
     int connect_timeout_millis{};
@@ -24,8 +24,8 @@ struct ChannelOptions {
 class Channel {
 public:
     Channel(
-        mmo::runtime::transport::TransportEndpoint endpoint,
-        mmo::runtime::transport::TransportOptions transport_options,
+        runtime::transport::TransportEndpoint endpoint,
+        runtime::transport::TransportOptions transport_options,
         ChannelOptions channel_options);
     Channel(const Channel&) = delete;
     Channel& operator=(const Channel&) = delete;
@@ -50,8 +50,8 @@ private:
     void fail_all_pending(ChannelError error);
     void remove_pending(std::uint64_t request_id);
 
-    mmo::runtime::transport::TransportEndpoint endpoint_;
-    mmo::runtime::transport::TransportOptions transport_options_;
+    runtime::transport::TransportEndpoint endpoint_;
+    runtime::transport::TransportOptions transport_options_;
     ChannelOptions channel_options_;
     boost::asio::ip::tcp::iostream stream_;
     std::thread reader_thread_;
@@ -64,4 +64,4 @@ private:
     bool reader_running_{};
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

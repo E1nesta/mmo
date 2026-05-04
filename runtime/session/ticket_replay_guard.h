@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace mmo::runtime::session {
+namespace runtime::session {
 
 class TicketReplayStore {
 public:
@@ -30,4 +30,4 @@ private:
     std::unordered_map<std::string, std::uint64_t> consumed_ticket_ids_;
 };
 
-}  // namespace mmo::runtime::session
+}  // namespace runtime::session

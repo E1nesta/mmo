@@ -7,7 +7,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace mmo::runtime::foundation {
+namespace runtime::foundation {
 namespace {
 
 std::string env_value(const std::string& name) {
@@ -386,4 +386,4 @@ ServerConfig load_server_config_from_env() {
     return load_server_config(kDefaultConfigPath);
 }
 
-}  // namespace mmo::runtime::foundation
+}  // namespace runtime::foundation

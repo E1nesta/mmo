@@ -5,10 +5,10 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/protocol/internal_auth.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 RpcServerOptions make_rpc_server_options(
-    const mmo::runtime::foundation::ServerConfig& config) {
+    const runtime::foundation::ServerConfig& config) {
     RpcServerOptions options;
     options.require_internal_auth = true;
     options.internal_auth_shared_secret =
@@ -29,13 +29,13 @@ mmo::common::Envelope RpcServer::dispatch(
     const mmo::common::Envelope& envelope) const {
     if (options_.require_internal_auth) {
         std::string error_message;
-        if (!mmo::runtime::protocol::validate_internal_envelope_now(
+        if (!runtime::protocol::validate_internal_envelope_now(
                 envelope,
                 options_.internal_auth_shared_secret,
                 options_.internal_auth_max_clock_skew_millis,
                 &error_message)) {
             metrics_.record_internal_auth_failed();
-            return mmo::runtime::protocol::make_error_envelope(
+            return runtime::protocol::make_error_envelope(
                 envelope, 401, "internal call authentication failed");
         }
     }
@@ -48,4 +48,4 @@ RpcServer::Handler RpcServer::handler() const {
     };
 }
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

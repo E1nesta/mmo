@@ -4,7 +4,7 @@
 
 #include "runtime/channel/routing_policy.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 struct ChannelCallOptions {
     std::string source_service;
@@ -18,4 +18,4 @@ struct ChannelCallOptions {
     bool retry_enabled{};
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

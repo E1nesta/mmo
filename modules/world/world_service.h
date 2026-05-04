@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-namespace mmo::modules::world {
+namespace modules::world {
 
 struct SceneRoute {
     int map_id{};
@@ -24,4 +24,4 @@ private:
     std::unordered_map<std::int64_t, OnlinePlayer> online_players_;
 };
 
-}  // namespace mmo::modules::world
+}  // namespace modules::world

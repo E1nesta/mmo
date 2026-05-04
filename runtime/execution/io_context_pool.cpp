@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 IOContextPool::IOContextPool(std::size_t thread_count) {
     if (thread_count == 0) {
@@ -68,4 +68,4 @@ void IOContextPool::join() {
     }
 }
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

@@ -3,7 +3,7 @@
 #include "common/envelope.pb.h"
 #include "runtime/channel/channel_error.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 class ChannelResult {
 public:
@@ -25,4 +25,4 @@ private:
     bool has_response_{};
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

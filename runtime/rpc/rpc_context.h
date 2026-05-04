@@ -4,7 +4,7 @@
 
 #include "common/context.pb.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 struct RpcContext {
     mmo::common::RequestContext request;
@@ -13,4 +13,4 @@ struct RpcContext {
     std::string trace_id;
 };
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

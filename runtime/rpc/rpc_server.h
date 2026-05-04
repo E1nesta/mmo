@@ -7,7 +7,7 @@
 #include "runtime/protocol/message_router.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 struct RpcServerOptions {
     bool require_internal_auth{true};
@@ -16,11 +16,11 @@ struct RpcServerOptions {
 };
 
 RpcServerOptions make_rpc_server_options(
-    const mmo::runtime::foundation::ServerConfig& config);
+    const runtime::foundation::ServerConfig& config);
 
 class RpcServer {
 public:
-    using Handler = mmo::runtime::transport::EnvelopeHandler;
+    using Handler = runtime::transport::EnvelopeHandler;
 
     explicit RpcServer(RpcServerOptions options = {});
 
@@ -29,9 +29,9 @@ public:
     Handler handler() const;
 
 private:
-    mmo::runtime::protocol::MessageRouter router_;
+    runtime::protocol::MessageRouter router_;
     RpcServerOptions options_;
-    mutable mmo::runtime::observability::MetricsRegistry metrics_;
+    mutable runtime::observability::MetricsRegistry metrics_;
 };
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 SceneWorker::SceneWorker(
     std::int64_t scene_id,
@@ -17,4 +17,4 @@ void SceneWorker::post(Task task) {
     (void)executor_->post(static_cast<std::uint64_t>(scene_id_), std::move(task));
 }
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

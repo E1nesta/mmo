@@ -6,7 +6,7 @@
 #include <optional>
 #include <unordered_map>
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 struct PendingResponse {
     std::uint64_t connection_id{};
@@ -25,4 +25,4 @@ private:
     std::unordered_map<std::uint64_t, PendingResponse> pending_;
 };
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

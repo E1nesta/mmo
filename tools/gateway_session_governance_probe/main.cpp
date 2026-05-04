@@ -18,13 +18,13 @@ std::uint64_t now_millis() {
             .count());
 }
 
-mmo::runtime::session::ConnectionBinding make_binding(
+runtime::session::ConnectionBinding make_binding(
     std::int64_t player_id,
     const std::string& session_token,
     const std::string& game_session_id,
     std::uint64_t connection_id,
     std::uint64_t now) {
-    mmo::runtime::session::ConnectionBinding binding;
+    runtime::session::ConnectionBinding binding;
     binding.connection_id = connection_id;
     binding.game_session_id = game_session_id;
     binding.account_id = 1098216;
@@ -43,13 +43,13 @@ mmo::runtime::session::ConnectionBinding make_binding(
 }  // namespace
 
 int main() {
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto config = runtime::foundation::load_server_config_from_env();
     std::string error;
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> redis_pool;
-    assert(mmo::runtime::storage::initialize_redis_pool(
+    std::shared_ptr<runtime::storage::RedisConnectionPool> redis_pool;
+    assert(runtime::storage::initialize_redis_pool(
         config, &redis_pool, &error));
 
-    mmo::adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
+    adapters::session_redis::RedisSessionStore redis_sessions(redis_pool);
     const auto now = now_millis();
     const auto player_id =
         static_cast<std::int64_t>(880000000LL + (now % 1000000ULL));
@@ -80,7 +80,7 @@ int main() {
         now + 3,
         &error));
 
-    mmo::runtime::session::ReconnectTicket reconnect_ticket;
+    runtime::session::ReconnectTicket reconnect_ticket;
     reconnect_ticket.account_id = new_binding.account_id;
     reconnect_ticket.connection_id = new_binding.connection_id;
     reconnect_ticket.game_session_id = new_binding.game_session_id;
@@ -94,14 +94,14 @@ int main() {
     assert(redis_sessions.save_reconnect_ticket(
         ticket_id, reconnect_ticket, now, &error));
 
-    mmo::runtime::session::ReconnectTicket consumed;
+    runtime::session::ReconnectTicket consumed;
     assert(redis_sessions.consume_reconnect_ticket(
         ticket_id, now + 1, &consumed, &error));
     assert(consumed.game_session_id == reconnect_ticket.game_session_id);
     assert(!redis_sessions.consume_reconnect_ticket(
         ticket_id, now + 2, &consumed, &error));
 
-    mmo::runtime::session::SessionRegistry registry;
+    runtime::session::SessionRegistry registry;
     const auto initial = registry.bind(
         new_binding.account_id,
         new_binding.player_id,

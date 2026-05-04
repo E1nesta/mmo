@@ -8,19 +8,23 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "apps/protocol/message_types.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
+
+namespace app_proto = apps::protocol;
+namespace gateway = runtime::gateway;
+namespace protocol = runtime::protocol;
 
 void register_gateway_social_proxy_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    mmo::runtime::gateway::ProxyContext& context) {
-    mmo::runtime::gateway::ProxyMapper<
+    gateway::GatewayRouter& gateway_router,
+    gateway::ProxyContext& context) {
+    gateway::ProxyMapper<
         mmo::public_api::SocialBoundaryRequest,
         mmo::internal_api::GatewaySocialBoundaryRequest,
         mmo::internal_api::GatewaySocialBoundaryResponse,
         mmo::public_api::SocialBoundaryResponse>
         mapper;
     mapper.public_response_message_type =
-        mmo::apps::protocol::kSocialBoundaryResponse;
+        app_proto::kSocialBoundaryResponse;
     mapper.invalid_public_request_message = "invalid social boundary request";
     mapper.invalid_internal_response_message = "invalid social response";
     mapper.map_request =
@@ -37,7 +41,7 @@ void register_gateway_social_proxy_handlers(
                 internal_response) {
             mmo::public_api::SocialBoundaryResponse response;
             *response.mutable_context() =
-                mmo::runtime::protocol::make_ok_context(request.context());
+                protocol::make_ok_context(request.context());
             response.set_friend_boundary_available(
                 internal_response.friend_boundary_available());
             response.set_chat_boundary_available(
@@ -46,15 +50,15 @@ void register_gateway_social_proxy_handlers(
                 internal_response.team_boundary_available());
             return response;
         };
-    mmo::runtime::gateway::bind_proxy_handler<
+    gateway::bind_proxy_handler<
         mmo::public_api::SocialBoundaryRequest,
         mmo::internal_api::GatewaySocialBoundaryRequest,
         mmo::internal_api::GatewaySocialBoundaryResponse,
         mmo::public_api::SocialBoundaryResponse>(
         gateway_router,
-        mmo::apps::protocol::kSocialBoundaryRequest,
+        app_proto::kSocialBoundaryRequest,
         context,
         std::move(mapper));
 }
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

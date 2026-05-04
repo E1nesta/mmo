@@ -30,7 +30,7 @@ std::string unique_name(const std::string& prefix) {
 }
 
 void verify_metrics_exporter() {
-    mmo::runtime::observability::MetricsRegistry metrics;
+    runtime::observability::MetricsRegistry metrics;
     metrics.record_connection_open();
     metrics.record_request();
     metrics.record_error();
@@ -41,7 +41,7 @@ void verify_metrics_exporter() {
     metrics.set_rpc_pending_count(3);
 
     const auto text =
-        mmo::runtime::observability::render_prometheus_metrics(metrics.snapshot());
+        runtime::observability::render_prometheus_metrics(metrics.snapshot());
     assert(contains(text, "# TYPE mmo_active_connections gauge"));
     assert(contains(text, "mmo_active_connections 1"));
     assert(contains(text, "# TYPE mmo_requests_total counter"));
@@ -52,7 +52,7 @@ void verify_metrics_exporter() {
 }
 
 void verify_readiness() {
-    const auto not_ready = mmo::runtime::foundation::check_tcp_dependency(
+    const auto not_ready = runtime::foundation::check_tcp_dependency(
         "missing_probe_dependency",
         "127.0.0.1",
         1,
@@ -63,7 +63,7 @@ void verify_readiness() {
 }
 
 void verify_logging() {
-    mmo::runtime::observability::LogContext context("production_probe");
+    runtime::observability::LogContext context("production_probe");
     context.request_id = 1001;
     context.account_id = 2002;
     context.player_id = 3003;
@@ -75,7 +75,7 @@ void verify_logging() {
     context.latency_ms = 12;
 
     const auto line =
-        mmo::runtime::observability::format_log_line(context, "probe_event");
+        runtime::observability::format_log_line(context, "probe_event");
     assert(contains(line, "service=production_probe"));
     assert(contains(line, "event=probe_event"));
     assert(contains(line, "account_id=2002"));
@@ -90,19 +90,19 @@ void verify_logging() {
 }
 
 void verify_migrations(
-    mmo::runtime::storage::MysqlConnectionPool& mysql_pool) {
+    runtime::storage::MysqlConnectionPool& mysql_pool) {
     std::string error;
     auto lease = mysql_pool.acquire();
 
-    mmo::runtime::storage::SchemaMigration foundation;
-    assert(mmo::runtime::storage::load_sql_migration_file(
+    runtime::storage::SchemaMigration foundation;
+    assert(runtime::storage::load_sql_migration_file(
         1,
         "foundation_schema",
         "deploy/mysql/migrations/0001_foundation_schema.sql",
         &foundation,
         &error));
     auto foundation_result =
-        mmo::runtime::storage::run_schema_migrations(*lease, {foundation}, &error);
+        runtime::storage::run_schema_migrations(*lease, {foundation}, &error);
     assert(foundation_result.success);
 
     const int probe_version =
@@ -114,32 +114,32 @@ void verify_migrations(
         " (id BIGINT NOT NULL PRIMARY KEY) ENGINE=InnoDB";
 
     const auto migration =
-        mmo::runtime::storage::make_sql_migration(probe_version, migration_name, sql);
-    const std::vector<mmo::runtime::storage::SchemaMigration> migrations = {
+        runtime::storage::make_sql_migration(probe_version, migration_name, sql);
+    const std::vector<runtime::storage::SchemaMigration> migrations = {
         migration,
     };
 
     auto first =
-        mmo::runtime::storage::run_schema_migrations(*lease, migrations, &error);
+        runtime::storage::run_schema_migrations(*lease, migrations, &error);
     assert(first.success);
     assert(first.applied_count == 1);
     assert(first.skipped_count == 0);
 
     auto second =
-        mmo::runtime::storage::run_schema_migrations(*lease, migrations, &error);
+        runtime::storage::run_schema_migrations(*lease, migrations, &error);
     assert(second.success);
     assert(second.applied_count == 0);
     assert(second.skipped_count == 1);
 
-    auto changed = mmo::runtime::storage::make_sql_migration(
+    auto changed = runtime::storage::make_sql_migration(
         probe_version,
         migration_name,
         "CREATE TABLE IF NOT EXISTS " + table_name +
             " (id BIGINT NOT NULL PRIMARY KEY, value BIGINT NULL) ENGINE=InnoDB");
-    const std::vector<mmo::runtime::storage::SchemaMigration> changed_migrations = {
+    const std::vector<runtime::storage::SchemaMigration> changed_migrations = {
         changed,
     };
-    auto mismatch = mmo::runtime::storage::run_schema_migrations(
+    auto mismatch = runtime::storage::run_schema_migrations(
         *lease, changed_migrations, &error);
     assert(!mismatch.success);
     assert(contains(mismatch.error_message, "checksum mismatch"));
@@ -152,10 +152,10 @@ int main() {
     verify_readiness();
     verify_logging();
 
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto config = runtime::foundation::load_server_config_from_env();
     std::string error;
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
-    assert(mmo::runtime::storage::initialize_mysql_pool(
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> mysql_pool;
+    assert(runtime::storage::initialize_mysql_pool(
         config, &mysql_pool, &error));
     verify_migrations(*mysql_pool);
 

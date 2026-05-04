@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 
 enum class AccountStatus {
     kNormal,
@@ -30,4 +30,4 @@ public:
         std::string* error_message) = 0;
 };
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

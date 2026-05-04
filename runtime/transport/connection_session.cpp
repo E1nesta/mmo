@@ -8,15 +8,15 @@
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 ConnectionSession::ConnectionSession(
     TcpSocket socket,
     EnvelopeHandler handler,
     std::string service_name,
     TransportOptions options,
-    std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor,
-    std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics)
+    std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor,
+    std::shared_ptr<runtime::observability::MetricsRegistry> metrics)
     : socket_(std::move(socket)),
       handler_(std::move(handler)),
       service_name_(std::move(service_name)),
@@ -92,8 +92,8 @@ void ConnectionSession::dispatch_request(mmo::common::Envelope request) {
     }
 
     auto log_context =
-        mmo::runtime::observability::context_from_envelope(service_name_, request);
-    mmo::runtime::observability::log_info(log_context, "request_received");
+        runtime::observability::context_from_envelope(service_name_, request);
+    runtime::observability::log_info(log_context, "request_received");
 
     const auto started = std::chrono::steady_clock::now();
     auto self = shared_from_this();
@@ -116,13 +116,13 @@ void ConnectionSession::dispatch_request(mmo::common::Envelope request) {
             }
             std::string error_message = "handler executor is stopped";
             if (post_result.status ==
-                mmo::runtime::execution::PostStatus::kQueueFull) {
+                runtime::execution::PostStatus::kQueueFull) {
                 error_message = "handler queue is full";
                 if (metrics_ != nullptr) {
                     metrics_->record_executor_queue_overflow();
                 }
             }
-            write_response(mmo::runtime::protocol::make_error_envelope(
+            write_response(runtime::protocol::make_error_envelope(
                 *request_ptr, 503, error_message));
         }
         return;
@@ -136,14 +136,14 @@ void ConnectionSession::handle_request(
     TimePoint started) {
     mmo::common::Envelope response;
     auto log_context =
-        mmo::runtime::observability::context_from_envelope(service_name_, request);
+        runtime::observability::context_from_envelope(service_name_, request);
     try {
         response = handler_(request);
     } catch (const std::exception& error) {
-        response = mmo::runtime::protocol::make_error_envelope(
+        response = runtime::protocol::make_error_envelope(
             request, 500, std::string("handler exception: ") + error.what());
     } catch (...) {
-        response = mmo::runtime::protocol::make_error_envelope(
+        response = runtime::protocol::make_error_envelope(
             request, 500, "handler unknown exception");
     }
 
@@ -158,14 +158,14 @@ void ConnectionSession::handle_request(
         }
     }
 
-    if (response.message_type() == mmo::runtime::protocol::kErrorResponse) {
+    if (response.message_type() == runtime::protocol::kErrorResponse) {
         log_context.error_code = 1;
         if (metrics_ != nullptr) {
             metrics_->record_error();
         }
-        mmo::runtime::observability::log_error(log_context, "request_failed");
+        runtime::observability::log_error(log_context, "request_failed");
     } else {
-        mmo::runtime::observability::log_info(log_context, "request_handled");
+        runtime::observability::log_info(log_context, "request_handled");
     }
 
     auto self = shared_from_this();
@@ -238,8 +238,8 @@ void ConnectionSession::fail(const std::string& event, const std::string& detail
     if (metrics_ != nullptr) {
         metrics_->record_error();
     }
-    mmo::runtime::observability::log_warn(
-        mmo::runtime::observability::LogContext{service_name_},
+    runtime::observability::log_warn(
+        runtime::observability::LogContext{service_name_},
         event + " detail=" + detail);
     close();
 }
@@ -265,4 +265,4 @@ std::uint64_t ConnectionSession::shard_key(const mmo::common::Envelope& request)
     return request.request_id();
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

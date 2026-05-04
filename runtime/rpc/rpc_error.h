@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 enum class RpcErrorCode {
     kOk = 0,
@@ -30,4 +30,4 @@ struct RpcError {
 RpcError make_rpc_error(RpcErrorCode code, std::string message);
 int rpc_error_to_status_code(RpcErrorCode code);
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

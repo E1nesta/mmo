@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-namespace mmo::runtime::observability {
+namespace runtime::observability {
 namespace {
 
 void append_metric(
@@ -178,4 +178,4 @@ std::string render_prometheus_metrics(const MetricsSnapshot& snapshot) {
     return output.str();
 }
 
-}  // namespace mmo::runtime::observability
+}  // namespace runtime::observability

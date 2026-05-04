@@ -4,12 +4,12 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 namespace {
 
 ServiceInstance to_service_instance(
     const std::string& service_name,
-    const mmo::runtime::foundation::ServiceInstanceConfig& config) {
+    const runtime::foundation::ServiceInstanceConfig& config) {
     ServiceInstance instance;
     instance.service_name = service_name;
     instance.instance_id = config.instance_id;
@@ -51,7 +51,7 @@ std::string service_instance_state_name(ServiceInstanceState state) {
 }
 
 StaticServiceRegistry::StaticServiceRegistry(
-    const mmo::runtime::foundation::ServerConfig& config) {
+    const runtime::foundation::ServerConfig& config) {
     for (const auto& [service_name, service_config] : config.services) {
         if (service_config.instances.empty()) {
             throw std::runtime_error(
@@ -157,4 +157,4 @@ ServiceInstance StaticServiceRegistry::apply_health_override(
     return instance;
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

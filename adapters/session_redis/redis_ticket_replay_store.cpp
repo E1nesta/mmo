@@ -4,10 +4,10 @@
 
 #include "runtime/storage/redis_keys.h"
 
-namespace mmo::adapters::session_redis {
+namespace adapters::session_redis {
 
 RedisTicketReplayStore::RedisTicketReplayStore(
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> pool)
+    std::shared_ptr<runtime::storage::RedisConnectionPool> pool)
     : pool_(std::move(pool)) {}
 
 bool RedisTicketReplayStore::consume(
@@ -21,7 +21,7 @@ bool RedisTicketReplayStore::consume(
     bool stored = false;
     std::string error_message;
     if (!client->set_if_absent_with_ttl_millis(
-            mmo::runtime::storage::ticket_replay_key(ticket_id),
+            runtime::storage::ticket_replay_key(ticket_id),
             "1",
             expire_at_millis - now_millis,
             &stored,
@@ -31,4 +31,4 @@ bool RedisTicketReplayStore::consume(
     return stored;
 }
 
-}  // namespace mmo::adapters::session_redis
+}  // namespace adapters::session_redis

@@ -6,20 +6,20 @@
 #include "runtime/channel/endpoint_resolver.h"
 #include "runtime/foundation/server_config.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 class StaticEndpointResolver : public EndpointResolver {
 public:
     explicit StaticEndpointResolver(
-        const mmo::runtime::foundation::ServerConfig& config);
+        const runtime::foundation::ServerConfig& config);
 
-    std::optional<mmo::runtime::transport::TransportEndpoint> resolve(
+    std::optional<runtime::transport::TransportEndpoint> resolve(
         const std::string& service_name) const override;
 
 private:
     std::unordered_map<
         std::string,
-        mmo::runtime::transport::TransportEndpoint> endpoints_;
+        runtime::transport::TransportEndpoint> endpoints_;
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

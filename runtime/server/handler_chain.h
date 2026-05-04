@@ -5,7 +5,7 @@
 
 #include "runtime/server/middleware.h"
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 class HandlerChain {
 public:
@@ -32,4 +32,4 @@ private:
     std::vector<Middleware> middleware_;
 };
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

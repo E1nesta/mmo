@@ -6,7 +6,7 @@
 
 #include "runtime/execution/sharded_executor.h"
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 class SceneWorker {
 public:
@@ -22,4 +22,4 @@ private:
     std::shared_ptr<ShardedExecutor> executor_;
 };
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

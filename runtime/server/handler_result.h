@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 template <typename Response>
 class HandlerResult {
@@ -50,4 +50,4 @@ private:
     bool ok_{false};
 };
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

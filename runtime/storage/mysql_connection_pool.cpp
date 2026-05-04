@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 MysqlConnectionPool::MysqlConnectionPool(MysqlConfig config, std::size_t pool_size)
     : config_(std::move(config)), pool_size_(std::max<std::size_t>(1, pool_size)) {}
@@ -94,4 +94,4 @@ void MysqlConnectionPool::release(MysqlClient* client) {
     ready_.notify_one();
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

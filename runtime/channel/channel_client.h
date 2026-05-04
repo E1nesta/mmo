@@ -14,7 +14,7 @@
 #include "runtime/channel/service_registry.h"
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 class ChannelClient {
 public:
@@ -30,11 +30,11 @@ class TcpChannelClient final : public ChannelClient {
 public:
     TcpChannelClient(
         std::shared_ptr<EndpointResolver> resolver,
-        mmo::runtime::transport::TransportOptions transport_options,
+        runtime::transport::TransportOptions transport_options,
         ChannelConnectionPoolOptions pool_options);
     TcpChannelClient(
         std::shared_ptr<ServiceRegistry> service_registry,
-        mmo::runtime::transport::TransportOptions transport_options,
+        runtime::transport::TransportOptions transport_options,
         ChannelConnectionPoolOptions pool_options);
 
     ChannelResult call_envelope(
@@ -51,7 +51,7 @@ public:
         ChannelCallOptions options = {}) {
         options.target_service = target_service;
         auto envelope =
-            mmo::runtime::protocol::pack_message(message_type, context, request);
+            runtime::protocol::pack_message(message_type, context, request);
         return call_envelope(target_service, envelope, std::move(options));
     }
 
@@ -62,4 +62,4 @@ private:
     ChannelConnectionPool connection_pool_;
 };
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

@@ -10,7 +10,7 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/transport/envelope_codec.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 namespace {
 
 using boost::asio::ip::tcp;
@@ -81,26 +81,26 @@ mmo::common::Envelope TcpEnvelopeClient::send(
         stream.expires_after(std::chrono::milliseconds(options_.timeout_millis));
         stream.connect(endpoint.host, std::to_string(endpoint.port));
         if (!stream) {
-            return mmo::runtime::protocol::make_error_envelope(
+            return runtime::protocol::make_error_envelope(
                 request, 502, "failed to connect upstream");
         }
 
         if (!write_envelope(stream, request, options_.max_payload_bytes)) {
-            return mmo::runtime::protocol::make_error_envelope(
+            return runtime::protocol::make_error_envelope(
                 request, 502, "failed to send upstream request");
         }
 
         mmo::common::Envelope response;
         if (!read_envelope(stream, response, options_.max_payload_bytes)) {
-            return mmo::runtime::protocol::make_error_envelope(
+            return runtime::protocol::make_error_envelope(
                 request, 502, "failed to read upstream response");
         }
 
         return response;
     } catch (const std::exception& error) {
-        return mmo::runtime::protocol::make_error_envelope(
+        return runtime::protocol::make_error_envelope(
             request, 502, std::string("transport exception: ") + error.what());
     }
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

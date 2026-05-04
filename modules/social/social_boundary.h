@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mmo::modules::social {
+namespace modules::social {
 
 struct SocialBoundary {
     std::int64_t player_id{};
@@ -16,4 +16,4 @@ public:
     SocialBoundary boundary_for(std::int64_t player_id) const;
 };
 
-}  // namespace mmo::modules::social
+}  // namespace modules::social

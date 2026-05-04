@@ -7,7 +7,7 @@
 
 #include "modules/player/player_types.h"
 
-namespace mmo::modules::player {
+namespace modules::player {
 
 class PlayerRepository {
 public:
@@ -26,4 +26,4 @@ public:
         std::string* error_message) = 0;
 };
 
-}  // namespace mmo::modules::player
+}  // namespace modules::player

@@ -6,7 +6,7 @@
 
 #include "common/envelope.pb.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 class EnvelopeCodec {
 public:
@@ -32,4 +32,4 @@ public:
         std::string* error_message);
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

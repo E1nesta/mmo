@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 bool RpcError::ok() const {
     return code == RpcErrorCode::kOk;
@@ -40,4 +40,4 @@ int rpc_error_to_status_code(RpcErrorCode code) {
     return 500;
 }
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 struct ShardTopology {
     std::size_t player_shards{};
@@ -25,4 +25,4 @@ private:
     ShardTopology topology_;
 };
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

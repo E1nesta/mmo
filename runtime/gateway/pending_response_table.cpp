@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 bool PendingResponseTable::bind(
     std::uint64_t upstream_request_id,
@@ -29,4 +29,4 @@ std::size_t PendingResponseTable::size() const {
     return pending_.size();
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

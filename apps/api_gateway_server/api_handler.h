@@ -9,14 +9,14 @@
 #include "runtime/observability/metrics.h"
 #include "runtime/gateway/gateway_forwarder.h"
 
-namespace mmo::apps::api_gateway_server {
+namespace apps::api_gateway_server {
 
 class ApiHandler {
 public:
     ApiHandler(
-        const mmo::runtime::foundation::ServerConfig& config,
-        mmo::runtime::gateway::GatewayForwarder& forwarder,
-        mmo::runtime::observability::MetricsRegistry& metrics);
+        const runtime::foundation::ServerConfig& config,
+        runtime::gateway::GatewayForwarder& forwarder,
+        runtime::observability::MetricsRegistry& metrics);
 
     boost::beast::http::response<boost::beast::http::string_body> handle(
         const boost::beast::http::request<boost::beast::http::string_body>&
@@ -36,10 +36,10 @@ private:
         const boost::beast::http::request<boost::beast::http::string_body>&
             request);
 
-    const mmo::runtime::foundation::ServerConfig& config_;
-    mmo::runtime::gateway::GatewayForwarder& forwarder_;
-    mmo::runtime::observability::MetricsRegistry& metrics_;
+    const runtime::foundation::ServerConfig& config_;
+    runtime::gateway::GatewayForwarder& forwarder_;
+    runtime::observability::MetricsRegistry& metrics_;
     std::atomic<std::uint64_t> next_request_id_{1};
 };
 
-}  // namespace mmo::apps::api_gateway_server
+}  // namespace apps::api_gateway_server

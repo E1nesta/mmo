@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 MysqlClient::MysqlClient() {
     handle_ = mysql_init(nullptr);
@@ -153,4 +153,4 @@ void MysqlClient::close() {
     connected_ = false;
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

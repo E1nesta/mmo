@@ -1,6 +1,6 @@
 #include "modules/instance/instance_service.h"
 
-namespace mmo::modules::instance {
+namespace modules::instance {
 
 InstanceContext InstanceService::enter_instance(std::int64_t player_id, int dungeon_id) {
     InstanceContext context;
@@ -27,11 +27,11 @@ SettleResult InstanceService::settle_instance(
     settled_keys_.insert(idempotency_key);
     result.duplicate = false;
     if (win) {
-        result.rewards.push_back(mmo::modules::player::Reward{"gold", 100});
-        result.rewards.push_back(mmo::modules::player::Reward{"exp", 50});
+        result.rewards.push_back(modules::player::Reward{"gold", 100});
+        result.rewards.push_back(modules::player::Reward{"exp", 50});
     }
     instances_[instance_id].player_id = player_id;
     return result;
 }
 
-}  // namespace mmo::modules::instance
+}  // namespace modules::instance

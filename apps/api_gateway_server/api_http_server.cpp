@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-namespace mmo::apps::api_gateway_server {
+namespace apps::api_gateway_server {
 namespace {
 
 namespace beast = boost::beast;
@@ -174,4 +174,4 @@ int run_http_server(int port, ApiHandler& handler, int thread_count) {
     return 0;
 }
 
-}  // namespace mmo::apps::api_gateway_server
+}  // namespace apps::api_gateway_server

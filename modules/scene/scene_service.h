@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-namespace mmo::modules::scene {
+namespace modules::scene {
 
 struct Transform {
     float x{};
@@ -27,4 +27,4 @@ private:
     std::unordered_map<std::int64_t, SceneEntity> entities_;
 };
 
-}  // namespace mmo::modules::scene
+}  // namespace modules::scene

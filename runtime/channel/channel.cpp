@@ -10,7 +10,7 @@
 #include "runtime/protocol/envelope_utils.h"
 #include "runtime/transport/envelope_codec.h"
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 namespace {
 
 bool read_exact(std::istream& input, void* buffer, std::size_t size) {
@@ -31,7 +31,7 @@ bool read_envelope(
     ChannelError* error) {
     std::array<
         char,
-        mmo::runtime::transport::EnvelopeCodec::kHeaderBytes> header{};
+        runtime::transport::EnvelopeCodec::kHeaderBytes> header{};
     if (!read_exact(input, header.data(), header.size())) {
         if (error != nullptr) {
             *error = make_channel_error(
@@ -42,7 +42,7 @@ bool read_envelope(
 
     std::uint32_t payload_size = 0;
     std::string error_message;
-    if (!mmo::runtime::transport::EnvelopeCodec::decode_payload_size(
+    if (!runtime::transport::EnvelopeCodec::decode_payload_size(
             header, max_payload_bytes, &payload_size, &error_message)) {
         if (error != nullptr) {
             *error = make_channel_error(ChannelErrorCode::kDecodeFailed, error_message);
@@ -60,7 +60,7 @@ bool read_envelope(
         return false;
     }
 
-    if (!mmo::runtime::transport::EnvelopeCodec::parse_payload(
+    if (!runtime::transport::EnvelopeCodec::parse_payload(
             payload, envelope, &error_message)) {
         if (error != nullptr) {
             *error = make_channel_error(ChannelErrorCode::kDecodeFailed, error_message);
@@ -77,7 +77,7 @@ bool write_envelope(
     ChannelError* error) {
     std::string payload;
     std::string error_message;
-    if (!mmo::runtime::transport::EnvelopeCodec::serialize_payload(
+    if (!runtime::transport::EnvelopeCodec::serialize_payload(
             envelope, max_payload_bytes, &payload, &error_message)) {
         if (error != nullptr) {
             *error = make_channel_error(ChannelErrorCode::kEncodeFailed, error_message);
@@ -86,7 +86,7 @@ bool write_envelope(
     }
 
     const auto header =
-        mmo::runtime::transport::EnvelopeCodec::encode_payload_size(
+        runtime::transport::EnvelopeCodec::encode_payload_size(
             static_cast<std::uint32_t>(payload.size()));
     if (!write_exact(output, header.data(), header.size()) ||
         !write_exact(output, payload.data(), payload.size())) {
@@ -103,8 +103,8 @@ bool write_envelope(
 }  // namespace
 
 Channel::Channel(
-    mmo::runtime::transport::TransportEndpoint endpoint,
-    mmo::runtime::transport::TransportOptions transport_options,
+    runtime::transport::TransportEndpoint endpoint,
+    runtime::transport::TransportOptions transport_options,
     ChannelOptions channel_options)
     : endpoint_(std::move(endpoint)),
       transport_options_(transport_options),
@@ -301,7 +301,7 @@ void Channel::read_loop() {
             continue;
         }
 
-        if (response.message_type() == mmo::runtime::protocol::kErrorResponse) {
+        if (response.message_type() == runtime::protocol::kErrorResponse) {
             pending_call->promise.set_value(
                 ChannelResult::remote_error(std::move(response)));
         } else {
@@ -329,4 +329,4 @@ void Channel::remove_pending(std::uint64_t request_id) {
     pending_.erase(request_id);
 }
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

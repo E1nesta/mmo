@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mmo::runtime::execution {
+namespace runtime::execution {
 
 struct ShardedExecutor::Shard {
     std::mutex mutex;
@@ -120,4 +120,4 @@ void ShardedExecutor::run_shard(Shard& shard) {
     }
 }
 
-}  // namespace mmo::runtime::execution
+}  // namespace runtime::execution

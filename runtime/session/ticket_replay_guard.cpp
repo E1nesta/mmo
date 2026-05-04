@@ -1,6 +1,6 @@
 #include "runtime/session/ticket_replay_guard.h"
 
-namespace mmo::runtime::session {
+namespace runtime::session {
 
 bool TicketReplayGuard::consume(
     const std::string& ticket_id,
@@ -42,4 +42,4 @@ std::size_t TicketReplayGuard::size() const {
     return consumed_ticket_ids_.size();
 }
 
-}  // namespace mmo::runtime::session
+}  // namespace runtime::session

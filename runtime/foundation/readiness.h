@@ -6,7 +6,7 @@
 
 #include "runtime/foundation/server_config.h"
 
-namespace mmo::runtime::foundation {
+namespace runtime::foundation {
 
 struct ReadinessResult {
     bool ready{};
@@ -31,4 +31,4 @@ ReadinessResult check_tcp_dependency(
     const ServiceConfig& service,
     std::chrono::milliseconds timeout);
 
-}  // namespace mmo::runtime::foundation
+}  // namespace runtime::foundation

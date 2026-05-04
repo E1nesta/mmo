@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace mmo::runtime::channel {
+namespace runtime::channel {
 
 enum class ChannelErrorCode {
     kOk = 0,
@@ -30,4 +30,4 @@ struct ChannelError {
 ChannelError make_channel_error(ChannelErrorCode code, std::string message);
 int channel_error_to_status_code(ChannelErrorCode code);
 
-}  // namespace mmo::runtime::channel
+}  // namespace runtime::channel

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <utility>
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 namespace {
 
 AccountStatus parse_status(const std::string& value) {
@@ -18,7 +18,7 @@ AccountStatus parse_status(const std::string& value) {
 }
 
 std::string quote(
-    const mmo::runtime::storage::MysqlClient& client,
+    const runtime::storage::MysqlClient& client,
     const std::string& value) {
     return "'" + client.escape_string(value) + "'";
 }
@@ -26,7 +26,7 @@ std::string quote(
 }  // namespace
 
 MysqlAccountRepository::MysqlAccountRepository(
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> pool)
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> pool)
     : pool_(std::move(pool)) {}
 
 std::optional<AccountRecord> MysqlAccountRepository::find_by_account_name(
@@ -68,4 +68,4 @@ std::optional<AccountRecord> MysqlAccountRepository::find_by_account_name(
     return record;
 }
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

@@ -8,7 +8,7 @@
 #include "runtime/observability/metrics.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 class TcpEnvelopeServer : public EnvelopeServer {
 public:
@@ -17,9 +17,9 @@ public:
         EnvelopeHandler handler,
         std::string service_name,
         TransportOptions options = {},
-        std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor =
+        std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor =
             nullptr,
-        std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics =
+        std::shared_ptr<runtime::observability::MetricsRegistry> metrics =
             nullptr);
 
     int run() override;
@@ -29,8 +29,8 @@ private:
     EnvelopeHandler handler_;
     std::string service_name_;
     TransportOptions options_;
-    std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor_;
-    std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics_;
+    std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor_;
+    std::shared_ptr<runtime::observability::MetricsRegistry> metrics_;
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

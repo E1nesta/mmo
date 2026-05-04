@@ -1,6 +1,6 @@
 #pragma once
 
-namespace mmo::apps::protocol {
+namespace apps::protocol {
 
 inline constexpr const char* kLoginRequest = "public.auth.LoginRequest";
 inline constexpr const char* kLoginResponse = "public.auth.LoginResponse";
@@ -80,4 +80,4 @@ inline constexpr const char* kGrantInstanceRewardRequest =
 inline constexpr const char* kGrantInstanceRewardResponse =
     "internal.instance_player.GrantInstanceRewardResponse";
 
-}  // namespace mmo::apps::protocol
+}  // namespace apps::protocol

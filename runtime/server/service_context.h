@@ -6,7 +6,7 @@
 #include "common/context.pb.h"
 #include "common/envelope.pb.h"
 
-namespace mmo::runtime::server {
+namespace runtime::server {
 
 struct ServiceContext {
     std::string service_name;
@@ -24,4 +24,4 @@ inline ServiceContext make_service_context(
         request};
 }
 
-}  // namespace mmo::runtime::server
+}  // namespace runtime::server

@@ -8,19 +8,19 @@
 #include "runtime/server/server_bootstrap.h"
 
 int main() {
-    mmo::runtime::server::ServerApp app("player_server");
-    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
+    runtime::server::ServerApp app("player_server");
+    const auto tcp_options = runtime::server::make_server_transport_options(app);
 
-    auto mysql_pool = mmo::runtime::server::require_mysql_pool(app);
+    auto mysql_pool = runtime::server::require_mysql_pool(app);
     if (!mysql_pool) {
         return 1;
     }
     auto player_repository =
-        std::make_shared<mmo::modules::player::MysqlPlayerRepository>(mysql_pool);
-    mmo::modules::player::PlayerService service(player_repository);
-    mmo::runtime::rpc::RpcServer rpc_server(
-        mmo::runtime::rpc::make_rpc_server_options(app.config()));
-    mmo::apps::player_server::register_player_handlers(rpc_server, service);
+        std::make_shared<modules::player::MysqlPlayerRepository>(mysql_pool);
+    modules::player::PlayerService service(player_repository);
+    runtime::rpc::RpcServer rpc_server(
+        runtime::rpc::make_rpc_server_options(app.config()));
+    apps::player_server::register_player_handlers(rpc_server, service);
 
-    return mmo::runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
 }

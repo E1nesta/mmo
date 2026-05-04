@@ -13,7 +13,7 @@
 #include "runtime/transport/envelope_codec.h"
 #include "runtime/transport/envelope_transport.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 class ConnectionSession : public std::enable_shared_from_this<ConnectionSession> {
 public:
@@ -24,8 +24,8 @@ public:
         EnvelopeHandler handler,
         std::string service_name,
         TransportOptions options,
-        std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor,
-        std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics);
+        std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor,
+        std::shared_ptr<runtime::observability::MetricsRegistry> metrics);
 
     void start();
 
@@ -48,8 +48,8 @@ private:
     EnvelopeHandler handler_;
     std::string service_name_;
     TransportOptions options_;
-    std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor_;
-    std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics_;
+    std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor_;
+    std::shared_ptr<runtime::observability::MetricsRegistry> metrics_;
     std::array<char, EnvelopeCodec::kHeaderBytes> header_{};
     std::string payload_;
     std::deque<std::string> write_queue_;
@@ -57,4 +57,4 @@ private:
     bool closed_{};
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

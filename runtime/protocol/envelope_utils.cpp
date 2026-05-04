@@ -1,6 +1,6 @@
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::protocol {
+namespace runtime::protocol {
 
 mmo::common::ResponseContext make_ok_context(
     const mmo::common::RequestContext& request) {
@@ -51,4 +51,4 @@ mmo::common::Envelope make_error_envelope(
     return envelope;
 }
 
-}  // namespace mmo::runtime::protocol
+}  // namespace runtime::protocol

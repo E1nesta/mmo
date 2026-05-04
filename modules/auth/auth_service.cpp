@@ -7,7 +7,7 @@
 
 #include "modules/auth/password_hasher.h"
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 namespace {
 
 LoginResult failed_login(std::string internal_reason) {
@@ -96,4 +96,4 @@ LoginResult AuthService::login(
     return result;
 }
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

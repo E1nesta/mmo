@@ -6,7 +6,7 @@
 
 #include <ikcp.h>
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 
 struct KcpOptions {
     int nodelay{1};
@@ -43,4 +43,4 @@ private:
     ikcpcb* kcp_{};
 };
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

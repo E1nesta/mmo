@@ -5,7 +5,7 @@
 
 #include "runtime/storage/mysql_client.h"
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 struct SchemaMigration {
     int version{};
@@ -40,4 +40,4 @@ SchemaMigrationResult run_schema_migrations(
     const std::vector<SchemaMigration>& migrations,
     std::string* error_message);
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

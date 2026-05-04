@@ -7,7 +7,7 @@
 #include "modules/auth/account_repository.h"
 #include "modules/auth/player_identity_repository.h"
 
-namespace mmo::modules::auth {
+namespace modules::auth {
 
 struct LoginResult {
     bool success{};
@@ -36,4 +36,4 @@ private:
     std::shared_ptr<PlayerIdentityRepository> identities_;
 };
 
-}  // namespace mmo::modules::auth
+}  // namespace modules::auth

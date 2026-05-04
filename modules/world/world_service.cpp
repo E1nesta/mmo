@@ -1,6 +1,6 @@
 #include "modules/world/world_service.h"
 
-namespace mmo::modules::world {
+namespace modules::world {
 
 SceneRoute WorldService::enter_world(
     std::int64_t player_id,
@@ -15,4 +15,4 @@ SceneRoute WorldService::enter_world(
     return route;
 }
 
-}  // namespace mmo::modules::world
+}  // namespace modules::world

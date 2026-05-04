@@ -1,6 +1,6 @@
 #include "runtime/observability/metrics.h"
 
-namespace mmo::runtime::observability {
+namespace runtime::observability {
 namespace {
 
 std::string upstream_key(
@@ -279,4 +279,4 @@ MetricsSnapshot MetricsRegistry::snapshot() const {
     return snapshot;
 }
 
-}  // namespace mmo::runtime::observability
+}  // namespace runtime::observability

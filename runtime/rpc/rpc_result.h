@@ -3,7 +3,7 @@
 #include "common/envelope.pb.h"
 #include "runtime/rpc/rpc_error.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 class RpcResult {
 public:
@@ -25,4 +25,4 @@ private:
     bool has_response_{};
 };
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

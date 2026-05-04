@@ -10,7 +10,7 @@
 #include "runtime/gateway/proxy_mapper.h"
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::gateway {
+namespace runtime::gateway {
 
 template <
     typename PublicRequest,
@@ -31,14 +31,14 @@ void bind_proxy_handler(
         [context, mapper = std::move(mapper)](
             const mmo::common::Envelope& envelope) mutable {
             PublicRequest request;
-            if (!mmo::runtime::protocol::unpack_message(envelope, request)) {
-                return mmo::runtime::protocol::make_error_envelope(
+            if (!runtime::protocol::unpack_message(envelope, request)) {
+                return runtime::protocol::make_error_envelope(
                     envelope, 400, mapper.invalid_public_request_message);
             }
 
             const auto route = context.route_table.find(envelope.message_type());
             if (!route.has_value()) {
-                return mmo::runtime::protocol::make_error_envelope(
+                return runtime::protocol::make_error_envelope(
                     envelope, 404, "gateway route is not configured");
             }
 
@@ -70,24 +70,24 @@ void bind_proxy_handler(
             }
 
             InternalResponse internal_response;
-            if (!mmo::runtime::protocol::unpack_message(
+            if (!runtime::protocol::unpack_message(
                     proxy_result.response(), internal_response)) {
-                return mmo::runtime::protocol::make_error_envelope(
+                return runtime::protocol::make_error_envelope(
                     envelope, 502, mapper.invalid_internal_response_message);
             }
             if (!internal_response.context().success()) {
-                return mmo::runtime::protocol::make_error_envelope(
+                return runtime::protocol::make_error_envelope(
                     envelope,
                     internal_response.context().error_code(),
                     internal_response.context().error_message());
             }
 
             const auto response = mapper.map_response(request, internal_response);
-            return mmo::runtime::protocol::pack_message(
+            return runtime::protocol::pack_message(
                 mapper.public_response_message_type,
                 request.context(),
                 response);
         });
 }
 
-}  // namespace mmo::runtime::gateway
+}  // namespace runtime::gateway

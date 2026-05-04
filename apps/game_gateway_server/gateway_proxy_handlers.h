@@ -7,14 +7,14 @@
 #include "runtime/session/session_context.h"
 #include "runtime/session/session_store.h"
 
-namespace mmo::apps::game_gateway_server {
+namespace apps::game_gateway_server {
 
 void register_gateway_proxy_handlers(
-    mmo::runtime::gateway::GatewayRouter& gateway_router,
-    mmo::runtime::gateway::GatewayForwarder& forwarder,
-    const mmo::runtime::gateway::ProxyRouteTable& route_table,
-    mmo::runtime::session::SessionRegistry& sessions,
-    mmo::runtime::session::SessionStore& session_store,
-    mmo::runtime::observability::MetricsRegistry& security_metrics);
+    runtime::gateway::GatewayRouter& gateway_router,
+    runtime::gateway::GatewayForwarder& forwarder,
+    const runtime::gateway::ProxyRouteTable& route_table,
+    runtime::session::SessionRegistry& sessions,
+    runtime::session::SessionStore& session_store,
+    runtime::observability::MetricsRegistry& security_metrics);
 
-}  // namespace mmo::apps::game_gateway_server
+}  // namespace apps::game_gateway_server

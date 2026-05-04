@@ -8,7 +8,7 @@
 
 #include "modules/player/player_types.h"
 
-namespace mmo::modules::instance {
+namespace modules::instance {
 
 struct InstanceContext {
     std::int64_t instance_id{};
@@ -19,7 +19,7 @@ struct InstanceContext {
 
 struct SettleResult {
     std::string reward_grant_id;
-    std::vector<mmo::modules::player::Reward> rewards;
+    std::vector<modules::player::Reward> rewards;
     bool duplicate{};
 };
 
@@ -38,4 +38,4 @@ private:
     std::set<std::string> settled_keys_;
 };
 
-}  // namespace mmo::modules::instance
+}  // namespace modules::instance

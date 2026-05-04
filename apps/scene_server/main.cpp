@@ -5,13 +5,13 @@
 #include "runtime/server/server_bootstrap.h"
 
 int main() {
-    mmo::runtime::server::ServerApp app("scene_server");
-    const auto tcp_options = mmo::runtime::server::make_server_transport_options(app);
+    runtime::server::ServerApp app("scene_server");
+    const auto tcp_options = runtime::server::make_server_transport_options(app);
 
-    mmo::modules::scene::SceneService service;
-    mmo::runtime::rpc::RpcServer rpc_server(
-        mmo::runtime::rpc::make_rpc_server_options(app.config()));
-    mmo::apps::scene_server::register_scene_handlers(rpc_server, service);
+    modules::scene::SceneService service;
+    runtime::rpc::RpcServer rpc_server(
+        runtime::rpc::make_rpc_server_options(app.config()));
+    apps::scene_server::register_scene_handlers(rpc_server, service);
 
-    return mmo::runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
 }

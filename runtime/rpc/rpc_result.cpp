@@ -4,7 +4,7 @@
 
 #include "runtime/protocol/envelope_utils.h"
 
-namespace mmo::runtime::rpc {
+namespace runtime::rpc {
 
 RpcResult RpcResult::success(mmo::common::Envelope response) {
     RpcResult result;
@@ -47,8 +47,8 @@ mmo::common::Envelope RpcResult::make_error_envelope(
     const mmo::common::Envelope& request) const {
     const auto status_code = rpc_error_to_status_code(error_.code);
     const auto message = error_.message.empty() ? "rpc failed" : error_.message;
-    return mmo::runtime::protocol::make_error_envelope(
+    return runtime::protocol::make_error_envelope(
         request, status_code, message);
 }
 
-}  // namespace mmo::runtime::rpc
+}  // namespace runtime::rpc

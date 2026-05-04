@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdlib>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 namespace {
 
 struct ReplyGuard {
@@ -254,4 +254,4 @@ void RedisClient::close() {
     }
 }
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

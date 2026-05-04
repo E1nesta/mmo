@@ -14,7 +14,7 @@
 #include "runtime/observability/logging.h"
 #include "runtime/transport/connection_session.h"
 
-namespace mmo::runtime::transport {
+namespace runtime::transport {
 namespace {
 
 using boost::asio::ip::tcp;
@@ -30,8 +30,8 @@ TcpEnvelopeServer::TcpEnvelopeServer(
     EnvelopeHandler handler,
     std::string service_name,
     TransportOptions options,
-    std::shared_ptr<mmo::runtime::execution::ShardedExecutor> handler_executor,
-    std::shared_ptr<mmo::runtime::observability::MetricsRegistry> metrics)
+    std::shared_ptr<runtime::execution::ShardedExecutor> handler_executor,
+    std::shared_ptr<runtime::observability::MetricsRegistry> metrics)
     : port_(port),
       handler_(std::move(handler)),
       service_name_(std::move(service_name)),
@@ -41,17 +41,17 @@ TcpEnvelopeServer::TcpEnvelopeServer(
 
 int TcpEnvelopeServer::run() {
     try {
-        mmo::runtime::execution::IOContextPool io_context_pool(
+        runtime::execution::IOContextPool io_context_pool(
             positive_count(options_.io_thread_count));
         if (handler_executor_ == nullptr) {
-            handler_executor_ = std::make_shared<mmo::runtime::execution::ShardedExecutor>(
-                mmo::runtime::execution::ShardedExecutorOptions{
+            handler_executor_ = std::make_shared<runtime::execution::ShardedExecutor>(
+                runtime::execution::ShardedExecutorOptions{
                     positive_count(options_.handler_shard_count),
                     options_.max_handler_queue_depth_per_shard});
         }
         if (metrics_ == nullptr) {
             metrics_ =
-                std::make_shared<mmo::runtime::observability::MetricsRegistry>();
+                std::make_shared<runtime::observability::MetricsRegistry>();
         }
 
         auto& accept_context = io_context_pool.next();
@@ -87,8 +87,8 @@ int TcpEnvelopeServer::run() {
                             metrics_)
                             ->start();
                     } else if (acceptor.is_open()) {
-                        mmo::runtime::observability::log_error(
-                            mmo::runtime::observability::LogContext{service_name_},
+                        runtime::observability::log_error(
+                            runtime::observability::LogContext{service_name_},
                             "tcp_accept_failed error=" + error.message());
                     }
 
@@ -99,8 +99,8 @@ int TcpEnvelopeServer::run() {
         };
         accept_next();
 
-        mmo::runtime::observability::log_info(
-            mmo::runtime::observability::LogContext{service_name_},
+        runtime::observability::log_info(
+            runtime::observability::LogContext{service_name_},
                 "tcp_server_listening port=" + std::to_string(port_) +
                 " io_threads=" + std::to_string(io_context_pool.size()) +
                 " handler_shards=" +
@@ -112,11 +112,11 @@ int TcpEnvelopeServer::run() {
         handler_executor_->stop();
         return 0;
     } catch (const std::exception& error) {
-        mmo::runtime::observability::log_error(
-            mmo::runtime::observability::LogContext{service_name_},
+        runtime::observability::log_error(
+            runtime::observability::LogContext{service_name_},
             std::string("tcp_server_fatal error=") + error.what());
         return 1;
     }
 }
 
-}  // namespace mmo::runtime::transport
+}  // namespace runtime::transport

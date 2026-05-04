@@ -6,7 +6,7 @@
 
 #include <hiredis/hiredis.h>
 
-namespace mmo::runtime::storage {
+namespace runtime::storage {
 
 struct RedisConfig {
     std::string host{"127.0.0.1"};
@@ -49,4 +49,4 @@ private:
     redisContext* context_{};
 };
 
-}  // namespace mmo::runtime::storage
+}  // namespace runtime::storage

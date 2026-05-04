@@ -28,20 +28,20 @@ std::int64_t probe_player_id() {
 }  // namespace
 
 int main() {
-    const auto config = mmo::runtime::foundation::load_server_config_from_env();
+    const auto config = runtime::foundation::load_server_config_from_env();
     std::string error;
 
-    std::shared_ptr<mmo::runtime::storage::MysqlConnectionPool> mysql_pool;
-    assert(mmo::runtime::storage::initialize_mysql_pool(
+    std::shared_ptr<runtime::storage::MysqlConnectionPool> mysql_pool;
+    assert(runtime::storage::initialize_mysql_pool(
         config, &mysql_pool, &error));
     auto player_repository =
-        std::make_shared<mmo::modules::player::MysqlPlayerRepository>(mysql_pool);
-    mmo::modules::player::PlayerService player_service(player_repository);
+        std::make_shared<modules::player::MysqlPlayerRepository>(mysql_pool);
+    modules::player::PlayerService player_service(player_repository);
 
     const auto player_id = probe_player_id();
     const std::string idempotency_key =
         "storage-governance-probe-" + std::to_string(now_millis());
-    const std::vector<mmo::modules::player::Reward> rewards = {
+    const std::vector<modules::player::Reward> rewards = {
         {"gold", 10},
         {"exp", 20},
     };
@@ -63,11 +63,11 @@ int main() {
     assert(profile->gold == 10);
     assert(profile->exp == 20);
 
-    std::shared_ptr<mmo::runtime::storage::RedisConnectionPool> redis_pool;
-    assert(mmo::runtime::storage::initialize_redis_pool(
+    std::shared_ptr<runtime::storage::RedisConnectionPool> redis_pool;
+    assert(runtime::storage::initialize_redis_pool(
         config, &redis_pool, &error));
 
-    mmo::adapters::session_redis::RedisTicketReplayStore replay_store(redis_pool);
+    adapters::session_redis::RedisTicketReplayStore replay_store(redis_pool);
     const auto ticket_now = static_cast<std::uint64_t>(now_millis());
     const auto ticket_expire = ticket_now + 60000;
     const std::string ticket_id =
@@ -75,8 +75,8 @@ int main() {
     assert(replay_store.consume(ticket_id, ticket_now, ticket_expire));
     assert(!replay_store.consume(ticket_id, ticket_now + 1, ticket_expire));
 
-    mmo::adapters::session_redis::RedisSessionStore session_store(redis_pool);
-    mmo::runtime::session::ConnectionBinding binding;
+    adapters::session_redis::RedisSessionStore session_store(redis_pool);
+    runtime::session::ConnectionBinding binding;
     binding.connection_id = 42;
     binding.game_session_id =
         "storage-governance-session-" + std::to_string(ticket_now);
