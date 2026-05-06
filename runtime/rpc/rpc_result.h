@@ -1,26 +1,27 @@
 #pragma once
 
-#include "common/envelope.pb.h"
+#include "runtime/protocol/frame.h"
 #include "runtime/rpc/rpc_error.h"
 
 namespace runtime::rpc {
 
 class RpcResult {
 public:
-    static RpcResult success(mmo::common::Envelope response);
+    static RpcResult success(runtime::protocol::FrameMessage response);
+    static RpcResult accepted();
     static RpcResult failure(RpcError error);
-    static RpcResult remote_error(mmo::common::Envelope response);
+    static RpcResult remote_error(runtime::protocol::FrameMessage response);
 
     bool ok() const;
     bool has_response() const;
-    const mmo::common::Envelope& response() const;
+    const runtime::protocol::FrameMessage& response() const;
     const RpcError& error() const;
 
-    mmo::common::Envelope make_error_envelope(
-        const mmo::common::Envelope& request) const;
+    runtime::protocol::FrameMessage make_error_frame(
+        const runtime::protocol::FrameMessage& request) const;
 
 private:
-    mmo::common::Envelope response_;
+    runtime::protocol::FrameMessage response_;
     RpcError error_;
     bool has_response_{};
 };

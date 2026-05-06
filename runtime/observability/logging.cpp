@@ -13,19 +13,15 @@ std::string format_log_line(
     output << "service=" << context.service_name
            << " event=" << event
            << " request_id=" << context.request_id
-           << " account_id=" << context.account_id
-           << " player_id=" << context.player_id;
-    if (!context.message_type.empty()) {
-        output << " message_type=" << context.message_type;
-    }
-    if (!context.trace_id.empty()) {
-        output << " trace_id=" << context.trace_id;
+           << " route_key=" << context.route_key;
+    if (context.message_id != 0U) {
+        output << " message_id=" << context.message_id;
     }
     if (!context.gateway_id.empty()) {
         output << " gateway_id=" << context.gateway_id;
     }
-    if (!context.game_session_id.empty()) {
-        output << " game_session_id=" << context.game_session_id;
+    if (context.session_id != 0U) {
+        output << " session_id=" << context.session_id;
     }
     if (!context.upstream.empty()) {
         output << " upstream=" << context.upstream;
@@ -42,18 +38,15 @@ std::string format_log_line(
     return output.str();
 }
 
-LogContext context_from_envelope(
+LogContext context_from_frame(
     const std::string& service_name,
-    const mmo::common::Envelope& envelope) {
+    const runtime::protocol::FrameMessage& frame) {
     LogContext context;
     context.service_name = service_name;
-    context.request_id = envelope.request_id();
-    context.player_id = envelope.player_id();
-    context.message_type = envelope.message_type();
-    context.trace_id = envelope.trace_id();
-    context.gateway_id =
-        envelope.source_service().empty() ? service_name : envelope.source_service();
-    context.game_session_id = envelope.game_session_id();
+    context.request_id = frame.request_id();
+    context.route_key = frame.route_key();
+    context.message_id = frame.message_id();
+    context.gateway_id = service_name;
     return context;
 }
 

@@ -34,7 +34,7 @@ int rpc_error_to_status_code(RpcErrorCode code) {
         case RpcErrorCode::kEncodeFailed:
         case RpcErrorCode::kDecodeFailed:
         case RpcErrorCode::kRequestIdMismatch:
-        case RpcErrorCode::kChannelClosed:
+        case RpcErrorCode::kConnectionClosed:
             return 502;
     }
     return 500;

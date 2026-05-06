@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package mmo.cs;
+
+import "common/error.proto";
+import "common/types.proto";
+
+message ApplyRewardRequest {
+  string idempotency_key = 2;
+  repeated mmo.common.Reward rewards = 3;
+}
+
+message ApplyRewardResponse {
+  mmo.common.Result result = 1;
+  bool applied = 2;
+  int64 gold = 3;
+  int64 exp = 4;
+}

@@ -102,7 +102,7 @@ services:
 
 transport:
   tcp:
-    max_envelope_payload_bytes: 1048576
+    max_frame_payload_bytes: 1048576
     timeout_millis: 3000
     listen_backlog: 64
   kcp:

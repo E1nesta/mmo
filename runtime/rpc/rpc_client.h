@@ -1,25 +1,24 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
-#include <google/protobuf/message.h>
-
-#include "common/context.pb.h"
-#include "runtime/channel/channel_client.h"
-#include "runtime/channel/endpoint_resolver.h"
-#include "runtime/channel/service_registry.h"
 #include "runtime/foundation/server_config.h"
-#include "runtime/protocol/envelope_utils.h"
-#include "runtime/rpc/rpc_controller.h"
+#include "runtime/net/frame_transport.h"
+#include "runtime/protocol/payload_utils.h"
+#include "runtime/rpc/rpc_connection_pool.h"
+#include "runtime/rpc/rpc_options.h"
 #include "runtime/rpc/rpc_result.h"
+#include "runtime/rpc/rpc_service_registry.h"
 
 namespace runtime::rpc {
 
 struct RpcClientOptions {
     std::string source_service;
-    std::string internal_auth_shared_secret;
 };
 
 RpcClientOptions make_rpc_client_options(
@@ -29,44 +28,88 @@ RpcClientOptions make_rpc_client_options(
 class RpcClient {
 public:
     RpcClient(
-        std::shared_ptr<runtime::channel::EndpointResolver> resolver,
-        runtime::transport::TransportOptions transport_options,
-        runtime::channel::ChannelConnectionPoolOptions pool_options,
+        std::shared_ptr<runtime::rpc::RpcServiceRegistry> service_registry,
+        runtime::net::TransportOptions transport_options,
+        runtime::rpc::RpcConnectionPoolOptions pool_options,
         RpcClientOptions options = {});
-    RpcClient(
-        std::shared_ptr<runtime::channel::ServiceRegistry> service_registry,
-        runtime::transport::TransportOptions transport_options,
-        runtime::channel::ChannelConnectionPoolOptions pool_options,
-        RpcClientOptions options = {});
-    explicit RpcClient(
-        std::unique_ptr<runtime::channel::ChannelClient> channel_client,
-        RpcClientOptions options = {});
+
     RpcClient(const RpcClient&) = delete;
     RpcClient& operator=(const RpcClient&) = delete;
     RpcClient(RpcClient&&) = delete;
     RpcClient& operator=(RpcClient&&) = delete;
 
-    RpcResult call_envelope(
+    RpcResult call_frame(
         const std::string& target_service,
-        const mmo::common::Envelope& request,
-        RpcController controller = {});
+        runtime::protocol::FrameMessage request,
+        RpcOptions options = {});
+    RpcResult cast_frame(
+        const std::string& target_service,
+        runtime::protocol::FrameMessage request,
+        RpcOptions options = {});
 
     template <typename Request>
     RpcResult call(
         const std::string& target_service,
-        const std::string& message_type,
-        const mmo::common::RequestContext& context,
+        std::uint32_t message_id,
+        std::uint64_t route_key,
         const Request& request,
-        RpcController controller = {}) {
-        controller.target_service = target_service;
-        auto envelope =
-            runtime::protocol::pack_message(message_type, context, request);
-        return call_envelope(target_service, envelope, std::move(controller));
+        RpcOptions options = {}) {
+        options.target_service = target_service;
+        options.route_key = route_key;
+        options.mode = runtime::protocol::MessageMode::kCall;
+        auto frame = runtime::protocol::pack_message(
+            message_id,
+            request_id_or_next(options),
+            route_key,
+            options.mode,
+            request);
+        return call_frame(target_service, std::move(frame), std::move(options));
+    }
+
+    template <typename Event>
+    RpcResult cast(
+        const std::string& target_service,
+        std::uint32_t message_id,
+        std::uint64_t route_key,
+        const Event& event,
+        RpcOptions options = {}) {
+        options.target_service = target_service;
+        options.route_key = route_key;
+        options.mode = runtime::protocol::MessageMode::kCast;
+        auto frame = runtime::protocol::pack_message(
+            message_id,
+            request_id_or_next(options),
+            route_key,
+            options.mode,
+            event);
+        return cast_frame(target_service, std::move(frame), std::move(options));
+    }
+
+    template <typename Event>
+    RpcResult batch(
+        const std::string& target_service,
+        std::uint32_t message_id,
+        std::uint64_t route_key,
+        const std::vector<Event>& events,
+        RpcOptions options = {}) {
+        options.target_service = target_service;
+        options.route_key = route_key;
+        options.mode = runtime::protocol::MessageMode::kBatch;
+        auto frame = runtime::protocol::pack_batch(
+            message_id,
+            request_id_or_next(options),
+            route_key,
+            events);
+        return cast_frame(target_service, std::move(frame), std::move(options));
     }
 
 private:
-    std::unique_ptr<runtime::channel::ChannelClient> channel_client_;
+    std::uint64_t request_id_or_next(const RpcOptions& options);
+    RpcCallOptions make_call_options(const RpcOptions& options) const;
+
+    RpcConnectionPool connection_pool_;
     RpcClientOptions options_;
+    std::atomic<std::uint64_t> next_request_id_{1};
 };
 
 }  // namespace runtime::rpc

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package mmo.cs;
+
+import "common/error.proto";
+
+message SocialBoundaryRequest {
+  int64 target_player_id = 2;
+}
+
+message SocialBoundaryResponse {
+  mmo.common.Result result = 1;
+  bool friend_boundary_available = 2;
+  bool chat_boundary_available = 3;
+  bool team_boundary_available = 4;
+}

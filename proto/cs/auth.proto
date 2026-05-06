@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package mmo.cs;
+
+import "common/error.proto";
+
+message LoginRequest {
+  string account_name = 2;
+  string password = 3;
+  string device_id = 4;
+}
+
+message LoginResponse {
+  mmo.common.Result result = 1;
+  int64 account_id = 2;
+  int64 player_id = 3;
+  string session_token = 4;
+  int64 expires_at_epoch_seconds = 5;
+  string access_token = 6;
+  string gateway_ticket = 7;
+  int64 access_token_expires_at_epoch_millis = 8;
+  int64 gateway_ticket_expires_at_epoch_millis = 9;
+}

@@ -1,20 +1,24 @@
 #pragma once
 
 #include <optional>
+#include <string>
 
-#include "common/context.pb.h"
-#include "common/envelope.pb.h"
+#include "runtime/net/reliable_frame_codec.h"
 #include "runtime/observability/metrics.h"
 #include "runtime/session/session_context.h"
 #include "runtime/session/session_store.h"
 
 namespace runtime::gateway {
 
-std::optional<mmo::common::Envelope> validate_gateway_session(
-    const mmo::common::Envelope& envelope,
+runtime::net::ReliableFrame make_gateway_error_frame(
+    const runtime::net::ReliableFrame& request,
+    int error_code,
+    const std::string& error_message);
+
+std::optional<runtime::net::ReliableFrame> validate_gateway_session(
+    const runtime::net::ReliableFrame& frame,
     const runtime::session::SessionRegistry& sessions,
     const runtime::session::SessionStore& session_store,
-    const mmo::common::RequestContext& context,
     runtime::observability::MetricsRegistry* metrics = nullptr);
 
 }  // namespace runtime::gateway

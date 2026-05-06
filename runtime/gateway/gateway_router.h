@@ -1,22 +1,25 @@
 #pragma once
 
-#include <string>
+#include <cstdint>
+#include <functional>
+#include <unordered_map>
 
-#include "runtime/protocol/message_router.h"
-#include "runtime/transport/envelope_transport.h"
+#include "runtime/net/reliable_frame_codec.h"
 
 namespace runtime::gateway {
 
 class GatewayRouter {
 public:
-    using Handler = runtime::transport::EnvelopeHandler;
+    using Handler = std::function<runtime::net::ReliableFrame(
+        const runtime::net::ReliableFrame&)>;
 
-    void on(std::string message_type, Handler handler);
-    mmo::common::Envelope dispatch(const mmo::common::Envelope& envelope) const;
+    void on(std::uint32_t message_id, Handler handler);
+    runtime::net::ReliableFrame dispatch(
+        const runtime::net::ReliableFrame& frame) const;
     Handler handler() const;
 
 private:
-    runtime::protocol::MessageRouter router_;
+    std::unordered_map<std::uint32_t, Handler> handlers_;
 };
 
 }  // namespace runtime::gateway

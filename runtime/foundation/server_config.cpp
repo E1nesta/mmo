@@ -127,10 +127,10 @@ std::uint32_t read_uint32(const YAML::Node& node, const std::string& key) {
     return static_cast<std::uint32_t>(value);
 }
 
-ServiceInstanceConfig read_service_instance(
+RpcServiceInstanceConfig read_service_instance(
     const std::string& service_name,
     const YAML::Node& node) {
-    ServiceInstanceConfig instance;
+    RpcServiceInstanceConfig instance;
     instance.instance_id = read_string(node, "instance_id");
     instance.host = read_string(node, "host");
     instance.tcp_port = read_port(node, "tcp_port");
@@ -210,26 +210,21 @@ RedisConfig read_redis(const YAML::Node& node) {
     return config;
 }
 
-ExecutionConfig read_execution(const YAML::Node& node) {
-    ExecutionConfig config;
+SchedulerConfig read_scheduler(const YAML::Node& node) {
+    SchedulerConfig config;
     config.io_threads = read_int(node, "io_threads");
     config.handler_shards = read_int(node, "handler_shards");
     config.max_handler_queue_depth_per_shard =
         read_optional_int(node, "max_handler_queue_depth_per_shard", 1024);
-    config.player_shards = read_int(node, "player_shards");
-    config.scene_shards = read_int(node, "scene_shards");
-    config.instance_shards = read_int(node, "instance_shards");
     if (config.io_threads <= 0 || config.handler_shards <= 0 ||
-        config.max_handler_queue_depth_per_shard <= 0 ||
-        config.player_shards <= 0 || config.scene_shards <= 0 ||
-        config.instance_shards <= 0) {
-        throw std::runtime_error("execution config values must be greater than zero");
+        config.max_handler_queue_depth_per_shard <= 0) {
+        throw std::runtime_error("scheduler config values must be greater than zero");
     }
     return config;
 }
 
-ChannelConfig read_channel(const YAML::Node& node) {
-    ChannelConfig config;
+RpcConfig read_rpc(const YAML::Node& node) {
+    RpcConfig config;
     config.connect_timeout_millis = read_int(node, "connect_timeout_millis");
     config.request_timeout_millis = read_int(node, "request_timeout_millis");
     config.connections_per_upstream = read_int(node, "connections_per_upstream");
@@ -241,7 +236,7 @@ ChannelConfig read_channel(const YAML::Node& node) {
         config.connections_per_upstream <= 0 ||
         config.max_pending_requests_per_connection <= 0 ||
         config.max_pending_requests_per_upstream <= 0) {
-        throw std::runtime_error("channel config values must be greater than zero");
+        throw std::runtime_error("rpc config values must be greater than zero");
     }
     return config;
 }
@@ -351,8 +346,8 @@ ServerConfig load_server_config(const std::string& path) {
     }
 
     const YAML::Node tcp = root["transport"]["tcp"];
-    config.transport.tcp.max_envelope_payload_bytes =
-        read_uint32(tcp, "max_envelope_payload_bytes");
+    config.transport.tcp.max_frame_payload_bytes =
+        read_uint32(tcp, "max_frame_payload_bytes");
     config.transport.tcp.timeout_millis = read_int(tcp, "timeout_millis");
     config.transport.tcp.listen_backlog = read_int(tcp, "listen_backlog");
 
@@ -367,8 +362,8 @@ ServerConfig load_server_config(const std::string& path) {
 
     config.storage.mysql = read_mysql(root["storage"]["mysql"]);
     config.storage.redis = read_redis(root["storage"]["redis"]);
-    config.execution = read_execution(root["execution"]);
-    config.channel = read_channel(root["channel"]);
+    config.scheduler = read_scheduler(root["scheduler"]);
+    config.rpc = read_rpc(root["rpc"]);
     config.security = read_security(root["security"]);
 
     const YAML::Node observability = root["observability"];

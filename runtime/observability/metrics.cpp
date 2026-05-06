@@ -66,28 +66,12 @@ void MetricsRegistry::record_handler_rejected() {
     handler_rejected_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
-void MetricsRegistry::set_channel_pending_count(std::uint64_t pending_count) {
-    channel_pending_count_.store(pending_count, std::memory_order_relaxed);
-}
-
-void MetricsRegistry::record_channel_request() {
-    channel_requests_total_.fetch_add(1, std::memory_order_relaxed);
-}
-
-void MetricsRegistry::record_channel_error() {
-    channel_errors_total_.fetch_add(1, std::memory_order_relaxed);
-}
-
-void MetricsRegistry::record_channel_pending_limit() {
-    channel_pending_limit_total_.fetch_add(1, std::memory_order_relaxed);
-}
-
 void MetricsRegistry::set_rpc_pending_count(std::uint64_t pending_count) {
     rpc_pending_count_.store(pending_count, std::memory_order_relaxed);
 }
 
-void MetricsRegistry::record_rpc_request() {
-    rpc_requests_total_.fetch_add(1, std::memory_order_relaxed);
+void MetricsRegistry::record_rpc_call() {
+    rpc_calls_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void MetricsRegistry::record_rpc_error() {
@@ -122,12 +106,12 @@ void MetricsRegistry::record_gateway_ticket_replay() {
     gateway_ticket_replay_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
-void MetricsRegistry::record_gate_login_success() {
-    gate_login_success_total_.fetch_add(1, std::memory_order_relaxed);
+void MetricsRegistry::record_gateway_login_success() {
+    gateway_login_success_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
-void MetricsRegistry::record_gate_login_failed() {
-    gate_login_failed_total_.fetch_add(1, std::memory_order_relaxed);
+void MetricsRegistry::record_gateway_login_failed() {
+    gateway_login_failed_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void MetricsRegistry::record_game_session_expired() {
@@ -140,10 +124,6 @@ void MetricsRegistry::record_reconnect_success() {
 
 void MetricsRegistry::record_reconnect_failed() {
     reconnect_failed_total_.fetch_add(1, std::memory_order_relaxed);
-}
-
-void MetricsRegistry::record_internal_auth_failed() {
-    internal_auth_failed_total_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void MetricsRegistry::set_upstream_instance_pending(
@@ -228,18 +208,10 @@ MetricsSnapshot MetricsRegistry::snapshot() const {
         executor_queue_overflow_total_.load(std::memory_order_relaxed);
     snapshot.handler_rejected_total =
         handler_rejected_total_.load(std::memory_order_relaxed);
-    snapshot.channel_pending_count =
-        channel_pending_count_.load(std::memory_order_relaxed);
-    snapshot.channel_requests_total =
-        channel_requests_total_.load(std::memory_order_relaxed);
-    snapshot.channel_errors_total =
-        channel_errors_total_.load(std::memory_order_relaxed);
-    snapshot.channel_pending_limit_total =
-        channel_pending_limit_total_.load(std::memory_order_relaxed);
     snapshot.rpc_pending_count =
         rpc_pending_count_.load(std::memory_order_relaxed);
-    snapshot.rpc_requests_total =
-        rpc_requests_total_.load(std::memory_order_relaxed);
+    snapshot.rpc_calls_total =
+        rpc_calls_total_.load(std::memory_order_relaxed);
     snapshot.rpc_errors_total =
         rpc_errors_total_.load(std::memory_order_relaxed);
     snapshot.rpc_timeout_total =
@@ -256,18 +228,16 @@ MetricsSnapshot MetricsRegistry::snapshot() const {
         gateway_ticket_rejected_total_.load(std::memory_order_relaxed);
     snapshot.gateway_ticket_replay_total =
         gateway_ticket_replay_total_.load(std::memory_order_relaxed);
-    snapshot.gate_login_success_total =
-        gate_login_success_total_.load(std::memory_order_relaxed);
-    snapshot.gate_login_failed_total =
-        gate_login_failed_total_.load(std::memory_order_relaxed);
+    snapshot.gateway_login_success_total =
+        gateway_login_success_total_.load(std::memory_order_relaxed);
+    snapshot.gateway_login_failed_total =
+        gateway_login_failed_total_.load(std::memory_order_relaxed);
     snapshot.game_session_expired_total =
         game_session_expired_total_.load(std::memory_order_relaxed);
     snapshot.reconnect_success_total =
         reconnect_success_total_.load(std::memory_order_relaxed);
     snapshot.reconnect_failed_total =
         reconnect_failed_total_.load(std::memory_order_relaxed);
-    snapshot.internal_auth_failed_total =
-        internal_auth_failed_total_.load(std::memory_order_relaxed);
     {
         std::lock_guard<std::mutex> lock(upstream_mutex_);
         snapshot.upstream_instances.reserve(upstream_instances_.size());

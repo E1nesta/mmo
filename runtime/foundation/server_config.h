@@ -15,7 +15,7 @@ struct NetworkConfig {
     std::string public_host;
 };
 
-struct ServiceInstanceConfig {
+struct RpcServiceInstanceConfig {
     std::string instance_id;
     std::string host;
     std::uint16_t tcp_port{};
@@ -30,11 +30,11 @@ struct ServiceConfig {
     std::string host;
     std::uint16_t tcp_port{};
     std::uint16_t udp_kcp_port{};
-    std::vector<ServiceInstanceConfig> instances;
+    std::vector<RpcServiceInstanceConfig> instances;
 };
 
 struct TcpTransportConfig {
-    std::uint32_t max_envelope_payload_bytes{};
+    std::uint32_t max_frame_payload_bytes{};
     int timeout_millis{};
     int listen_backlog{};
 };
@@ -75,16 +75,13 @@ struct StorageConfig {
     RedisConfig redis;
 };
 
-struct ExecutionConfig {
+struct SchedulerConfig {
     int io_threads{};
     int handler_shards{};
     int max_handler_queue_depth_per_shard{1024};
-    int player_shards{};
-    int scene_shards{};
-    int instance_shards{};
 };
 
-struct ChannelConfig {
+struct RpcConfig {
     int connect_timeout_millis{};
     int request_timeout_millis{};
     int connections_per_upstream{};
@@ -135,8 +132,8 @@ public:
     NetworkConfig network;
     TransportConfig transport;
     StorageConfig storage;
-    ExecutionConfig execution;
-    ChannelConfig channel;
+    SchedulerConfig scheduler;
+    RpcConfig rpc;
     ObservabilityConfig observability;
     SecurityConfig security;
     std::unordered_map<std::string, ServiceConfig> services;

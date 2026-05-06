@@ -1,45 +1,45 @@
 #include "runtime/gateway/gateway_middleware.h"
 
-#include <cstdint>
 #include <string>
 
-#include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/internal_auth.h"
+#include "common/error.pb.h"
+#include "runtime/protocol/frame.h"
+#include "runtime/protocol/payload_utils.h"
 
 namespace runtime::gateway {
 
-std::optional<mmo::common::Envelope> validate_gateway_session(
-    const mmo::common::Envelope& envelope,
+runtime::net::ReliableFrame make_gateway_error_frame(
+    const runtime::net::ReliableFrame& request,
+    int error_code,
+    const std::string& error_message) {
+    runtime::net::ReliableFrame response;
+    response.version = request.version;
+    response.flags = request.flags;
+    response.message_id = runtime::protocol::kErrorResponseMessageId;
+    response.request_id = request.request_id;
+    response.session_id = request.session_id;
+
+    const auto result =
+        runtime::protocol::make_error_result(error_code, error_message);
+    std::string payload;
+    result.SerializeToString(&payload);
+    response.payload.assign(payload.begin(), payload.end());
+    return response;
+}
+
+std::optional<runtime::net::ReliableFrame> validate_gateway_session(
+    const runtime::net::ReliableFrame& frame,
     const runtime::session::SessionRegistry& sessions,
     const runtime::session::SessionStore& session_store,
-    const mmo::common::RequestContext& context,
     runtime::observability::MetricsRegistry* metrics) {
-    if (envelope.player_id() != context.player_id() ||
-        envelope.session_token() != context.session_token() ||
-        envelope.game_session_id() != context.game_session_id()) {
-        return runtime::protocol::make_error_envelope(
-            envelope, 400, "request context does not match envelope");
-    }
-    const auto now_millis = static_cast<std::uint64_t>(
-        runtime::protocol::current_time_millis());
-    std::string redis_error;
-    if (envelope.game_session_id().empty() ||
-        !sessions.is_bound(
-            envelope.player_id(),
-            envelope.session_token(),
-            envelope.game_session_id(),
-            now_millis) ||
-        !session_store.is_bound(
-            envelope.player_id(),
-            envelope.session_token(),
-            envelope.game_session_id(),
-            now_millis,
-            &redis_error)) {
+    (void)sessions;
+    (void)session_store;
+    if (frame.session_id == 0) {
         if (metrics != nullptr) {
             metrics->record_game_session_expired();
         }
-        return runtime::protocol::make_error_envelope(
-            envelope, 401, "game session is not bound to gateway");
+        return make_gateway_error_frame(
+            frame, 401, "gateway session is required");
     }
     return std::nullopt;
 }

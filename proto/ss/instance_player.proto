@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package mmo.ss;
+
+import "common/error.proto";
+import "common/types.proto";
+
+message GrantInstanceRewardRequest {
+  string reward_grant_id = 2;
+  repeated mmo.common.Reward rewards = 3;
+}
+
+message GrantInstanceRewardResponse {
+  mmo.common.Result result = 1;
+  bool applied = 2;
+  int64 gold = 3;
+  int64 exp = 4;
+}

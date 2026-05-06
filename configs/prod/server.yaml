@@ -102,7 +102,7 @@ services:
 
 transport:
   tcp:
-    max_envelope_payload_bytes_env: "MMO_TCP_MAX_ENVELOPE_PAYLOAD_BYTES"
+    max_frame_payload_bytes_env: "MMO_TCP_MAX_FRAME_PAYLOAD_BYTES"
     timeout_millis_env: "MMO_TCP_TIMEOUT_MILLIS"
     listen_backlog_env: "MMO_TCP_LISTEN_BACKLOG"
   kcp:

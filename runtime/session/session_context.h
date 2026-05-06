@@ -8,11 +8,10 @@
 
 namespace runtime::session {
 
-struct RequestContext {
+struct SessionRequestMeta {
     std::uint64_t request_id{};
     std::int64_t player_id{};
     std::string session_token;
-    std::string message_type;
 };
 
 struct ConnectionBinding {

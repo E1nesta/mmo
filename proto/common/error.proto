@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package mmo.common;
+
+message Error {
+  int32 code = 1;
+  string message = 2;
+}
+
+message Result {
+  bool ok = 1;
+  Error error = 2;
+}

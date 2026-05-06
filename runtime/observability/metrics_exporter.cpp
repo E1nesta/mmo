@@ -63,18 +63,10 @@ std::string render_prometheus_metrics(const MetricsSnapshot& snapshot) {
                   snapshot.executor_queue_overflow_total);
     append_metric(output, "mmo_handler_rejected_total", "counter",
                   snapshot.handler_rejected_total);
-    append_metric(output, "mmo_channel_pending_count", "gauge",
-                  snapshot.channel_pending_count);
-    append_metric(output, "mmo_channel_requests_total", "counter",
-                  snapshot.channel_requests_total);
-    append_metric(output, "mmo_channel_errors_total", "counter",
-                  snapshot.channel_errors_total);
-    append_metric(output, "mmo_channel_pending_limit_total", "counter",
-                  snapshot.channel_pending_limit_total);
     append_metric(output, "mmo_rpc_pending_count", "gauge",
                   snapshot.rpc_pending_count);
-    append_metric(output, "mmo_rpc_requests_total", "counter",
-                  snapshot.rpc_requests_total);
+    append_metric(output, "mmo_rpc_calls_total", "counter",
+                  snapshot.rpc_calls_total);
     append_metric(output, "mmo_rpc_errors_total", "counter",
                   snapshot.rpc_errors_total);
     append_metric(output, "mmo_rpc_timeout_total", "counter",
@@ -91,18 +83,16 @@ std::string render_prometheus_metrics(const MetricsSnapshot& snapshot) {
                   snapshot.gateway_ticket_rejected_total);
     append_metric(output, "mmo_gateway_ticket_replay_total", "counter",
                   snapshot.gateway_ticket_replay_total);
-    append_metric(output, "mmo_gate_login_success_total", "counter",
-                  snapshot.gate_login_success_total);
-    append_metric(output, "mmo_gate_login_failed_total", "counter",
-                  snapshot.gate_login_failed_total);
+    append_metric(output, "mmo_gateway_login_success_total", "counter",
+                  snapshot.gateway_login_success_total);
+    append_metric(output, "mmo_gateway_login_failed_total", "counter",
+                  snapshot.gateway_login_failed_total);
     append_metric(output, "mmo_game_session_expired_total", "counter",
                   snapshot.game_session_expired_total);
     append_metric(output, "mmo_reconnect_success_total", "counter",
                   snapshot.reconnect_success_total);
     append_metric(output, "mmo_reconnect_failed_total", "counter",
                   snapshot.reconnect_failed_total);
-    append_metric(output, "mmo_internal_auth_failed_total", "counter",
-                  snapshot.internal_auth_failed_total);
     if (!snapshot.upstream_instances.empty()) {
         append_metric_type(output, "mmo_upstream_instance_healthy", "gauge");
         append_metric_type(output, "mmo_upstream_instance_pending", "gauge");

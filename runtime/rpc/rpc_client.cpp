@@ -2,131 +2,77 @@
 
 #include <utility>
 
-#include "runtime/protocol/internal_auth.h"
-
 namespace runtime::rpc {
-namespace {
-
-RpcErrorCode to_rpc_error_code(
-    runtime::channel::ChannelErrorCode code) {
-    switch (code) {
-        case runtime::channel::ChannelErrorCode::kOk:
-            return RpcErrorCode::kOk;
-        case runtime::channel::ChannelErrorCode::kEndpointNotFound:
-            return RpcErrorCode::kEndpointNotFound;
-        case runtime::channel::ChannelErrorCode::kConnectFailed:
-            return RpcErrorCode::kConnectFailed;
-        case runtime::channel::ChannelErrorCode::kWriteFailed:
-            return RpcErrorCode::kWriteFailed;
-        case runtime::channel::ChannelErrorCode::kReadFailed:
-            return RpcErrorCode::kReadFailed;
-        case runtime::channel::ChannelErrorCode::kEncodeFailed:
-            return RpcErrorCode::kEncodeFailed;
-        case runtime::channel::ChannelErrorCode::kDecodeFailed:
-            return RpcErrorCode::kDecodeFailed;
-        case runtime::channel::ChannelErrorCode::kTimeout:
-            return RpcErrorCode::kTimeout;
-        case runtime::channel::ChannelErrorCode::kRemoteError:
-            return RpcErrorCode::kRemoteError;
-        case runtime::channel::ChannelErrorCode::kRequestIdMismatch:
-            return RpcErrorCode::kRequestIdMismatch;
-        case runtime::channel::ChannelErrorCode::kChannelClosed:
-            return RpcErrorCode::kChannelClosed;
-        case runtime::channel::ChannelErrorCode::kPendingLimitExceeded:
-            return RpcErrorCode::kPendingLimitExceeded;
-        case runtime::channel::ChannelErrorCode::kDuplicateRequestId:
-            return RpcErrorCode::kDuplicateRequestId;
-    }
-    return RpcErrorCode::kChannelClosed;
-}
-
-RpcError to_rpc_error(const runtime::channel::ChannelError& error) {
-    return make_rpc_error(to_rpc_error_code(error.code), error.message);
-}
-
-}  // namespace
 
 RpcClientOptions make_rpc_client_options(
     const std::string& source_service,
     const runtime::foundation::ServerConfig& config) {
+    (void)config;
     RpcClientOptions options;
     options.source_service = source_service;
-    options.internal_auth_shared_secret =
-        config.security.internal_auth.shared_secret;
     return options;
 }
 
 RpcClient::RpcClient(
-    std::shared_ptr<runtime::channel::EndpointResolver> resolver,
-    runtime::transport::TransportOptions transport_options,
-    runtime::channel::ChannelConnectionPoolOptions pool_options,
+    std::shared_ptr<runtime::rpc::RpcServiceRegistry> service_registry,
+    runtime::net::TransportOptions transport_options,
+    runtime::rpc::RpcConnectionPoolOptions pool_options,
     RpcClientOptions options)
-    : channel_client_(std::make_unique<runtime::channel::TcpChannelClient>(
-          std::move(resolver),
-          transport_options,
-          pool_options)),
-      options_(std::move(options)) {}
-
-RpcClient::RpcClient(
-    std::shared_ptr<runtime::channel::ServiceRegistry> service_registry,
-    runtime::transport::TransportOptions transport_options,
-    runtime::channel::ChannelConnectionPoolOptions pool_options,
-    RpcClientOptions options)
-    : channel_client_(std::make_unique<runtime::channel::TcpChannelClient>(
+    : connection_pool_(
           std::move(service_registry),
           transport_options,
-          pool_options)),
+          pool_options),
       options_(std::move(options)) {}
 
-RpcClient::RpcClient(
-    std::unique_ptr<runtime::channel::ChannelClient> channel_client,
-    RpcClientOptions options)
-    : channel_client_(std::move(channel_client)),
-      options_(std::move(options)) {}
-
-RpcResult RpcClient::call_envelope(
+RpcResult RpcClient::call_frame(
     const std::string& target_service,
-    const mmo::common::Envelope& request,
-    RpcController controller) {
-    controller.target_service = target_service;
+    runtime::protocol::FrameMessage request,
+    RpcOptions options) {
+    request.header.mode = runtime::protocol::MessageMode::kCall;
+    request.header.request_id = request.header.request_id != 0
+        ? request.header.request_id
+        : request_id_or_next(options);
+    request.header.route_key = request.header.route_key != 0
+        ? request.header.route_key
+        : options.route_key;
+    return connection_pool_.call(
+        target_service, request, make_call_options(options));
+}
 
-    runtime::channel::ChannelCallOptions options;
-    options.source_service = controller.source_service;
-    options.target_service = controller.target_service;
-    options.trace_id = controller.trace_id;
-    options.routing_policy = controller.routing_policy;
-    options.route_key = controller.route_key;
-    options.target_instance_id = controller.target_instance_id;
-    options.connect_timeout_millis = controller.connect_timeout_millis;
-    options.request_timeout_millis = controller.request_timeout_millis;
-    options.retry_enabled = controller.retry_enabled;
+RpcResult RpcClient::cast_frame(
+    const std::string& target_service,
+    runtime::protocol::FrameMessage request,
+    RpcOptions options) {
+    request.header.request_id = request.header.request_id != 0
+        ? request.header.request_id
+        : request_id_or_next(options);
+    request.header.route_key = request.header.route_key != 0
+        ? request.header.route_key
+        : options.route_key;
+    return connection_pool_.cast(
+        target_service, request, make_call_options(options));
+}
 
-    auto signed_request = request;
-    const std::string source_service = !controller.source_service.empty()
-                                           ? controller.source_service
-                                           : options_.source_service;
-    if (!options_.internal_auth_shared_secret.empty()) {
-        std::string error_message;
-        if (!runtime::protocol::sign_internal_envelope_now(
-                &signed_request,
-                source_service,
-                options_.internal_auth_shared_secret,
-                &error_message)) {
-            return RpcResult::failure(make_rpc_error(
-                RpcErrorCode::kEncodeFailed,
-                "failed to sign internal rpc request: " + error_message));
-        }
+std::uint64_t RpcClient::request_id_or_next(const RpcOptions& options) {
+    if (options.request_id != 0) {
+        return options.request_id;
     }
+    return next_request_id_.fetch_add(1, std::memory_order_relaxed);
+}
 
-    const auto channel_result =
-        channel_client_->call_envelope(target_service, signed_request, options);
-    if (channel_result.ok()) {
-        return RpcResult::success(channel_result.response());
-    }
-    if (channel_result.has_response()) {
-        return RpcResult::remote_error(channel_result.response());
-    }
-    return RpcResult::failure(to_rpc_error(channel_result.error()));
+RpcCallOptions RpcClient::make_call_options(const RpcOptions& options) const {
+    RpcCallOptions call_options;
+    call_options.source_service = options.source_service.empty()
+        ? options_.source_service
+        : options.source_service;
+    call_options.target_service = options.target_service;
+    call_options.routing_policy = options.routing_policy;
+    call_options.route_key = options.route_key;
+    call_options.target_instance_id = options.target_instance_id;
+    call_options.connect_timeout_millis = options.connect_timeout_millis;
+    call_options.request_timeout_millis = options.request_timeout_millis;
+    call_options.retry_enabled = options.retry_enabled;
+    return call_options;
 }
 
 }  // namespace runtime::rpc

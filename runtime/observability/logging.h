@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-#include "common/envelope.pb.h"
+#include "runtime/protocol/frame.h"
 
 namespace runtime::observability {
 
@@ -15,21 +15,19 @@ struct LogContext {
 
     std::string service_name;
     std::uint64_t request_id{};
-    std::int64_t account_id{};
-    std::int64_t player_id{};
-    std::string message_type;
-    std::string trace_id;
+    std::uint64_t route_key{};
+    std::uint32_t message_id{};
     std::string gateway_id;
-    std::string game_session_id;
+    std::uint64_t session_id{};
     std::string upstream;
     std::string status;
     int error_code{};
     std::int64_t latency_ms{-1};
 };
 
-LogContext context_from_envelope(
+LogContext context_from_frame(
     const std::string& service_name,
-    const mmo::common::Envelope& envelope);
+    const runtime::protocol::FrameMessage& frame);
 
 std::string format_log_line(const LogContext& context, const std::string& event);
 

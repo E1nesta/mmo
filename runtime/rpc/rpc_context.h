@@ -1,16 +1,15 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
-
-#include "common/context.pb.h"
 
 namespace runtime::rpc {
 
 struct RpcContext {
-    mmo::common::RequestContext request;
     std::string source_service;
     std::string target_service;
-    std::string trace_id;
+    std::uint64_t request_id{};
+    std::uint64_t route_key{};
 };
 
 }  // namespace runtime::rpc

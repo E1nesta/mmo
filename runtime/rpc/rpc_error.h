@@ -15,7 +15,7 @@ enum class RpcErrorCode {
     kTimeout = 7,
     kRemoteError = 8,
     kRequestIdMismatch = 9,
-    kChannelClosed = 10,
+    kConnectionClosed = 10,
     kPendingLimitExceeded = 11,
     kDuplicateRequestId = 12,
 };

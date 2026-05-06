@@ -48,25 +48,24 @@ function(generate_proto_sources proto_relative_path out_srcs out_hdrs)
 endfunction()
 
 set(PROTO_FILES
-    common/context.proto
-    common/envelope.proto
+    common/error.proto
     common/types.proto
-    public/auth.proto
-    public/gateway.proto
-    public/world.proto
-    public/scene.proto
-    public/combat.proto
-    public/instance.proto
-    public/player.proto
-    public/social.proto
-    internal/auth_gateway.proto
-    internal/gateway_auth.proto
-    internal/gateway_world.proto
-    internal/gateway_instance.proto
-    internal/gateway_player.proto
-    internal/gateway_social.proto
-    internal/world_scene.proto
-    internal/instance_player.proto
+    cs/auth.proto
+    cs/gateway.proto
+    cs/world.proto
+    cs/scene.proto
+    cs/combat.proto
+    cs/instance.proto
+    cs/player.proto
+    cs/social.proto
+    ss/auth_gateway.proto
+    ss/gateway_auth.proto
+    ss/gateway_world.proto
+    ss/gateway_instance.proto
+    ss/gateway_player.proto
+    ss/gateway_social.proto
+    ss/world_scene.proto
+    ss/instance_player.proto
 )
 
 set(PROTO_SRCS)
@@ -110,23 +109,20 @@ endif()
 
 add_library(runtime_protocol STATIC
     runtime/protocol/auth_tokens.cpp
-    runtime/protocol/envelope_utils.cpp
-    runtime/protocol/internal_auth.cpp
-    runtime/protocol/message_router.cpp
+    runtime/protocol/message_catalog.cpp
+    runtime/protocol/payload_utils.cpp
 )
 mmo_defaults(runtime_protocol)
 target_link_libraries(runtime_protocol PUBLIC runtime_foundation mmo_protocol)
 target_link_libraries(runtime_protocol PUBLIC OpenSSL::Crypto)
 
-add_library(runtime_execution STATIC
-    runtime/execution/io_context_pool.cpp
-    runtime/execution/sharded_executor.cpp
-    runtime/execution/shard_router.cpp
-    runtime/execution/scene_worker.cpp
-    runtime/execution/instance_shard.cpp
+add_library(runtime_scheduler STATIC
+    runtime/scheduler/io_context_pool.cpp
+    runtime/scheduler/sharded_executor.cpp
+    runtime/scheduler/shard_router.cpp
 )
-mmo_defaults(runtime_execution)
-target_link_libraries(runtime_execution PUBLIC Boost::system Threads::Threads)
+mmo_defaults(runtime_scheduler)
+target_link_libraries(runtime_scheduler PUBLIC Boost::system Threads::Threads)
 
 add_library(runtime_session STATIC
     runtime/session/session_context.cpp
@@ -174,87 +170,97 @@ target_link_libraries(adapters_session_redis PUBLIC
     runtime_storage
 )
 
-add_library(runtime_transport STATIC
-    runtime/transport/connection_session.cpp
-    runtime/transport/envelope_codec.cpp
-    runtime/transport/envelope_transport.cpp
-    runtime/transport/kcp_session.cpp
-    runtime/transport/realtime_transport.cpp
-    runtime/transport/tcp_envelope_client.cpp
-    runtime/transport/tcp_envelope_server.cpp
+add_library(runtime_net STATIC
+    runtime/net/frame_codec.cpp
+    runtime/net/frame_transport.cpp
+    runtime/net/kcp_session.cpp
+    runtime/net/realtime_packet_codec.cpp
+    runtime/net/realtime_transport.cpp
+    runtime/net/reliable_frame_codec.cpp
+    runtime/net/tcp_frame_server.cpp
 )
-mmo_defaults(runtime_transport)
-target_link_libraries(runtime_transport PUBLIC
-    runtime_execution
+mmo_defaults(runtime_net)
+target_link_libraries(runtime_net PUBLIC
+    runtime_scheduler
     runtime_protocol
     runtime_observability
     ${IKCP_LIBRARY}
     Boost::system
     Threads::Threads
 )
-target_include_directories(runtime_transport PUBLIC
+target_include_directories(runtime_net PUBLIC
     ${IKCP_INCLUDE_DIR}
 )
 
-add_library(runtime_channel STATIC
-    runtime/channel/channel.cpp
-    runtime/channel/channel_client.cpp
-    runtime/channel/channel_connection_pool.cpp
-    runtime/channel/channel_error.cpp
-    runtime/channel/channel_result.cpp
-    runtime/channel/routing_policy.cpp
-    runtime/channel/service_registry.cpp
-    runtime/channel/static_endpoint_resolver.cpp
-)
-mmo_defaults(runtime_channel)
-target_link_libraries(runtime_channel PUBLIC
-    runtime_foundation
-    runtime_protocol
-    runtime_transport
-)
-
 add_library(runtime_rpc STATIC
+    runtime/rpc/rpc_connection.cpp
+    runtime/rpc/rpc_connection_pool.cpp
     runtime/rpc/rpc_client.cpp
+    runtime/rpc/rpc_dispatcher.cpp
     runtime/rpc/rpc_error.cpp
+    runtime/rpc/rpc_pending_tracker.cpp
     runtime/rpc/rpc_result.cpp
-    runtime/rpc/rpc_server.cpp
+    runtime/rpc/rpc_routing_policy.cpp
+    runtime/rpc/rpc_service_registry.cpp
 )
 mmo_defaults(runtime_rpc)
 target_link_libraries(runtime_rpc PUBLIC
-    runtime_channel
     runtime_foundation
+    runtime_net
     runtime_observability
     runtime_protocol
 )
 
-add_library(runtime_server STATIC
-    runtime/server/server_app.cpp
-    runtime/server/server_bootstrap.cpp
+add_library(runtime_entity STATIC
+    runtime/entity/entity_executor.cpp
+    runtime/entity/entity_id.cpp
+    runtime/entity/entity_mailbox.cpp
+    runtime/entity/entity_router.cpp
 )
-mmo_defaults(runtime_server)
-target_link_libraries(runtime_server PUBLIC
+mmo_defaults(runtime_entity)
+target_link_libraries(runtime_entity PUBLIC mmo_protocol)
+
+add_library(runtime_scene STATIC
+    runtime/scene/scene_fanout_budget.cpp
+    runtime/scene/scene_interest.cpp
+    runtime/scene/scene_owner.cpp
+    runtime/scene/scene_tick.cpp
+)
+mmo_defaults(runtime_scene)
+
+add_library(runtime_handler INTERFACE)
+target_compile_features(runtime_handler INTERFACE cxx_std_17)
+target_include_directories(runtime_handler INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+add_library(runtime_bootstrap STATIC
+    runtime/bootstrap/service_app.cpp
+    runtime/bootstrap/service_bootstrap.cpp
+)
+mmo_defaults(runtime_bootstrap)
+target_link_libraries(runtime_bootstrap PUBLIC
     runtime_foundation
     runtime_rpc
-    runtime_transport
-    runtime_channel
+    runtime_net
+    runtime_handler
     runtime_observability
     runtime_storage
 )
 
 add_library(runtime_gateway STATIC
-    runtime/gateway/proxy_result.cpp
-    runtime/gateway/gateway_forwarder.cpp
     runtime/gateway/gateway_middleware.cpp
     runtime/gateway/gateway_router.cpp
     runtime/gateway/gateway_session.cpp
-    runtime/gateway/pending_response_table.cpp
-    runtime/gateway/proxy_context.cpp
-    runtime/gateway/proxy_route.cpp
+    runtime/gateway/gateway_pending_response_table.cpp
+    runtime/gateway/gateway_context.cpp
+    runtime/gateway/gateway_route_table.cpp
 )
 mmo_defaults(runtime_gateway)
 target_link_libraries(runtime_gateway PUBLIC
-    runtime_channel
     runtime_foundation
+    runtime_rpc
     runtime_observability
     runtime_protocol
     runtime_session
@@ -304,11 +310,13 @@ function(add_mmo_server target)
     add_executable(${target} ${ARGN})
     mmo_defaults(${target})
     target_link_libraries(${target} PRIVATE
-        runtime_transport
-        runtime_channel
-        runtime_execution
+        runtime_net
+        runtime_scheduler
         runtime_session
-        runtime_server
+        runtime_bootstrap
+        runtime_handler
+        runtime_entity
+        runtime_scene
         runtime_observability
         mmo_protocol
     )
@@ -327,22 +335,16 @@ add_mmo_server(
     apps/api_gateway_server/api_handler.cpp
     apps/api_gateway_server/api_http_server.cpp
 )
-target_link_libraries(api_gateway_server PRIVATE runtime_gateway)
 
 add_mmo_server(
     game_gateway_server
     apps/game_gateway_server/main.cpp
     apps/game_gateway_server/gateway_gate_login_handler.cpp
-    apps/game_gateway_server/gateway_auth_proxy_handlers.cpp
-    apps/game_gateway_server/gateway_instance_proxy_handlers.cpp
     apps/game_gateway_server/gateway_ping_handler.cpp
-    apps/game_gateway_server/gateway_player_proxy_handlers.cpp
-    apps/game_gateway_server/gateway_proxy_handlers.cpp
+    apps/game_gateway_server/gate_rpc_handlers.cpp
     apps/game_gateway_server/gateway_reconnect_handler.cpp
     apps/game_gateway_server/gateway_route_table.cpp
     apps/game_gateway_server/gateway_session_handlers.cpp
-    apps/game_gateway_server/gateway_social_proxy_handlers.cpp
-    apps/game_gateway_server/gateway_world_proxy_handlers.cpp
 )
 target_link_libraries(game_gateway_server PRIVATE
     runtime_gateway
@@ -386,11 +388,7 @@ target_link_libraries(social_server PRIVATE modules_social runtime_rpc)
 
 add_executable(mmo_flow_client tools/mmo_flow_client/main.cpp)
 mmo_defaults(mmo_flow_client)
-target_link_libraries(mmo_flow_client PRIVATE runtime_transport mmo_protocol)
-
-add_executable(internal_auth_probe tools/internal_auth_probe/main.cpp)
-mmo_defaults(internal_auth_probe)
-target_link_libraries(internal_auth_probe PRIVATE runtime_foundation runtime_transport mmo_protocol)
+target_link_libraries(mmo_flow_client PRIVATE runtime_net mmo_protocol)
 
 add_executable(security_governance_probe tools/security_governance_probe/main.cpp)
 mmo_defaults(security_governance_probe)
@@ -433,6 +431,15 @@ add_executable(cluster_routing_governance_probe
 )
 mmo_defaults(cluster_routing_governance_probe)
 target_link_libraries(cluster_routing_governance_probe PRIVATE
-    runtime_channel
+    runtime_rpc
     runtime_observability
+)
+
+add_executable(protocol_codec_governance_probe
+    tools/protocol_codec_governance_probe/main.cpp
+)
+mmo_defaults(protocol_codec_governance_probe)
+target_link_libraries(protocol_codec_governance_probe PRIVATE
+    runtime_protocol
+    runtime_net
 )
