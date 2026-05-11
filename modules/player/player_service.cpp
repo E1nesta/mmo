@@ -10,6 +10,7 @@ PlayerService::PlayerService(std::shared_ptr<PlayerRepository> repository)
     : repository_(std::move(repository)) {}
 
 ApplyRewardResult PlayerService::apply_reward(
+    PlayerState& state,
     std::int64_t player_id,
     const std::string& idempotency_key,
     const std::vector<Reward>& rewards) {
@@ -28,8 +29,8 @@ ApplyRewardResult PlayerService::apply_reward(
         return result;
     }
 
-    auto& profile = profile_for(player_id);
-    if (reward_ledger_.count(idempotency_key) > 0) {
+    auto& profile = profile_for(state, player_id);
+    if (state.reward_ledger.count(idempotency_key) > 0) {
         ApplyRewardResult result;
         result.applied = false;
         result.gold = profile.gold;
@@ -45,7 +46,7 @@ ApplyRewardResult PlayerService::apply_reward(
         }
     }
 
-    reward_ledger_.insert(idempotency_key);
+    state.reward_ledger.insert(idempotency_key);
     ApplyRewardResult result;
     result.applied = true;
     result.gold = profile.gold;
@@ -53,14 +54,14 @@ ApplyRewardResult PlayerService::apply_reward(
     return result;
 }
 
-PlayerProfile& PlayerService::profile_for(std::int64_t player_id) {
-    for (auto& profile : profiles_) {
-        if (profile.player_id == player_id) {
-            return profile;
-        }
+PlayerProfile& PlayerService::profile_for(
+    PlayerState& state,
+    std::int64_t player_id) {
+    if (!state.initialized || state.profile.player_id != player_id) {
+        state.profile = PlayerProfile{player_id, 0, 0};
+        state.initialized = true;
     }
-    profiles_.push_back(PlayerProfile{player_id, 0, 0});
-    return profiles_.back();
+    return state.profile;
 }
 
 }  // namespace modules::player

@@ -11,6 +11,7 @@ enum class EntityKind : std::uint16_t {
     kScene = 2,
     kInstance = 3,
     kChatRoom = 4,
+    kWorld = 5,
 };
 
 struct EntityId {
@@ -29,8 +30,13 @@ struct EntityIdHash {
     }
 };
 
+bool is_valid_entity_kind(EntityKind kind);
+bool is_valid_entity_id(EntityId id);
+
 inline EntityId player_entity(std::int64_t player_id) {
-    return EntityId{EntityKind::kPlayer, static_cast<std::uint64_t>(player_id)};
+    return EntityId{
+        EntityKind::kPlayer,
+        player_id > 0 ? static_cast<std::uint64_t>(player_id) : 0U};
 }
 
 inline EntityId scene_entity(std::uint64_t scene_id) {
@@ -43,6 +49,10 @@ inline EntityId instance_entity(std::uint64_t instance_id) {
 
 inline EntityId chat_room_entity(std::uint64_t room_id) {
     return EntityId{EntityKind::kChatRoom, room_id};
+}
+
+inline EntityId world_entity(std::uint64_t world_id) {
+    return EntityId{EntityKind::kWorld, world_id};
 }
 
 std::string entity_kind_name(EntityKind kind);

@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "runtime/foundation/server_config.h"
 #include "runtime/net/frame_transport.h"
 
 namespace runtime::rpc {
@@ -26,7 +25,6 @@ struct RpcServiceInstance {
     std::string service_name;
     std::string instance_id;
     runtime::net::TransportEndpoint endpoint;
-    std::uint16_t udp_kcp_port{};
     std::string zone;
     int weight{100};
     RpcServiceInstanceState state{RpcServiceInstanceState::kHealthy};
@@ -55,8 +53,6 @@ public:
 
 class StaticRpcServiceRegistry final : public RpcServiceRegistry {
 public:
-    explicit StaticRpcServiceRegistry(
-        const runtime::foundation::ServerConfig& config);
     explicit StaticRpcServiceRegistry(std::vector<RpcServiceInstance> instances);
 
     std::vector<RpcServiceInstance> list_instances(

@@ -6,11 +6,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "runtime/foundation/server_config.h"
 #include "runtime/protocol/frame.h"
 #include "runtime/rpc/rpc_connection.h"
+#include "runtime/rpc/rpc_options.h"
 #include "runtime/rpc/rpc_routing_policy.h"
 #include "runtime/rpc/rpc_service_registry.h"
+#include "runtime/scheduler/io_context_pool.h"
 
 namespace runtime::rpc {
 
@@ -22,9 +23,6 @@ struct RpcConnectionPoolOptions {
     std::size_t max_pending_requests_per_upstream{256};
 };
 
-RpcConnectionPoolOptions make_rpc_connection_pool_options(
-    const runtime::foundation::RpcConfig& config);
-
 class RpcConnectionPool {
 public:
     RpcConnectionPool(
@@ -35,11 +33,16 @@ public:
     RpcResult call(
         const std::string& target_service,
         const runtime::protocol::FrameMessage& request,
-        const RpcCallOptions& options);
+        const RpcOptions& options);
+    RpcError call_async(
+        const std::string& target_service,
+        const runtime::protocol::FrameMessage& request,
+        const RpcOptions& options,
+        RpcResultHandler handler);
     RpcResult cast(
         const std::string& target_service,
         const runtime::protocol::FrameMessage& request,
-        const RpcCallOptions& options);
+        const RpcOptions& options);
 
     std::size_t pending_count(const std::string& target_service) const;
     std::size_t pending_count(
@@ -66,12 +69,13 @@ private:
     RpcRouteSelectionContext make_route_selection_context(
         const std::string& target_service,
         const runtime::protocol::FrameMessage& request,
-        const RpcCallOptions& options) const;
+        const RpcOptions& options) const;
     static bool should_mark_unhealthy(RpcErrorCode code);
 
     std::shared_ptr<RpcServiceRegistry> service_registry_;
     runtime::net::TransportOptions transport_options_;
     RpcConnectionPoolOptions options_;
+    std::shared_ptr<runtime::scheduler::IOContextPool> io_context_pool_;
     mutable std::mutex mutex_;
     std::unordered_map<std::string, RpcInstanceConnectionMap> instance_connections_;
     RpcServiceInstanceSelector selector_;

@@ -16,12 +16,17 @@ struct OnlinePlayer {
     SceneRoute route;
 };
 
+struct WorldState {
+    std::unordered_map<std::int64_t, OnlinePlayer> online_players;
+};
+
 class WorldService {
 public:
-    SceneRoute enter_world(std::int64_t player_id, int preferred_map_id, int preferred_line_id);
-
-private:
-    std::unordered_map<std::int64_t, OnlinePlayer> online_players_;
+    SceneRoute enter_world(
+        WorldState& state,
+        std::int64_t player_id,
+        int preferred_map_id,
+        int preferred_line_id) const;
 };
 
 }  // namespace modules::world

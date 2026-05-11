@@ -4,15 +4,14 @@
 #include "modules/auth/auth_service.h"
 #include "modules/auth/mysql_account_repository.h"
 #include "modules/auth/mysql_player_identity_repository.h"
-#include "runtime/server/server_app.h"
-#include "runtime/rpc/rpc_server.h"
-#include "runtime/server/server_bootstrap.h"
+#include "runtime/service/service_app.h"
+#include "runtime/service/service_runtime.h"
 
 int main() {
-    runtime::server::ServerApp app("auth_server");
-    const auto tcp_options = runtime::server::make_server_transport_options(app);
+    runtime::service::ServiceApp app("auth_server");
+    const auto tcp_options = runtime::service::make_server_transport_options(app);
 
-    auto mysql_pool = runtime::server::require_mysql_pool(app);
+    auto mysql_pool = runtime::service::require_mysql_pool(app);
     if (!mysql_pool) {
         return 1;
     }
@@ -24,10 +23,9 @@ int main() {
             mysql_pool);
     modules::auth::AuthService service(
         account_repository, identity_repository);
-    runtime::rpc::RpcServer rpc_server(
-        runtime::rpc::make_rpc_server_options(app.config()));
+    runtime::rpc::RpcDispatcher dispatcher;
     apps::auth_server::register_auth_handlers(
-        rpc_server, service, app.config(), app.service_name());
+        dispatcher, service, app.config(), app.service_name());
 
-    return runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return runtime::service::run_rpc_service(app, dispatcher, tcp_options);
 }

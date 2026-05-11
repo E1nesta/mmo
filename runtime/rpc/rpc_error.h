@@ -18,6 +18,7 @@ enum class RpcErrorCode {
     kConnectionClosed = 10,
     kPendingLimitExceeded = 11,
     kDuplicateRequestId = 12,
+    kInvalidArgument = 13,
 };
 
 struct RpcError {

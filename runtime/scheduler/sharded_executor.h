@@ -32,6 +32,16 @@ struct ShardedExecutorOptions {
     std::size_t max_queue_depth_per_shard{kDefaultMaxQueueDepthPerShard};
 };
 
+struct ShardedExecutorStats {
+    std::size_t shard_count{};
+    std::size_t max_queue_depth_per_shard{};
+    std::size_t queued_task_count{};
+    std::uint64_t accepted_task_count{};
+    std::uint64_t rejected_task_count{};
+    std::uint64_t completed_task_count{};
+    std::uint64_t failed_task_count{};
+};
+
 class ShardedExecutor {
 public:
     using Task = std::function<void()>;
@@ -45,6 +55,7 @@ public:
     PostResult post(std::uint64_t shard_key, Task task);
     std::size_t shard_count() const;
     std::size_t queued_task_count() const;
+    ShardedExecutorStats stats() const;
     bool is_stopped() const;
     void stop();
 
@@ -56,6 +67,10 @@ private:
     std::vector<std::unique_ptr<Shard>> shards_;
     std::size_t max_queue_depth_per_shard_{kDefaultMaxQueueDepthPerShard};
     std::atomic<std::size_t> queued_task_count_{};
+    std::atomic<std::uint64_t> accepted_task_count_{};
+    std::atomic<std::uint64_t> rejected_task_count_{};
+    std::atomic<std::uint64_t> completed_task_count_{};
+    std::atomic<std::uint64_t> failed_task_count_{};
     std::atomic<bool> stopped_{};
 };
 

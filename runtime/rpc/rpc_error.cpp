@@ -21,6 +21,8 @@ int rpc_error_to_status_code(RpcErrorCode code) {
             return 0;
         case RpcErrorCode::kEndpointNotFound:
             return 404;
+        case RpcErrorCode::kInvalidArgument:
+            return 400;
         case RpcErrorCode::kTimeout:
             return 504;
         case RpcErrorCode::kPendingLimitExceeded:

@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <string>
 
-#include "public/gateway.pb.h"
-#include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/internal_auth.h"
-#include "apps/protocol/message_types.h"
+#include "apps/game_gateway_server/gateway_frame_utils.h"
+#include "cs/gateway.pb.h"
+#include "proto/message_catalog.h"
+#include "runtime/gateway/gateway_middleware.h"
+#include "runtime/protocol/auth_tokens.h"
+#include "runtime/protocol/payload_utils.h"
 
 namespace apps::game_gateway_server {
 
@@ -16,26 +18,23 @@ void register_gateway_reconnect_handler(
     auto& sessions = context.sessions;
     auto& session_store = context.session_store;
     auto& security_metrics = context.security_metrics;
-    const auto& config = context.config;
-    gateway_router.on(
-        apps::protocol::kReconnectRequest,
-        [&sessions, &session_store, &security_metrics, &config](
-            const mmo::common::Envelope& envelope) {
-            mmo::public_api::ReconnectRequest request;
-            if (!runtime::protocol::unpack_message(envelope, request)) {
+    const auto options = context.options;
+    gateway_router.on_sync(
+        static_cast<std::uint16_t>(mmo::protocol::kReconnectRequest),
+        [&sessions, &session_store, &security_metrics, options](
+            const runtime::net::ReliableFrame& frame) {
+            mmo::cs::ReconnectRequest request;
+            if (!parse_gateway_payload(frame, &request)) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 400, "invalid reconnect request");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 400, "invalid reconnect request");
             }
-            if (envelope.player_id() != request.player_id() ||
-                envelope.session_token() != request.session_token() ||
-                envelope.game_session_id() != request.game_session_id() ||
-                request.context().player_id() != request.player_id() ||
-                request.context().session_token() != request.session_token() ||
-                request.context().game_session_id() != request.game_session_id()) {
+            if (request.player_id() <= 0 ||
+                request.session_token().empty() ||
+                request.game_session_id().empty()) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 400, "reconnect context does not match envelope");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 400, "invalid reconnect identity");
             }
 
             const auto now_millis = static_cast<std::uint64_t>(
@@ -45,20 +44,20 @@ void register_gateway_reconnect_handler(
             if (!runtime::protocol::validate_auth_token(
                     request.reconnect_ticket(),
                     runtime::protocol::AuthTokenPurpose::kReconnect,
-                    config.security.gateway_ticket.gateway_audience,
-                    runtime::gateway::make_gateway_token_options(config.security.gateway_ticket),
+                    options.gateway_audience,
+                    options.token_options,
                     static_cast<std::int64_t>(now_millis),
                     &claims,
                     &token_error)) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 401, "reconnect ticket authentication failed");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 401, "reconnect ticket authentication failed");
             }
             if (claims.player_id != request.player_id() ||
                 claims.session_token != request.session_token()) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 400, "reconnect ticket does not match request");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 400, "reconnect ticket does not match request");
             }
 
             runtime::session::ReconnectTicket consumed_ticket;
@@ -72,40 +71,39 @@ void register_gateway_reconnect_handler(
                 consumed_ticket.player_id != request.player_id() ||
                 consumed_ticket.session_token != request.session_token() ||
                 consumed_ticket.game_session_id != request.game_session_id() ||
-                consumed_ticket.gateway_id !=
-                    config.security.gateway_session.gateway_id) {
+                consumed_ticket.gateway_id != options.gateway_id) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 401, "reconnect ticket authentication failed");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 401, "reconnect ticket authentication failed");
             }
 
             const auto expires_at =
                 now_millis +
                 static_cast<std::uint64_t>(
-                    config.security.gateway_session.game_session_ttl_millis);
+                    options.game_session_ttl_millis);
             const auto binding = sessions.reconnect(
                 consumed_ticket.account_id,
                 request.player_id(),
                 request.session_token(),
                 request.game_session_id(),
-                config.security.gateway_session.gateway_id,
+                options.gateway_id,
                 request.device_id().empty()
                     ? consumed_ticket.device_id
                     : request.device_id(),
                 now_millis,
                 expires_at,
                 static_cast<std::uint64_t>(
-                    config.security.gateway_session.heartbeat_timeout_millis));
+                    options.heartbeat_timeout_millis));
             if (!session_store.save_binding(binding, &session_store_error)) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 503, "gateway session store is unavailable");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 503, "gateway session store is unavailable");
             }
 
             std::string next_reconnect_ticket;
             std::int64_t next_reconnect_ticket_expires_at = 0;
             if (!runtime::gateway::issue_reconnect_ticket(
-                    config,
+                    options,
                     session_store,
                     binding,
                     now_millis,
@@ -113,16 +111,13 @@ void register_gateway_reconnect_handler(
                     &next_reconnect_ticket_expires_at,
                     &session_store_error)) {
                 security_metrics.record_reconnect_failed();
-                return runtime::protocol::make_error_envelope(
-                    envelope, 503, "reconnect ticket issue failed");
+                return runtime::gateway::make_gateway_error_frame(
+                    frame, 503, "reconnect ticket issue failed");
             }
             security_metrics.record_reconnect_success();
 
-            mmo::public_api::ReconnectResponse response;
-            auto response_context = request.context();
-            response_context.set_game_session_id(binding.game_session_id);
-            *response.mutable_context() =
-                runtime::protocol::make_ok_context(response_context);
+            mmo::cs::ReconnectResponse response;
+            *response.mutable_result() = runtime::protocol::make_ok_result();
             response.set_reconnected(true);
             response.set_connection_id(binding.connection_id);
             response.set_game_session_id(binding.game_session_id);
@@ -131,10 +126,12 @@ void register_gateway_reconnect_handler(
             response.set_reconnect_ticket(next_reconnect_ticket);
             response.set_reconnect_ticket_expires_at_epoch_millis(
                 next_reconnect_ticket_expires_at);
-            return runtime::protocol::pack_message(
-                apps::protocol::kReconnectResponse,
-                response_context,
+            auto response_frame = make_gateway_payload_frame(
+                frame,
+                static_cast<std::uint16_t>(mmo::protocol::kReconnectResponse),
                 response);
+            response_frame.session_id = binding.connection_id;
+            return response_frame;
         });
 }
 

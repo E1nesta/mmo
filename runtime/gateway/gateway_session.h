@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <string>
 
-#include "runtime/foundation/server_config.h"
 #include "runtime/observability/metrics.h"
 #include "runtime/protocol/auth_tokens.h"
 #include "runtime/session/session_context.h"
@@ -12,19 +11,25 @@
 
 namespace runtime::gateway {
 
+struct GatewaySessionOptions {
+    runtime::protocol::AuthTokenOptions token_options;
+    std::string gateway_audience;
+    std::string gateway_id;
+    int game_session_ttl_millis{};
+    int heartbeat_timeout_millis{};
+    int reconnect_ticket_ttl_millis{};
+};
+
 struct GatewaySessionContext {
-    const runtime::foundation::ServerConfig& config;
+    GatewaySessionOptions options;
     runtime::session::SessionRegistry& sessions;
     runtime::session::TicketReplayStore& ticket_replay_guard;
     runtime::session::SessionStore& session_store;
     runtime::observability::MetricsRegistry& security_metrics;
 };
 
-runtime::protocol::AuthTokenOptions make_gateway_token_options(
-    const runtime::foundation::GatewayTicketConfig& config);
-
 bool issue_reconnect_ticket(
-    const runtime::foundation::ServerConfig& config,
+    const GatewaySessionOptions& options,
     runtime::session::SessionStore& session_store,
     const runtime::session::ConnectionBinding& binding,
     std::uint64_t now_millis,

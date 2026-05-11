@@ -8,12 +8,6 @@
 
 namespace runtime::session {
 
-struct SessionRequestMeta {
-    std::uint64_t request_id{};
-    std::int64_t player_id{};
-    std::string session_token;
-};
-
 struct ConnectionBinding {
     std::string game_session_id;
     std::uint64_t connection_id{};
@@ -29,14 +23,6 @@ struct ConnectionBinding {
     bool authenticated{};
 
     bool valid(std::uint64_t now_millis) const;
-};
-
-struct HeartbeatState {
-    std::uint64_t last_seen_millis{};
-    std::uint64_t timeout_millis{};
-    std::uint32_t missed_count{};
-
-    bool expired(std::uint64_t now_millis) const;
 };
 
 struct ReconnectTicket {
@@ -79,10 +65,8 @@ public:
         const std::string& game_session_id,
         std::uint64_t now_millis);
     std::optional<ConnectionBinding> find(std::int64_t player_id) const;
-    std::optional<ReconnectTicket> make_reconnect_ticket(
-        std::int64_t player_id,
-        std::uint64_t now_millis,
-        std::uint64_t ttl_millis);
+    std::optional<ConnectionBinding> find_by_connection_id(
+        std::uint64_t connection_id) const;
     ConnectionBinding reconnect(
         std::int64_t account_id,
         std::int64_t player_id,
@@ -93,18 +77,13 @@ public:
         std::uint64_t now_millis,
         std::uint64_t expire_at_millis,
         std::uint64_t heartbeat_timeout_millis = 0);
-    bool can_reconnect(
-        std::int64_t player_id,
-        const std::string& session_token,
-        const std::string& game_session_id,
-        std::uint64_t now_millis) const;
     void unbind(std::int64_t player_id);
 
 private:
     mutable std::mutex mutex_;
     std::uint64_t next_connection_id_{1};
     std::unordered_map<std::int64_t, ConnectionBinding> bindings_;
-    std::unordered_map<std::int64_t, ReconnectTicket> reconnect_tickets_;
+    std::unordered_map<std::uint64_t, std::int64_t> player_by_connection_id_;
 };
 
 }  // namespace runtime::session

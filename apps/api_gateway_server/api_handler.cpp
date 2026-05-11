@@ -6,12 +6,14 @@
 #include <string>
 #include <unordered_map>
 
-#include "common/context.pb.h"
-#include "internal/gateway_auth.pb.h"
+#include "common/error.pb.h"
+#include "ss/gateway_auth.pb.h"
 #include "runtime/foundation/readiness.h"
 #include "runtime/observability/metrics_exporter.h"
-#include "runtime/protocol/envelope_utils.h"
-#include "apps/protocol/message_types.h"
+#include "runtime/protocol/frame.h"
+#include "runtime/protocol/payload_utils.h"
+#include "runtime/rpc/rpc_options.h"
+#include "proto/message_catalog.h"
 
 namespace apps::api_gateway_server {
 
@@ -142,13 +144,6 @@ std::string error_body(const std::string& code, const std::string& message) {
            "\",\"error_message\":\"" + json_escape(message) + "\"}";
 }
 
-mmo::common::RequestContext make_context(std::uint64_t request_id) {
-    mmo::common::RequestContext context;
-    context.set_request_id(request_id);
-    context.set_trace_id("api-gateway-" + std::to_string(request_id));
-    return context;
-}
-
 std::string find_field(
     const std::unordered_map<std::string, std::string>& fields,
     const std::string& key) {
@@ -160,9 +155,11 @@ std::string find_field(
 
 ApiHandler::ApiHandler(
     const runtime::foundation::ServerConfig& config,
-    runtime::gateway::GatewayForwarder& forwarder,
+    runtime::rpc::RpcClient& rpc_client,
     runtime::observability::MetricsRegistry& metrics)
-    : config_(config), forwarder_(forwarder), metrics_(metrics) {}
+    : config_(config),
+      rpc_client_(rpc_client),
+      metrics_(metrics) {}
 
 http::response<http::string_body> ApiHandler::handle(
     const http::request<http::string_body>& request) {
@@ -257,35 +254,37 @@ http::response<http::string_body> ApiHandler::handle_login(
     }
 
     const auto request_id = next_request_id_.fetch_add(1U);
-    auto context = make_context(request_id);
-    mmo::internal_api::GatewayAuthLoginRequest internal_request;
-    *internal_request.mutable_context() = context;
+    mmo::ss::GatewayAuthLoginRequest internal_request;
     internal_request.set_account_name(account_name);
     internal_request.set_password(password);
     internal_request.set_device_id(device_id);
 
-    const auto forward_result = forwarder_.forward(
+    runtime::rpc::RpcOptions rpc_options;
+    rpc_options.source_service = "api_gateway_server";
+    rpc_options.request_id = request_id;
+    const auto rpc_result = rpc_client_.call(
         "auth_server",
-        apps::protocol::kGatewayAuthLoginRequest,
-        context,
-        internal_request);
-    if (!forward_result.ok()) {
-        if (forward_result.has_response() &&
-            forward_result.response().message_type() ==
-                runtime::protocol::kErrorResponse) {
-            mmo::common::ResponseContext error_context;
-            if (runtime::protocol::unpack_message(
-                    forward_result.response(), error_context)) {
+        mmo::protocol::kGatewayAuthLoginRequest,
+        0U,
+        internal_request,
+        rpc_options);
+    if (!rpc_result.ok()) {
+        if (rpc_result.has_response() &&
+            rpc_result.response().message_id() ==
+                runtime::protocol::kErrorResponseMessageId) {
+            mmo::common::Result error_result;
+            if (runtime::protocol::parse_payload(
+                    rpc_result.response(), &error_result)) {
+                const auto error_code = error_result.error().code();
+                const auto error_message = error_result.error().message();
                 metrics_.record_login_failed();
                 const auto status =
-                    error_context.error_code() == 401
+                    error_code == 401
                         ? http::status::unauthorized
                         : http::status::bad_gateway;
                 return json_response(
                     status,
-                    error_body(
-                        error_context.error_code(),
-                        error_context.error_message()),
+                    error_body(error_code, error_message),
                     request.version(),
                     request.keep_alive());
             }
@@ -298,9 +297,9 @@ http::response<http::string_body> ApiHandler::handle_login(
             request.keep_alive());
     }
 
-    mmo::internal_api::GatewayAuthLoginResponse response;
-    if (!runtime::protocol::unpack_message(
-            forward_result.response(), response)) {
+    mmo::ss::GatewayAuthLoginResponse response;
+    if (!runtime::protocol::parse_payload(
+            rpc_result.response(), &response)) {
         metrics_.record_login_failed();
         return json_response(
             http::status::bad_gateway,
@@ -308,13 +307,13 @@ http::response<http::string_body> ApiHandler::handle_login(
             request.version(),
             request.keep_alive());
     }
-    if (!response.context().success()) {
+    if (!response.result().ok()) {
         metrics_.record_login_failed();
         return json_response(
             http::status::unauthorized,
             error_body(
-                response.context().error_code(),
-                response.context().error_message()),
+                response.result().error().code(),
+                response.result().error().message()),
             request.version(),
             request.keep_alive());
     }

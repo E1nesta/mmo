@@ -7,7 +7,7 @@
 #include "runtime/foundation/server_config.h"
 #include "adapters/session_redis/redis_session_store.h"
 #include "runtime/session/session_context.h"
-#include "runtime/storage/storage_bootstrap.h"
+#include "runtime/storage/storage_runtime.h"
 
 namespace {
 

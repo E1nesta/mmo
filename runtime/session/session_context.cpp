@@ -28,10 +28,6 @@ bool ConnectionBinding::valid(std::uint64_t now_millis) const {
             now_millis <= last_seen_millis + heartbeat_timeout_millis);
 }
 
-bool HeartbeatState::expired(std::uint64_t now_millis) const {
-    return timeout_millis > 0 && now_millis > last_seen_millis + timeout_millis;
-}
-
 bool ReconnectTicket::valid(std::uint64_t now_millis) const {
     return expire_at_millis > 0 && now_millis <= expire_at_millis;
 }
@@ -67,8 +63,12 @@ ConnectionBinding SessionRegistry::bind(
     binding.expire_at_millis = expire_at_millis;
     binding.heartbeat_timeout_millis = heartbeat_timeout_millis;
     binding.authenticated = true;
+    const auto previous = bindings_.find(player_id);
+    if (previous != bindings_.end()) {
+        player_by_connection_id_.erase(previous->second.connection_id);
+    }
     bindings_[player_id] = binding;
-    reconnect_tickets_.erase(player_id);
+    player_by_connection_id_[binding.connection_id] = player_id;
     return binding;
 }
 
@@ -130,27 +130,18 @@ std::optional<ConnectionBinding> SessionRegistry::find(
     return it->second;
 }
 
-std::optional<ReconnectTicket> SessionRegistry::make_reconnect_ticket(
-    std::int64_t player_id,
-    std::uint64_t now_millis,
-    std::uint64_t ttl_millis) {
+std::optional<ConnectionBinding> SessionRegistry::find_by_connection_id(
+    std::uint64_t connection_id) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto it = bindings_.find(player_id);
-    if (it == bindings_.end() || !it->second.valid(now_millis)) {
+    const auto player_it = player_by_connection_id_.find(connection_id);
+    if (player_it == player_by_connection_id_.end()) {
         return std::nullopt;
     }
-
-    ReconnectTicket ticket;
-    ticket.account_id = it->second.account_id;
-    ticket.connection_id = it->second.connection_id;
-    ticket.game_session_id = it->second.game_session_id;
-    ticket.player_id = it->second.player_id;
-    ticket.session_token = it->second.session_token;
-    ticket.gateway_id = it->second.gateway_id;
-    ticket.device_id = it->second.device_id;
-    ticket.expire_at_millis = now_millis + ttl_millis;
-    reconnect_tickets_[player_id] = ticket;
-    return ticket;
+    const auto binding_it = bindings_.find(player_it->second);
+    if (binding_it == bindings_.end()) {
+        return std::nullopt;
+    }
+    return binding_it->second;
 }
 
 ConnectionBinding SessionRegistry::reconnect(
@@ -177,26 +168,21 @@ ConnectionBinding SessionRegistry::reconnect(
     binding.expire_at_millis = expire_at_millis;
     binding.heartbeat_timeout_millis = heartbeat_timeout_millis;
     binding.authenticated = true;
+    const auto previous = bindings_.find(player_id);
+    if (previous != bindings_.end()) {
+        player_by_connection_id_.erase(previous->second.connection_id);
+    }
     bindings_[player_id] = binding;
-    reconnect_tickets_.erase(player_id);
+    player_by_connection_id_[binding.connection_id] = player_id;
     return binding;
-}
-
-bool SessionRegistry::can_reconnect(
-    std::int64_t player_id,
-    const std::string& session_token,
-    const std::string& game_session_id,
-    std::uint64_t now_millis) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    const auto it = reconnect_tickets_.find(player_id);
-    return it != reconnect_tickets_.end() &&
-           it->second.session_token == session_token &&
-           it->second.game_session_id == game_session_id &&
-           it->second.valid(now_millis);
 }
 
 void SessionRegistry::unbind(std::int64_t player_id) {
     std::lock_guard<std::mutex> lock(mutex_);
+    const auto it = bindings_.find(player_id);
+    if (it != bindings_.end()) {
+        player_by_connection_id_.erase(it->second.connection_id);
+    }
     bindings_.erase(player_id);
 }
 

@@ -9,25 +9,9 @@
 namespace runtime::protocol {
 
 inline constexpr std::uint8_t kProtocolVersion = 1;
-inline constexpr std::uint32_t kErrorResponseMessageId = 60001;
+inline constexpr std::uint32_t kErrorResponseMessageId = 9001;
 
-struct ReliableClientFrameHeader {
-    std::uint8_t version{kProtocolVersion};
-    std::uint16_t flags{};
-    std::uint32_t message_id{};
-    std::uint64_t request_id{};
-    std::uint64_t session_id{};
-};
-
-struct RealtimeClientFrameHeader {
-    std::uint8_t version{kProtocolVersion};
-    std::uint16_t flags{};
-    std::uint32_t message_id{};
-    std::uint32_t sequence{};
-    std::uint64_t session_id{};
-};
-
-struct RpcFrameHeader {
+struct FrameHeader {
     std::uint8_t version{kProtocolVersion};
     MessageMode mode{MessageMode::kCall};
     std::uint16_t flags{};
@@ -37,7 +21,7 @@ struct RpcFrameHeader {
 };
 
 struct FrameMessage {
-    RpcFrameHeader header;
+    FrameHeader header;
     std::string payload;
     std::vector<std::string> payload_batch;
 

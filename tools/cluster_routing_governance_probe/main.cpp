@@ -5,31 +5,30 @@
 #include <string>
 #include <vector>
 
-#include "runtime/channel/routing_policy.h"
-#include "runtime/channel/service_registry.h"
-#include "runtime/foundation/server_config.h"
 #include "runtime/observability/metrics.h"
 #include "runtime/observability/metrics_exporter.h"
+#include "runtime/rpc/rpc_routing_policy.h"
+#include "runtime/rpc/rpc_service_registry.h"
 
 namespace {
 
-runtime::channel::ServiceInstance make_instance(
+runtime::rpc::RpcServiceInstance make_instance(
     const std::string& service_name,
     const std::string& instance_id,
     std::uint16_t port) {
-    runtime::channel::ServiceInstance instance;
+    runtime::rpc::RpcServiceInstance instance;
     instance.service_name = service_name;
     instance.instance_id = instance_id;
     instance.endpoint.host = "127.0.0.1";
     instance.endpoint.port = port;
     instance.zone = "local-a";
     instance.weight = 100;
-    instance.state = runtime::channel::ServiceInstanceState::kHealthy;
+    instance.state = runtime::rpc::RpcServiceInstanceState::kHealthy;
     return instance;
 }
 
 void verify_static_registry() {
-    runtime::channel::StaticServiceRegistry registry({
+    runtime::rpc::StaticRpcServiceRegistry registry({
         make_instance("player_server", "player-1", 5101),
         make_instance("player_server", "player-2", 5102),
     });
@@ -39,34 +38,15 @@ void verify_static_registry() {
     assert(instances[0].service_name == "player_server");
     assert(registry.find_instance("player_server", "player-2").has_value());
 
-    runtime::foundation::ServerConfig missing_instance_config;
-    missing_instance_config.services.emplace(
-        "missing_instances",
-        runtime::foundation::ServiceConfig{});
-    bool missing_failed = false;
-    try {
-        runtime::channel::StaticServiceRegistry missing(
-            missing_instance_config);
-    } catch (const std::runtime_error&) {
-        missing_failed = true;
-    }
-    assert(missing_failed);
-
-    runtime::foundation::ServerConfig duplicate_config;
-    runtime::foundation::ServiceConfig service_config;
-    runtime::foundation::ServiceInstanceConfig first;
-    first.instance_id = "dup-1";
-    first.host = "127.0.0.1";
-    first.tcp_port = 5101;
-    runtime::foundation::ServiceInstanceConfig second = first;
-    second.tcp_port = 5102;
-    service_config.instances = {first, second};
-    duplicate_config.services.emplace("duplicate_instances", service_config);
+    runtime::rpc::StaticRpcServiceRegistry missing({});
+    assert(missing.list_instances("missing_instances").empty());
 
     bool duplicate_failed = false;
     try {
-        runtime::channel::StaticServiceRegistry duplicate(
-            duplicate_config);
+        runtime::rpc::StaticRpcServiceRegistry duplicate({
+            make_instance("duplicate_instances", "dup-1", 5101),
+            make_instance("duplicate_instances", "dup-1", 5102),
+        });
     } catch (const std::runtime_error&) {
         duplicate_failed = true;
     }
@@ -74,16 +54,16 @@ void verify_static_registry() {
 }
 
 void verify_routing_policies() {
-    std::vector<runtime::channel::ServiceInstance> instances = {
+    std::vector<runtime::rpc::RpcServiceInstance> instances = {
         make_instance("player_server", "player-1", 5101),
         make_instance("player_server", "player-2", 5102),
     };
 
-    runtime::channel::ServiceInstanceSelector selector;
+    runtime::rpc::RpcServiceInstanceSelector selector;
 
-    runtime::channel::RouteSelectionContext round_robin;
+    runtime::rpc::RpcRouteSelectionContext round_robin;
     round_robin.target_service = "player_server";
-    round_robin.policy = runtime::channel::RoutingPolicy::kRoundRobin;
+    round_robin.policy = runtime::rpc::RpcRoutingPolicy::kRoundRobin;
     round_robin.request_id = 1;
     const auto first = selector.select(instances, round_robin);
     assert(first.ok());
@@ -91,30 +71,30 @@ void verify_routing_policies() {
     assert(second.ok());
     assert(first.instance.instance_id != second.instance.instance_id);
 
-    runtime::channel::RouteSelectionContext player_sticky;
+    runtime::rpc::RpcRouteSelectionContext player_sticky;
     player_sticky.target_service = "player_server";
-    player_sticky.policy = runtime::channel::RoutingPolicy::kStickyPlayer;
-    player_sticky.player_id = 1198216;
+    player_sticky.policy = runtime::rpc::RpcRoutingPolicy::kStickyRouteKey;
+    player_sticky.route_key = 1198216;
     const auto sticky_a = selector.select(instances, player_sticky);
     const auto sticky_b = selector.select(instances, player_sticky);
     assert(sticky_a.ok());
     assert(sticky_b.ok());
     assert(sticky_a.instance.instance_id == sticky_b.instance.instance_id);
 
-    runtime::channel::RouteSelectionContext instance_sticky;
+    runtime::rpc::RpcRouteSelectionContext instance_sticky;
     instance_sticky.target_service = "instance_server";
-    instance_sticky.policy = runtime::channel::RoutingPolicy::kStickyInstance;
-    instance_sticky.route_key = "dungeon-500000";
+    instance_sticky.policy = runtime::rpc::RpcRoutingPolicy::kStickyRouteKey;
+    instance_sticky.route_key = 500000;
     const auto instance_a = selector.select(instances, instance_sticky);
     const auto instance_b = selector.select(instances, instance_sticky);
     assert(instance_a.ok());
     assert(instance_b.ok());
     assert(instance_a.instance.instance_id == instance_b.instance.instance_id);
 
-    runtime::channel::RouteSelectionContext explicit_instance;
+    runtime::rpc::RpcRouteSelectionContext explicit_instance;
     explicit_instance.target_service = "player_server";
     explicit_instance.policy =
-        runtime::channel::RoutingPolicy::kExplicitInstance;
+        runtime::rpc::RpcRoutingPolicy::kExplicitInstance;
     explicit_instance.target_instance_id = "player-2";
     const auto explicit_result = selector.select(instances, explicit_instance);
     assert(explicit_result.ok());
@@ -122,7 +102,7 @@ void verify_routing_policies() {
 }
 
 void verify_health_and_pending() {
-    runtime::channel::StaticServiceRegistry registry({
+    runtime::rpc::StaticRpcServiceRegistry registry({
         make_instance("player_server", "player-1", 5101),
         make_instance("player_server", "player-2", 5102),
     });
@@ -132,10 +112,10 @@ void verify_health_and_pending() {
         "probe_failure",
         std::chrono::milliseconds(60000));
 
-    runtime::channel::ServiceInstanceSelector selector;
-    runtime::channel::RouteSelectionContext context;
+    runtime::rpc::RpcServiceInstanceSelector selector;
+    runtime::rpc::RpcRouteSelectionContext context;
     context.target_service = "player_server";
-    context.policy = runtime::channel::RoutingPolicy::kRoundRobin;
+    context.policy = runtime::rpc::RpcRoutingPolicy::kRoundRobin;
 
     const auto selected = selector.select(
         registry.list_instances("player_server"), context);
@@ -148,7 +128,7 @@ void verify_health_and_pending() {
     for (const auto& instance : recovered_instances) {
         if (instance.instance_id == "player-1" &&
             instance.state ==
-                runtime::channel::ServiceInstanceState::kHealthy) {
+                runtime::rpc::RpcServiceInstanceState::kHealthy) {
             found_healthy_player_1 = true;
         }
     }

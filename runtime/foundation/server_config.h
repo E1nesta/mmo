@@ -37,6 +37,9 @@ struct TcpTransportConfig {
     std::uint32_t max_frame_payload_bytes{};
     int timeout_millis{};
     int listen_backlog{};
+    int max_connections{};
+    int max_write_queue_depth{};
+    int max_inflight_frames_per_connection{};
 };
 
 struct KcpTransportConfig {

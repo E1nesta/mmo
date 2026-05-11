@@ -7,41 +7,38 @@
 
 namespace runtime::rpc {
 
-RpcConnectionPoolOptions make_rpc_connection_pool_options(
-    const runtime::foundation::RpcConfig& config) {
-    RpcConnectionPoolOptions options;
-    options.connect_timeout_millis = config.connect_timeout_millis;
-    options.request_timeout_millis = config.request_timeout_millis;
-    options.connections_per_upstream =
-        static_cast<std::size_t>(std::max(1, config.connections_per_upstream));
-    options.max_pending_requests_per_connection =
-        static_cast<std::size_t>(
-            std::max(1, config.max_pending_requests_per_connection));
-    options.max_pending_requests_per_upstream =
-        static_cast<std::size_t>(
-            std::max(1, config.max_pending_requests_per_upstream));
-    return options;
-}
-
 RpcConnectionPool::RpcConnectionPool(
     std::shared_ptr<RpcServiceRegistry> service_registry,
     runtime::net::TransportOptions transport_options,
     RpcConnectionPoolOptions options)
     : service_registry_(std::move(service_registry)),
       transport_options_(transport_options),
-      options_(options) {
+      options_(options),
+      io_context_pool_(std::make_shared<runtime::scheduler::IOContextPool>(
+          std::max<std::uint32_t>(
+              1U,
+              transport_options.io_thread_count))) {
+    if (options_.connect_timeout_millis <= 0) {
+        options_.connect_timeout_millis =
+            runtime::net::kDefaultTransportTimeoutMillis;
+    }
+    if (options_.request_timeout_millis <= 0) {
+        options_.request_timeout_millis =
+            runtime::net::kDefaultTransportTimeoutMillis;
+    }
     options_.connections_per_upstream =
         std::max<std::size_t>(1, options_.connections_per_upstream);
     options_.max_pending_requests_per_connection =
         std::max<std::size_t>(1, options_.max_pending_requests_per_connection);
     options_.max_pending_requests_per_upstream =
         std::max<std::size_t>(1, options_.max_pending_requests_per_upstream);
+    io_context_pool_->start();
 }
 
 RpcResult RpcConnectionPool::call(
     const std::string& target_service,
     const runtime::protocol::FrameMessage& request,
-    const RpcCallOptions& options) {
+    const RpcOptions& options) {
     RpcError error;
     std::shared_ptr<RpcConnection> rpc_connection;
     std::optional<RpcServiceInstance> selected_instance;
@@ -92,10 +89,90 @@ RpcResult RpcConnectionPool::call(
     return result;
 }
 
+RpcError RpcConnectionPool::call_async(
+    const std::string& target_service,
+    const runtime::protocol::FrameMessage& request,
+    const RpcOptions& options,
+    RpcResultHandler handler) {
+    if (!handler) {
+        return make_rpc_error(
+            RpcErrorCode::kInvalidArgument,
+            "rpc async handler is required");
+    }
+
+    RpcError error;
+    std::shared_ptr<RpcConnection> rpc_connection;
+    std::optional<RpcServiceInstance> selected_instance;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (service_registry_ == nullptr) {
+            return make_rpc_error(
+                RpcErrorCode::kEndpointNotFound,
+                "rpc service registry is not configured");
+        }
+        if (pending_count_unlocked(target_service) >=
+            options_.max_pending_requests_per_upstream) {
+            return make_rpc_error(
+                RpcErrorCode::kPendingLimitExceeded,
+                "rpc upstream pending limit exceeded");
+        }
+
+        auto context = make_route_selection_context(target_service, request, options);
+        context.max_pending_requests_per_instance =
+            options_.max_pending_requests_per_upstream;
+        auto route = selector_.select(instances_with_pending(target_service), context);
+        if (!route.ok()) {
+            return std::move(route.error);
+        }
+
+        selected_instance = route.instance;
+        auto& rpc_connections =
+            connections_for_service_instance(*selected_instance, &error);
+        if (!error.ok()) {
+            return error;
+        }
+        rpc_connection = pick_connection(rpc_connections, request);
+    }
+    if (rpc_connection == nullptr) {
+        return make_rpc_error(
+            RpcErrorCode::kEndpointNotFound, "rpc connection is not available");
+    }
+
+    auto wrapped_handler =
+        [registry = service_registry_,
+         selected_instance,
+         handler = std::move(handler)](RpcResult result) mutable {
+            if (selected_instance.has_value() &&
+                !result.ok() &&
+                should_mark_unhealthy(result.error().code)) {
+                registry->mark_unhealthy(
+                    selected_instance->service_name,
+                    selected_instance->instance_id,
+                    result.error().message,
+                    std::chrono::milliseconds(1000));
+            }
+            handler(std::move(result));
+        };
+    const auto async_error = rpc_connection->call_async(
+        request,
+        options,
+        std::move(wrapped_handler));
+    if (!async_error.ok() &&
+        selected_instance.has_value() &&
+        should_mark_unhealthy(async_error.code)) {
+        service_registry_->mark_unhealthy(
+            selected_instance->service_name,
+            selected_instance->instance_id,
+            async_error.message,
+            std::chrono::milliseconds(1000));
+    }
+    return async_error;
+}
+
 RpcResult RpcConnectionPool::cast(
     const std::string& target_service,
     const runtime::protocol::FrameMessage& request,
-    const RpcCallOptions& options) {
+    const RpcOptions& options) {
     RpcError error;
     std::shared_ptr<RpcConnection> rpc_connection;
     std::optional<RpcServiceInstance> selected_instance;
@@ -205,7 +282,10 @@ RpcConnectionPool::connections_for_service_instance(
         options_.max_pending_requests_per_connection;
     for (std::size_t index = 0; index < options_.connections_per_upstream; ++index) {
         rpc_connections.push_back(std::make_shared<RpcConnection>(
-            instance.endpoint, transport_options_, rpc_connection_options));
+            instance.endpoint,
+            transport_options_,
+            rpc_connection_options,
+            io_context_pool_));
     }
 
     auto inserted =
@@ -263,7 +343,7 @@ std::size_t RpcConnectionPool::pending_count(
 RpcRouteSelectionContext RpcConnectionPool::make_route_selection_context(
     const std::string& target_service,
     const runtime::protocol::FrameMessage& request,
-    const RpcCallOptions& options) const {
+    const RpcOptions& options) const {
     RpcRouteSelectionContext context;
     context.target_service = target_service;
     context.policy = options.routing_policy;
@@ -289,6 +369,7 @@ bool RpcConnectionPool::should_mark_unhealthy(RpcErrorCode code) {
         case RpcErrorCode::kEndpointNotFound:
         case RpcErrorCode::kPendingLimitExceeded:
         case RpcErrorCode::kDuplicateRequestId:
+        case RpcErrorCode::kInvalidArgument:
             return false;
     }
     return false;

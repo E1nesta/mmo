@@ -11,7 +11,7 @@
 #include "adapters/session_redis/redis_session_store.h"
 #include "adapters/session_redis/redis_ticket_replay_store.h"
 #include "runtime/session/session_context.h"
-#include "runtime/storage/storage_bootstrap.h"
+#include "runtime/storage/storage_runtime.h"
 
 namespace {
 
@@ -46,14 +46,15 @@ int main() {
         {"exp", 20},
     };
 
-    const auto first =
-        player_service.apply_reward(player_id, idempotency_key, rewards);
+    modules::player::PlayerState player_state;
+    const auto first = player_service.apply_reward(
+        player_state, player_id, idempotency_key, rewards);
     assert(first.applied);
     assert(first.gold == 10);
     assert(first.exp == 20);
 
-    const auto duplicate =
-        player_service.apply_reward(player_id, idempotency_key, rewards);
+    const auto duplicate = player_service.apply_reward(
+        player_state, player_id, idempotency_key, rewards);
     assert(!duplicate.applied);
     assert(duplicate.gold == 10);
     assert(duplicate.exp == 20);

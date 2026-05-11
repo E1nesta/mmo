@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <chrono>
+#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -12,8 +14,12 @@
 
 namespace runtime::rpc {
 
+using RpcResultHandler = std::function<void(RpcResult)>;
+
 struct RpcPendingCall {
     std::promise<RpcResult> promise;
+    RpcResultHandler handler;
+    std::chrono::steady_clock::time_point deadline;
 };
 
 class RpcPendingTracker {
@@ -25,6 +31,9 @@ public:
         std::shared_ptr<RpcPendingCall> pending_call);
     void complete(std::uint64_t request_id, RpcResult result);
     void remove(std::uint64_t request_id);
+    std::size_t expire(
+        std::chrono::steady_clock::time_point now,
+        const RpcError& error);
     void fail_all(const RpcError& error);
     std::size_t size() const;
 

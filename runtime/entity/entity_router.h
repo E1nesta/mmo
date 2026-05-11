@@ -17,6 +17,9 @@ public:
         EntityId entity_id,
         EntityMailboxOptions options = {});
     bool bind(EntityId entity_id, std::shared_ptr<EntityMailbox> mailbox);
+    std::shared_ptr<EntityMailbox> find_or_bind(
+        EntityId entity_id,
+        EntityMailboxOptions options = {});
     std::shared_ptr<EntityMailbox> find(EntityId entity_id) const;
     void unbind(EntityId entity_id);
     std::size_t size() const;

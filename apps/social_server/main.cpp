@@ -1,17 +1,23 @@
 #include "apps/social_server/social_handlers.h"
 #include "modules/social/social_boundary.h"
-#include "runtime/server/server_app.h"
-#include "runtime/rpc/rpc_server.h"
-#include "runtime/server/server_bootstrap.h"
+#include "runtime/entity/entity_executor.h"
+#include "runtime/entity/entity_router.h"
+#include "runtime/scheduler/sharded_executor.h"
+#include "runtime/service/service_app.h"
+#include "runtime/service/service_runtime.h"
 
 int main() {
-    runtime::server::ServerApp app("social_server");
-    const auto tcp_options = runtime::server::make_server_transport_options(app);
+    runtime::service::ServiceApp app("social_server");
+    const auto tcp_options = runtime::service::make_server_transport_options(app);
 
     modules::social::SocialBoundaryService service;
-    runtime::rpc::RpcServer rpc_server(
-        runtime::rpc::make_rpc_server_options(app.config()));
-    apps::social_server::register_social_handlers(rpc_server, service);
+    runtime::rpc::RpcDispatcher dispatcher;
+    runtime::entity::EntityRouter entity_router;
+    runtime::entity::EntityExecutor entity_executor(entity_router);
+    runtime::scheduler::ShardedExecutor entity_scheduler(
+        runtime::service::make_entity_scheduler_options(app));
+    apps::social_server::register_social_handlers(
+        dispatcher, service, entity_executor, entity_scheduler);
 
-    return runtime::server::run_tcp_rpc_server(app, rpc_server, tcp_options);
+    return runtime::service::run_rpc_service(app, dispatcher, tcp_options);
 }

@@ -105,6 +105,8 @@ transport:
     max_frame_payload_bytes_env: "MMO_TCP_MAX_FRAME_PAYLOAD_BYTES"
     timeout_millis_env: "MMO_TCP_TIMEOUT_MILLIS"
     listen_backlog_env: "MMO_TCP_LISTEN_BACKLOG"
+    max_connections_env: "MMO_TCP_MAX_CONNECTIONS"
+    max_write_queue_depth_env: "MMO_TCP_MAX_WRITE_QUEUE_DEPTH"
   kcp:
     nodelay_env: "MMO_KCP_NODELAY"
     interval_millis_env: "MMO_KCP_INTERVAL_MILLIS"
@@ -128,7 +130,7 @@ storage:
     password_env: "MMO_REDIS_PASSWORD"
     pool_size_env: "MMO_REDIS_POOL_SIZE"
 
-execution:
+scheduler:
   io_threads_env: "MMO_IO_THREADS"
   handler_shards_env: "MMO_HANDLER_SHARDS"
   max_handler_queue_depth_per_shard_env: "MMO_MAX_HANDLER_QUEUE_DEPTH_PER_SHARD"
@@ -136,7 +138,7 @@ execution:
   scene_shards_env: "MMO_SCENE_SHARDS"
   instance_shards_env: "MMO_INSTANCE_SHARDS"
 
-channel:
+rpc:
   connect_timeout_millis_env: "MMO_CHANNEL_CONNECT_TIMEOUT_MILLIS"
   request_timeout_millis_env: "MMO_CHANNEL_REQUEST_TIMEOUT_MILLIS"
   connections_per_upstream_env: "MMO_CHANNEL_CONNECTIONS_PER_UPSTREAM"

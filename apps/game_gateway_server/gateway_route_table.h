@@ -1,9 +1,9 @@
 #pragma once
 
-#include "runtime/gateway/proxy_route.h"
+#include "runtime/gateway/gateway_route_table.h"
 
 namespace apps::game_gateway_server {
 
-runtime::gateway::ProxyRouteTable make_gateway_route_table();
+runtime::gateway::GatewayRouteTable make_gateway_route_table();
 
 }  // namespace apps::game_gateway_server

@@ -8,7 +8,7 @@
 #include "modules/auth/mysql_player_identity_repository.h"
 #include "modules/auth/password_hasher.h"
 #include "runtime/foundation/server_config.h"
-#include "runtime/storage/storage_bootstrap.h"
+#include "runtime/storage/storage_runtime.h"
 
 namespace {
 

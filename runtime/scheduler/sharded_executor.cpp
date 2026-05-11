@@ -1,8 +1,11 @@
 #include "runtime/scheduler/sharded_executor.h"
 
 #include <algorithm>
+#include <exception>
 #include <stdexcept>
 #include <utility>
+
+#include "runtime/scheduler/shard_router.h"
 
 namespace runtime::scheduler {
 
@@ -48,20 +51,24 @@ ShardedExecutor::~ShardedExecutor() {
 
 PostResult ShardedExecutor::post(std::uint64_t shard_key, Task task) {
     if (!task || stopped_.load(std::memory_order_acquire)) {
+        rejected_task_count_.fetch_add(1, std::memory_order_relaxed);
         return PostResult{PostStatus::kStopped};
     }
 
-    auto& shard = *shards_[shard_key % shards_.size()];
+    auto& shard = *shards_[ShardRouter::route(shard_key, shards_.size())];
     {
         std::lock_guard<std::mutex> lock(shard.mutex);
         if (shard.stopping) {
+            rejected_task_count_.fetch_add(1, std::memory_order_relaxed);
             return PostResult{PostStatus::kStopped};
         }
         if (shard.tasks.size() >= max_queue_depth_per_shard_) {
+            rejected_task_count_.fetch_add(1, std::memory_order_relaxed);
             return PostResult{PostStatus::kQueueFull};
         }
         shard.tasks.push_back(std::move(task));
         queued_task_count_.fetch_add(1, std::memory_order_relaxed);
+        accepted_task_count_.fetch_add(1, std::memory_order_relaxed);
     }
     shard.ready.notify_one();
     return PostResult{PostStatus::kAccepted};
@@ -73,6 +80,22 @@ std::size_t ShardedExecutor::shard_count() const {
 
 std::size_t ShardedExecutor::queued_task_count() const {
     return queued_task_count_.load(std::memory_order_relaxed);
+}
+
+ShardedExecutorStats ShardedExecutor::stats() const {
+    ShardedExecutorStats output;
+    output.shard_count = shard_count();
+    output.max_queue_depth_per_shard = max_queue_depth_per_shard_;
+    output.queued_task_count = queued_task_count();
+    output.accepted_task_count =
+        accepted_task_count_.load(std::memory_order_relaxed);
+    output.rejected_task_count =
+        rejected_task_count_.load(std::memory_order_relaxed);
+    output.completed_task_count =
+        completed_task_count_.load(std::memory_order_relaxed);
+    output.failed_task_count =
+        failed_task_count_.load(std::memory_order_relaxed);
+    return output;
 }
 
 bool ShardedExecutor::is_stopped() const {
@@ -116,7 +139,14 @@ void ShardedExecutor::run_shard(Shard& shard) {
             shard.tasks.pop_front();
             queued_task_count_.fetch_sub(1, std::memory_order_relaxed);
         }
-        task();
+        try {
+            task();
+            completed_task_count_.fetch_add(1, std::memory_order_relaxed);
+        } catch (const std::exception&) {
+            failed_task_count_.fetch_add(1, std::memory_order_relaxed);
+        } catch (...) {
+            failed_task_count_.fetch_add(1, std::memory_order_relaxed);
+        }
     }
 }
 

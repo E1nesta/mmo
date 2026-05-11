@@ -350,6 +350,17 @@ ServerConfig load_server_config(const std::string& path) {
         read_uint32(tcp, "max_frame_payload_bytes");
     config.transport.tcp.timeout_millis = read_int(tcp, "timeout_millis");
     config.transport.tcp.listen_backlog = read_int(tcp, "listen_backlog");
+    config.transport.tcp.max_connections =
+        read_optional_int(tcp, "max_connections", 4096);
+    config.transport.tcp.max_write_queue_depth =
+        read_optional_int(tcp, "max_write_queue_depth", 1024);
+    config.transport.tcp.max_inflight_frames_per_connection =
+        read_optional_int(tcp, "max_inflight_frames_per_connection", 128);
+    if (config.transport.tcp.max_connections <= 0 ||
+        config.transport.tcp.max_write_queue_depth <= 0 ||
+        config.transport.tcp.max_inflight_frames_per_connection <= 0) {
+        throw std::runtime_error("tcp transport config values must be greater than zero");
+    }
 
     const YAML::Node kcp = root["transport"]["kcp"];
     config.transport.kcp.nodelay = read_int(kcp, "nodelay");

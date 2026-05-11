@@ -2,22 +2,8 @@
 
 namespace runtime::gateway {
 
-runtime::protocol::AuthTokenOptions make_gateway_token_options(
-    const runtime::foundation::GatewayTicketConfig& config) {
-    runtime::protocol::AuthTokenOptions options;
-    options.issuer = config.issuer;
-    options.access_audience = config.access_audience;
-    options.gateway_audience = config.gateway_audience;
-    options.active_key_id = config.active_key_id;
-    options.active_shared_secret = config.active_shared_secret;
-    options.previous_key_id = config.previous_key_id;
-    options.previous_shared_secret = config.previous_shared_secret;
-    options.previous_key_accept_millis = config.previous_key_accept_millis;
-    return options;
-}
-
 bool issue_reconnect_ticket(
-    const runtime::foundation::ServerConfig& config,
+    const GatewaySessionOptions& options,
     runtime::session::SessionStore& session_store,
     const runtime::session::ConnectionBinding& binding,
     std::uint64_t now_millis,
@@ -36,8 +22,8 @@ bool issue_reconnect_ticket(
             binding.player_id,
             binding.session_token,
             static_cast<std::int64_t>(now_millis),
-            config.security.gateway_session.reconnect_ticket_ttl_millis,
-            make_gateway_token_options(config.security.gateway_ticket),
+            options.reconnect_ticket_ttl_millis,
+            options.token_options,
             reconnect_ticket,
             reconnect_ticket_expires_at,
             error_message)) {
@@ -48,8 +34,8 @@ bool issue_reconnect_ticket(
     if (!runtime::protocol::validate_auth_token(
             *reconnect_ticket,
             runtime::protocol::AuthTokenPurpose::kReconnect,
-            config.security.gateway_ticket.gateway_audience,
-            make_gateway_token_options(config.security.gateway_ticket),
+            options.gateway_audience,
+            options.token_options,
             static_cast<std::int64_t>(now_millis),
             &claims,
             error_message)) {

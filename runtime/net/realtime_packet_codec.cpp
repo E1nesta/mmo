@@ -10,7 +10,7 @@ namespace {
 constexpr std::size_t kRealtimePacketHeaderBytes =
     sizeof(std::uint8_t) +   // version
     sizeof(std::uint16_t) +  // flags
-    sizeof(std::uint32_t) +  // message_id
+    sizeof(std::uint16_t) +  // message_id
     sizeof(std::uint32_t) +  // sequence
     sizeof(std::uint64_t) +  // realtime_session_id
     sizeof(std::uint32_t);   // payload_size
@@ -122,7 +122,7 @@ std::vector<std::uint8_t> RealtimePacketCodec::encode(
     out.reserve(kRealtimePacketHeaderBytes + packet.payload.size());
     write_u8(&out, packet.version);
     write_u16(&out, packet.flags);
-    write_u32(&out, packet.message_id);
+    write_u16(&out, packet.message_id);
     write_u32(&out, packet.sequence);
     write_u64(&out, packet.realtime_session_id);
     write_u32(&out, static_cast<std::uint32_t>(packet.payload.size()));
@@ -150,7 +150,7 @@ bool RealtimePacketCodec::decode(
     RealtimePacket decoded;
     if (!read_u8(data, &offset, &decoded.version) ||
         !read_u16(data, &offset, &decoded.flags) ||
-        !read_u32(data, &offset, &decoded.message_id) ||
+        !read_u16(data, &offset, &decoded.message_id) ||
         !read_u32(data, &offset, &decoded.sequence) ||
         !read_u64(data, &offset, &decoded.realtime_session_id) ||
         !read_u32(data, &offset, &payload_size)) {
@@ -162,7 +162,7 @@ bool RealtimePacketCodec::decode(
         set_error(error_message, "realtime packet payload exceeds limit");
         return false;
     }
-    if (offset + payload_size != data.size()) {
+    if (payload_size != data.size() - offset) {
         set_error(error_message, "realtime packet payload size mismatch");
         return false;
     }

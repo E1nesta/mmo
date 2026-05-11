@@ -6,8 +6,8 @@
 #include <boost/beast/http.hpp>
 
 #include "runtime/foundation/server_config.h"
+#include "runtime/rpc/rpc_client.h"
 #include "runtime/observability/metrics.h"
-#include "runtime/gateway/gateway_forwarder.h"
 
 namespace apps::api_gateway_server {
 
@@ -15,7 +15,7 @@ class ApiHandler {
 public:
     ApiHandler(
         const runtime::foundation::ServerConfig& config,
-        runtime::gateway::GatewayForwarder& forwarder,
+        runtime::rpc::RpcClient& rpc_client,
         runtime::observability::MetricsRegistry& metrics);
 
     boost::beast::http::response<boost::beast::http::string_body> handle(
@@ -37,7 +37,7 @@ private:
             request);
 
     const runtime::foundation::ServerConfig& config_;
-    runtime::gateway::GatewayForwarder& forwarder_;
+    runtime::rpc::RpcClient& rpc_client_;
     runtime::observability::MetricsRegistry& metrics_;
     std::atomic<std::uint64_t> next_request_id_{1};
 };

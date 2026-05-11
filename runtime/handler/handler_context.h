@@ -13,7 +13,6 @@ struct HandlerContext {
     std::uint32_t message_id{};
     std::uint64_t request_id{};
     std::uint64_t route_key{};
-    runtime::protocol::FrameMessage frame;
 };
 
 inline HandlerContext make_handler_context(
@@ -23,8 +22,7 @@ inline HandlerContext make_handler_context(
         std::move(service_name),
         frame.message_id(),
         frame.request_id(),
-        frame.route_key(),
-        frame};
+        frame.route_key()};
 }
 
 }  // namespace runtime::handler

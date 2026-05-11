@@ -4,23 +4,22 @@
 #include <string>
 #include <utility>
 
-#include "internal/gateway_auth.pb.h"
+#include "ss/gateway_auth.pb.h"
 #include "runtime/observability/logging.h"
 #include "runtime/protocol/auth_tokens.h"
-#include "runtime/protocol/envelope_utils.h"
-#include "runtime/protocol/internal_auth.h"
-#include "apps/protocol/message_types.h"
-#include "runtime/server/handler_result.h"
-#include "runtime/server/typed_handler.h"
+#include "proto/message_catalog.h"
+#include "runtime/handler/handler_result.h"
+#include "runtime/handler/typed_handler.h"
+#include "runtime/protocol/payload_utils.h"
 
 namespace apps::auth_server {
 
-namespace app_proto = apps::protocol;
+namespace app_proto = mmo::protocol;
 namespace foundation = runtime::foundation;
 namespace observability = runtime::observability;
 namespace protocol = runtime::protocol;
 namespace rpc = runtime::rpc;
-namespace server = runtime::server;
+namespace handler = runtime::handler;
 namespace auth = modules::auth;
 namespace {
 
@@ -41,36 +40,35 @@ protocol::AuthTokenOptions make_token_options(
 }  // namespace
 
 void register_auth_handlers(
-    rpc::RpcServer& rpc_server,
+    rpc::RpcDispatcher& dispatcher,
     auth::AuthService& service,
     const foundation::ServerConfig& config,
     const std::string& service_name) {
-    server::bind_typed_handler<
-        mmo::internal_api::GatewayAuthLoginRequest,
-        mmo::internal_api::GatewayAuthLoginResponse>(
-        rpc_server,
+    handler::bind_typed_handler<
+        mmo::ss::GatewayAuthLoginRequest,
+        mmo::ss::GatewayAuthLoginResponse>(
+        dispatcher,
         app_proto::kGatewayAuthLoginRequest,
         app_proto::kGatewayAuthLoginResponse,
         service_name,
         [&service, &config](
-            const mmo::internal_api::GatewayAuthLoginRequest& request,
-            const server::ServiceContext& context) {
+            const mmo::ss::GatewayAuthLoginRequest& request,
+            const handler::HandlerContext& context) {
             const auto login =
                 service.login(
                     request.account_name(), request.password(), request.device_id());
             if (!login.success) {
                 observability::LogContext log_context{
                     context.service_name};
-                log_context.request_id = context.request.request_id();
-                log_context.player_id = context.request.player_id();
-                log_context.message_type = context.message_type;
-                log_context.trace_id = context.request.trace_id();
+                log_context.request_id = context.request_id;
+                log_context.route_key = context.route_key;
+                log_context.message_id = context.message_id;
                 log_context.error_code = login.error_code;
                 observability::log_warn(
                     log_context,
                     "login_rejected reason=" + login.internal_reason);
-                return server::HandlerResult<
-                    mmo::internal_api::GatewayAuthLoginResponse>::failure(
+                return handler::HandlerResult<
+                    mmo::ss::GatewayAuthLoginResponse>::failure(
                         login.error_code, login.error_message);
             }
             const auto now_millis = protocol::current_time_millis();
@@ -103,14 +101,13 @@ void register_auth_handlers(
                     &gateway_ticket,
                     &gateway_ticket_expires_at,
                     &token_error)) {
-                return server::HandlerResult<
-                    mmo::internal_api::GatewayAuthLoginResponse>::failure(
+                return handler::HandlerResult<
+                    mmo::ss::GatewayAuthLoginResponse>::failure(
                         500, token_error);
             }
 
-            mmo::internal_api::GatewayAuthLoginResponse response;
-            *response.mutable_context() =
-                protocol::make_ok_context(request.context());
+            mmo::ss::GatewayAuthLoginResponse response;
+            *response.mutable_result() = protocol::make_ok_result();
             response.set_account_id(login.account_id);
             response.set_player_id(login.player_id);
             response.set_session_token(login.session_token);
@@ -121,8 +118,8 @@ void register_auth_handlers(
             response.set_gateway_ticket_expires_at_epoch_millis(
                 gateway_ticket_expires_at);
 
-            return server::HandlerResult<
-                mmo::internal_api::GatewayAuthLoginResponse>::success(
+            return handler::HandlerResult<
+                mmo::ss::GatewayAuthLoginResponse>::success(
                     std::move(response));
         });
 }

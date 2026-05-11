@@ -10,7 +10,7 @@
 #include "runtime/observability/metrics.h"
 #include "runtime/observability/metrics_exporter.h"
 #include "runtime/storage/schema_migration.h"
-#include "runtime/storage/storage_bootstrap.h"
+#include "runtime/storage/storage_runtime.h"
 
 namespace {
 
@@ -36,7 +36,7 @@ void verify_metrics_exporter() {
     metrics.record_error();
     metrics.record_login_success();
     metrics.record_gateway_ticket_issued();
-    metrics.record_gate_login_failed();
+    metrics.record_gateway_login_failed();
     metrics.set_executor_queue_depth(7);
     metrics.set_rpc_pending_count(3);
 
@@ -65,10 +65,9 @@ void verify_readiness() {
 void verify_logging() {
     runtime::observability::LogContext context("production_probe");
     context.request_id = 1001;
-    context.account_id = 2002;
-    context.player_id = 3003;
+    context.route_key = 3003;
     context.gateway_id = "game_gateway_server";
-    context.game_session_id = "game-session-id";
+    context.session_id = 4004;
     context.upstream = "auth_server";
     context.status = "failed";
     context.error_code = 401;
@@ -78,7 +77,8 @@ void verify_logging() {
         runtime::observability::format_log_line(context, "probe_event");
     assert(contains(line, "service=production_probe"));
     assert(contains(line, "event=probe_event"));
-    assert(contains(line, "account_id=2002"));
+    assert(contains(line, "route_key=3003"));
+    assert(contains(line, "session_id=4004"));
     assert(contains(line, "upstream=auth_server"));
     assert(contains(line, "status=failed"));
     assert(!contains(line, "password"));

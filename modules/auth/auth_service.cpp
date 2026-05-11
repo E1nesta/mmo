@@ -1,8 +1,8 @@
 #include "modules/auth/auth_service.h"
 
+#include <openssl/rand.h>
+
 #include <chrono>
-#include <functional>
-#include <sstream>
 #include <utility>
 
 #include "modules/auth/password_hasher.h"
@@ -25,18 +25,21 @@ std::int64_t current_time_seconds() {
         .count();
 }
 
-std::string make_session_token(
-    std::int64_t account_id,
-    std::int64_t player_id,
-    const std::string& device_id) {
-    const auto now = current_time_seconds();
-    const auto seed =
-        std::to_string(account_id) + ":" + std::to_string(player_id) + ":" +
-        device_id + ":" + std::to_string(now);
-    std::ostringstream stream;
-    stream << "session-" << player_id << '-' << now << '-'
-           << std::hex << std::hash<std::string>{}(seed);
-    return stream.str();
+std::string make_session_token() {
+    unsigned char bytes[32];
+    if (RAND_bytes(bytes, sizeof(bytes)) != 1) {
+        return {};
+    }
+
+    static constexpr char kHexDigits[] = "0123456789abcdef";
+    std::string token;
+    token.reserve(8 + sizeof(bytes) * 2);
+    token.append("session-");
+    for (const auto byte : bytes) {
+        token.push_back(kHexDigits[(byte >> 4U) & 0x0FU]);
+        token.push_back(kHexDigits[byte & 0x0FU]);
+    }
+    return token;
 }
 
 }  // namespace
@@ -90,8 +93,10 @@ LoginResult AuthService::login(
     result.success = true;
     result.account_id = account->account_id;
     result.player_id = identity->player_id;
-    result.session_token =
-        make_session_token(result.account_id, result.player_id, device_id);
+    result.session_token = make_session_token();
+    if (result.session_token.empty()) {
+        return failed_login("session token generation failed");
+    }
     result.expires_at_epoch_seconds = current_time_seconds() + 3600;
     return result;
 }

@@ -105,6 +105,8 @@ transport:
     max_frame_payload_bytes: 1048576
     timeout_millis: 3000
     listen_backlog: 64
+    max_connections: 2048
+    max_write_queue_depth: 1024
   kcp:
     nodelay: 1
     interval_millis: 20
@@ -129,7 +131,7 @@ storage:
     password_env: "MMO_REDIS_PASSWORD"
     pool_size: 8
 
-execution:
+scheduler:
   io_threads: 2
   handler_shards: 4
   max_handler_queue_depth_per_shard: 1024
@@ -137,7 +139,7 @@ execution:
   scene_shards: 4
   instance_shards: 2
 
-channel:
+rpc:
   connect_timeout_millis: 1000
   request_timeout_millis: 3000
   connections_per_upstream: 2

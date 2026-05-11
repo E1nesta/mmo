@@ -36,12 +36,42 @@ void RpcPendingTracker::complete(std::uint64_t request_id, RpcResult result) {
         pending_call = it->second;
         pending_.erase(it);
     }
+    if (pending_call->handler) {
+        pending_call->handler(std::move(result));
+        return;
+    }
     pending_call->promise.set_value(std::move(result));
 }
 
 void RpcPendingTracker::remove(std::uint64_t request_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     pending_.erase(request_id);
+}
+
+std::size_t RpcPendingTracker::expire(
+    std::chrono::steady_clock::time_point now,
+    const RpcError& error) {
+    std::unordered_map<std::uint64_t, std::shared_ptr<RpcPendingCall>> expired;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (auto it = pending_.begin(); it != pending_.end();) {
+            if (it->second->deadline <= now) {
+                expired.emplace(it->first, std::move(it->second));
+                it = pending_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    for (auto& [request_id, pending_call] : expired) {
+        (void)request_id;
+        if (pending_call->handler) {
+            pending_call->handler(RpcResult::failure(error));
+        } else {
+            pending_call->promise.set_value(RpcResult::failure(error));
+        }
+    }
+    return expired.size();
 }
 
 void RpcPendingTracker::fail_all(const RpcError& error) {
@@ -52,7 +82,11 @@ void RpcPendingTracker::fail_all(const RpcError& error) {
     }
     for (auto& [request_id, pending_call] : pending) {
         (void)request_id;
-        pending_call->promise.set_value(RpcResult::failure(error));
+        if (pending_call->handler) {
+            pending_call->handler(RpcResult::failure(error));
+        } else {
+            pending_call->promise.set_value(RpcResult::failure(error));
+        }
     }
 }
 

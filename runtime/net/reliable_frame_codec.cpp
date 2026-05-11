@@ -8,13 +8,8 @@ namespace runtime::net {
 namespace {
 
 constexpr std::size_t kReliableFrameHeaderBytes =
-    sizeof(std::uint32_t) +  // frame length after this field
-    sizeof(std::uint8_t) +   // version
-    sizeof(std::uint32_t) +  // message_id
-    sizeof(std::uint16_t) +  // flags
-    sizeof(std::uint64_t) +  // request_id
-    sizeof(std::uint64_t) +  // session_id
-    sizeof(std::uint32_t);   // payload_size
+    ReliableFrameCodec::kFrameLengthBytes +
+    ReliableFrameCodec::kReliableFrameOverheadBytes;
 
 void set_error(std::string* error_message, const std::string& message) {
     if (error_message != nullptr) {
@@ -127,7 +122,7 @@ std::vector<std::uint8_t> ReliableFrameCodec::encode(
     out.reserve(kReliableFrameHeaderBytes + frame.payload.size());
     write_u32(&out, frame_length);
     write_u8(&out, frame.version);
-    write_u32(&out, frame.message_id);
+    write_u16(&out, frame.message_id);
     write_u16(&out, frame.flags);
     write_u64(&out, frame.request_id);
     write_u64(&out, frame.session_id);
@@ -157,7 +152,7 @@ bool ReliableFrameCodec::decode(
     ReliableFrame decoded;
     if (!read_u32(data, &offset, &frame_length) ||
         !read_u8(data, &offset, &decoded.version) ||
-        !read_u32(data, &offset, &decoded.message_id) ||
+        !read_u16(data, &offset, &decoded.message_id) ||
         !read_u16(data, &offset, &decoded.flags) ||
         !read_u64(data, &offset, &decoded.request_id) ||
         !read_u64(data, &offset, &decoded.session_id) ||
@@ -174,7 +169,7 @@ bool ReliableFrameCodec::decode(
         set_error(error_message, "reliable frame payload exceeds limit");
         return false;
     }
-    if (offset + payload_size != data.size()) {
+    if (payload_size != data.size() - offset) {
         set_error(error_message, "reliable frame payload size mismatch");
         return false;
     }

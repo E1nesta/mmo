@@ -9,7 +9,7 @@ namespace runtime::net {
 struct RealtimePacket {
     std::uint8_t version{};
     std::uint16_t flags{};
-    std::uint32_t message_id{};
+    std::uint16_t message_id{};
     std::uint32_t sequence{};
     std::uint64_t realtime_session_id{};
     std::vector<std::uint8_t> payload;

@@ -2,12 +2,12 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "runtime/foundation/server_config.h"
 #include "runtime/net/frame_transport.h"
 #include "runtime/protocol/payload_utils.h"
 #include "runtime/rpc/rpc_connection_pool.h"
@@ -20,10 +20,6 @@ namespace runtime::rpc {
 struct RpcClientOptions {
     std::string source_service;
 };
-
-RpcClientOptions make_rpc_client_options(
-    const std::string& source_service,
-    const runtime::foundation::ServerConfig& config);
 
 class RpcClient {
 public:
@@ -42,6 +38,11 @@ public:
         const std::string& target_service,
         runtime::protocol::FrameMessage request,
         RpcOptions options = {});
+    RpcError call_frame_async(
+        const std::string& target_service,
+        runtime::protocol::FrameMessage request,
+        RpcOptions options,
+        RpcResultHandler handler);
     RpcResult cast_frame(
         const std::string& target_service,
         runtime::protocol::FrameMessage request,
@@ -64,6 +65,30 @@ public:
             options.mode,
             request);
         return call_frame(target_service, std::move(frame), std::move(options));
+    }
+
+    template <typename Request>
+    RpcError call_async(
+        const std::string& target_service,
+        std::uint32_t message_id,
+        std::uint64_t route_key,
+        const Request& request,
+        RpcOptions options,
+        RpcResultHandler handler) {
+        options.target_service = target_service;
+        options.route_key = route_key;
+        options.mode = runtime::protocol::MessageMode::kCall;
+        auto frame = runtime::protocol::pack_message(
+            message_id,
+            request_id_or_next(options),
+            route_key,
+            options.mode,
+            request);
+        return call_frame_async(
+            target_service,
+            std::move(frame),
+            std::move(options),
+            std::move(handler));
     }
 
     template <typename Event>
@@ -105,7 +130,7 @@ public:
 
 private:
     std::uint64_t request_id_or_next(const RpcOptions& options);
-    RpcCallOptions make_call_options(const RpcOptions& options) const;
+    RpcOptions make_effective_options(RpcOptions options) const;
 
     RpcConnectionPool connection_pool_;
     RpcClientOptions options_;

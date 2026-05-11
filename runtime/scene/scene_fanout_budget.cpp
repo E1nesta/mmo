@@ -13,8 +13,8 @@ SceneFanoutBudget::SceneFanoutBudget(SceneFanoutBudgetOptions options)
 }
 
 bool SceneFanoutBudget::try_consume(std::size_t snapshots, std::size_t bytes) {
-    if (snapshots_used_ + snapshots > options_.max_snapshots_per_tick ||
-        bytes_used_ + bytes > options_.max_bytes_per_tick) {
+    if (snapshots > options_.max_snapshots_per_tick - snapshots_used_ ||
+        bytes > options_.max_bytes_per_tick - bytes_used_) {
         ++rejected_count_;
         return false;
     }

@@ -3,6 +3,19 @@
 #include <stdexcept>
 
 namespace runtime::scheduler {
+namespace {
+
+void run_io_context(boost::asio::io_context& context) {
+    while (!context.stopped()) {
+        try {
+            context.run();
+            return;
+        } catch (...) {
+        }
+    }
+}
+
+}  // namespace
 
 IOContextPool::IOContextPool(std::size_t thread_count) {
     if (thread_count == 0) {
@@ -42,7 +55,7 @@ void IOContextPool::start() {
     threads_.reserve(contexts_.size());
     for (auto& context : contexts_) {
         auto* raw_context = context.get();
-        threads_.emplace_back([raw_context]() { raw_context->run(); });
+        threads_.emplace_back([raw_context]() { run_io_context(*raw_context); });
     }
 }
 

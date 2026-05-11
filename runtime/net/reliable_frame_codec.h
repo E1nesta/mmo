@@ -8,7 +8,7 @@ namespace runtime::net {
 
 struct ReliableFrame {
     std::uint8_t version{};
-    std::uint32_t message_id{};
+    std::uint16_t message_id{};
     std::uint16_t flags{};
     std::uint64_t request_id{};
     std::uint64_t session_id{};
@@ -17,6 +17,15 @@ struct ReliableFrame {
 
 class ReliableFrameCodec {
 public:
+    static constexpr std::uint32_t kFrameLengthBytes = 4;
+    static constexpr std::uint32_t kReliableFrameOverheadBytes =
+        sizeof(std::uint8_t) +   // version
+        sizeof(std::uint16_t) +  // message_id
+        sizeof(std::uint16_t) +  // flags
+        sizeof(std::uint64_t) +  // request_id
+        sizeof(std::uint64_t) +  // session_id
+        sizeof(std::uint32_t);   // payload_size
+
     static std::vector<std::uint8_t> encode(
         const ReliableFrame& frame,
         std::uint32_t max_payload_bytes,

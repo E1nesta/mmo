@@ -1,25 +1,31 @@
 #pragma once
 
-#include <cstddef>
+#include <atomic>
 #include <cstdint>
-#include <functional>
 #include <string>
-
-#include "runtime/foundation/server_config.h"
-#include "runtime/protocol/frame.h"
 
 namespace runtime::net {
 
 inline constexpr std::uint32_t kDefaultMaxFramePayloadBytes = 1024 * 1024;
 inline constexpr int kDefaultTransportTimeoutMillis = 3000;
+inline constexpr std::uint32_t kDefaultMaxConnections = 4096;
+inline constexpr std::uint32_t kDefaultMaxWriteQueueDepth = 1024;
+inline constexpr std::uint32_t kDefaultMaxInflightFramesPerConnection = 128;
+inline constexpr std::uint32_t kDefaultIoThreadCount = 1;
+inline constexpr std::uint32_t kDefaultHandlerShardCount = 1;
+inline constexpr std::uint32_t kDefaultMaxHandlerQueueDepth = 1024;
 
 struct TransportOptions {
     std::uint32_t max_payload_bytes{kDefaultMaxFramePayloadBytes};
     int timeout_millis{kDefaultTransportTimeoutMillis};
     int listen_backlog{64};
-    int io_thread_count{1};
-    int handler_shard_count{1};
-    std::size_t max_handler_queue_depth_per_shard{1024};
+    std::uint32_t max_connections{kDefaultMaxConnections};
+    std::uint32_t max_write_queue_depth{kDefaultMaxWriteQueueDepth};
+    std::uint32_t max_inflight_frames_per_connection{
+        kDefaultMaxInflightFramesPerConnection};
+    std::uint32_t io_thread_count{kDefaultIoThreadCount};
+    std::uint32_t handler_shard_count{kDefaultHandlerShardCount};
+    std::uint32_t max_handler_queue_depth{kDefaultMaxHandlerQueueDepth};
 };
 
 struct TransportEndpoint {
@@ -27,33 +33,45 @@ struct TransportEndpoint {
     std::uint16_t port{};
 };
 
-TransportOptions make_transport_options(
-    const runtime::foundation::TcpTransportConfig& config);
-
-TransportOptions make_transport_options(
-    const runtime::foundation::TcpTransportConfig& config,
-    const runtime::foundation::SchedulerConfig& scheduler_config);
-
-TransportEndpoint make_transport_endpoint(
-    const runtime::foundation::ServiceConfig& config);
-
-using FrameHandler = std::function<runtime::protocol::FrameMessage(
-    const runtime::protocol::FrameMessage&)>;
-
-class FrameServer {
-public:
-    virtual ~FrameServer() = default;
-
-    virtual int run() = 0;
+enum class TcpCloseReason {
+    kNone,
+    kPeerClosed,
+    kConnectionLimit,
+    kFrameTooLarge,
+    kReadFailed,
+    kDecodeFailed,
+    kEncodeFailed,
+    kWriteQueueFull,
+    kWriteFailed,
+    kHandlerQueueFull,
+    kHandlerFailed,
+    kHandlerStopped,
 };
 
-class FrameClient {
-public:
-    virtual ~FrameClient() = default;
-
-    virtual runtime::protocol::FrameMessage send(
-        const TransportEndpoint& endpoint,
-        const runtime::protocol::FrameMessage& request) = 0;
+struct TransportStats {
+    std::uint64_t active_connections{};
+    std::uint64_t accepted_connections{};
+    std::uint64_t rejected_connections{};
+    std::uint64_t closed_connections{};
+    std::uint64_t read_frames{};
+    std::uint64_t written_frames{};
+    std::uint64_t read_bytes{};
+    std::uint64_t written_bytes{};
+    std::uint64_t errors{};
 };
+
+struct TransportCounters {
+    std::atomic<std::uint64_t> active_connections{};
+    std::atomic<std::uint64_t> accepted_connections{};
+    std::atomic<std::uint64_t> rejected_connections{};
+    std::atomic<std::uint64_t> closed_connections{};
+    std::atomic<std::uint64_t> read_frames{};
+    std::atomic<std::uint64_t> written_frames{};
+    std::atomic<std::uint64_t> read_bytes{};
+    std::atomic<std::uint64_t> written_bytes{};
+    std::atomic<std::uint64_t> errors{};
+};
+
+TransportStats snapshot_transport_counters(const TransportCounters& counters);
 
 }  // namespace runtime::net

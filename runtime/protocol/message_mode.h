@@ -20,4 +20,15 @@ inline std::uint8_t message_mode_value(MessageMode mode) {
     return static_cast<std::uint8_t>(mode);
 }
 
+inline bool is_valid_message_mode(MessageMode mode) {
+    switch (mode) {
+        case MessageMode::kCast:
+        case MessageMode::kCall:
+        case MessageMode::kReply:
+        case MessageMode::kBatch:
+            return true;
+    }
+    return false;
+}
+
 }  // namespace runtime::protocol
